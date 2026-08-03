@@ -1,0 +1,53 @@
+spring:
+  application:
+    name: capacity-planner
+
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:capacity_planner}
+    username: ${DB_USERNAME:capacity_planner}
+    password: ${DB_PASSWORD:capacity_planner}
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:capacity_planner}
+    password: ${RABBITMQ_PASSWORD:capacity_planner}
+
+app:
+  cors:
+    allowed-origins:
+      - http://localhost:5173
+      - http://localhost:3000
+  cache:
+    ttl-seconds: 300
+
+jira:
+  enabled: ${JIRA_ENABLED:false}
+  base-url: ${JIRA_BASE_URL:}
+  account-email: ${JIRA_ACCOUNT_EMAIL:}
+  api-key: ${JIRA_API_KEY:}
+
+server:
+  port: 8080
+
+logging:
+  level:
+    com.aksa.capacityplanner: DEBUG

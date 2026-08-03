@@ -1,0 +1,7 @@
+/* Vite şablonunun varsayılan stilleri kaldırıldı; tüm görsel tasarım
+   styles/app.css içinde (orijinal Sprint_Sunum_Uretici.html'den birebir taşındı). */
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+}

@@ -1,0 +1,16 @@
+# Ortak adim: JUnit XML sonuclarini Azure DevOps test sonuclari sekmesine yayinlar.
+parameters:
+  - name: testResultsFiles
+    type: string
+  - name: testRunTitle
+    type: string
+
+steps:
+  - task: PublishTestResults@2
+    displayName: "Test sonuclarini yayinla (${{ parameters.testRunTitle }})"
+    condition: succeededOrFailed()
+    inputs:
+      testResultsFormat: "JUnit"
+      testResultsFiles: "${{ parameters.testResultsFiles }}"
+      testRunTitle: "${{ parameters.testRunTitle }}"
+      failTaskOnFailedTests: true

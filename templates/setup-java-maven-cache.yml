@@ -1,0 +1,20 @@
+# Ortak adim seti: JDK 17 kurulumu + Maven yerel repository cache'i.
+# Her stage/job basinda ayni ortami kurmak icin tekrar kullanilir.
+steps:
+  - task: JavaToolInstaller@0
+    displayName: "JDK 17 kur"
+    inputs:
+      versionSpec: "17"
+      jdkArchitectureOption: "x64"
+      jdkSourceOption: "PreInstalled"
+
+  - task: Cache@2
+    displayName: "Maven local repository cache"
+    inputs:
+      key: 'maven | "$(Agent.OS)" | pom.xml'
+      restoreKeys: |
+        maven | "$(Agent.OS)"
+      path: "$(Pipeline.Workspace)/.m2/repository"
+
+  - script: chmod +x ./mvnw
+    displayName: "mvnw calistirilabilir yap"

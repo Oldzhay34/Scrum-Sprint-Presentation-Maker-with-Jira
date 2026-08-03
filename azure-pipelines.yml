@@ -1,0 +1,141 @@
+# Aksa Capacity Planner - CI pipeline
+#
+# Test piramidine bire bir karsilik gelen asamali stage yapisi:
+#   Build -> Unit -> Integration(H2) -> Module(Testcontainers) -> Subsystem(Testcontainers)
+#         -> System/Blackbox(Testcontainers) -> Acceptance/Alpha(Testcontainers)
+#
+# Her stage bir onceki basarili olursa calisir (fail-fast). ubuntu-latest Microsoft-hosted
+# agent'lari Docker'i hazir icerdigi icin Testcontainers katmanlari ek kurulum gerektirmez.
+#
+# NOT: Bu pipeline sadece CI (derleme + test) asamasini kapsar. Deploy/CD asamasi ve
+# gerekebilecek secret'lar (orn. JIRA_API_KEY, container registry kimlik bilgileri) bilerek
+# eklenmedi - bunlari repo/pipeline sahibi kendi ortaminda tanimlamali.
+
+trigger:
+  branches:
+    include:
+      - main
+      - develop
+
+pr:
+  branches:
+    include:
+      - main
+
+pool:
+  vmImage: "ubuntu-latest"
+
+variables:
+  MAVEN_OPTS: "-Dmaven.repo.local=$(Pipeline.Workspace)/.m2/repository"
+  javaVersion: "17"
+
+resources:
+  repositories: []
+
+stages:
+  # ---------------------------------------------------------------------------------------
+  - stage: Build
+    displayName: "Build"
+    jobs:
+      - job: Compile
+        displayName: "mvn compile"
+        steps:
+          - template: templates/setup-java-maven-cache.yml
+          - script: ./mvnw -B compile
+            displayName: "Compile"
+
+  # ---------------------------------------------------------------------------------------
+  - stage: UnitTests
+    displayName: "1) Unit Tests"
+    dependsOn: Build
+    jobs:
+      - job: Unit
+        displayName: "mvn test (domain katmani, Spring context yok)"
+        steps:
+          - template: templates/setup-java-maven-cache.yml
+          - script: ./mvnw -B test
+            displayName: "Unit testleri calistir"
+          - template: templates/publish-test-results.yml
+            parameters:
+              testResultsFiles: "**/surefire-reports/TEST-*.xml"
+              testRunTitle: "Unit"
+
+  # ---------------------------------------------------------------------------------------
+  - stage: IntegrationTests
+    displayName: "2) Integration Tests (H2)"
+    dependsOn: UnitTests
+    jobs:
+      - job: Integration
+        displayName: "mvn verify -P integration-tests"
+        steps:
+          - template: templates/setup-java-maven-cache.yml
+          - script: ./mvnw -B verify -P integration-tests -DskipTests
+            displayName: "Integration testleri calistir (persistence adapter, H2)"
+          - template: templates/publish-test-results.yml
+            parameters:
+              testResultsFiles: "**/failsafe-reports/TEST-*.xml"
+              testRunTitle: "Integration"
+
+  # ---------------------------------------------------------------------------------------
+  - stage: ModuleTests
+    displayName: "3) Module Tests (Testcontainers Postgres)"
+    dependsOn: IntegrationTests
+    jobs:
+      - job: Module
+        displayName: "mvn verify -P module-tests"
+        steps:
+          - template: templates/setup-java-maven-cache.yml
+          - script: ./mvnw -B verify -P module-tests -DskipTests
+            displayName: "Modul testlerini calistir (tek modul uctan uca, gercek Postgres)"
+          - template: templates/publish-test-results.yml
+            parameters:
+              testResultsFiles: "**/failsafe-reports/TEST-*.xml"
+              testRunTitle: "Module"
+
+  # ---------------------------------------------------------------------------------------
+  - stage: SubsystemTests
+    displayName: "4) Subsystem Tests (Testcontainers full stack)"
+    dependsOn: ModuleTests
+    jobs:
+      - job: Subsystem
+        displayName: "mvn verify -P subsystem-tests"
+        steps:
+          - template: templates/setup-java-maven-cache.yml
+          - script: ./mvnw -B verify -P subsystem-tests -DskipTests
+            displayName: "Subsystem testlerini calistir (capacity + team + leave orkestrasyonu, cache, RabbitMQ)"
+          - template: templates/publish-test-results.yml
+            parameters:
+              testResultsFiles: "**/failsafe-reports/TEST-*.xml"
+              testRunTitle: "Subsystem"
+
+  # ---------------------------------------------------------------------------------------
+  - stage: SystemTests
+    displayName: "5) System / Blackbox Tests"
+    dependsOn: SubsystemTests
+    jobs:
+      - job: System
+        displayName: "mvn verify -P system-tests"
+        steps:
+          - template: templates/setup-java-maven-cache.yml
+          - script: ./mvnw -B verify -P system-tests -DskipTests
+            displayName: "Sistem testlerini calistir (tam uygulama, sadece HTTP siniri)"
+          - template: templates/publish-test-results.yml
+            parameters:
+              testResultsFiles: "**/failsafe-reports/TEST-*.xml"
+              testRunTitle: "System"
+
+  # ---------------------------------------------------------------------------------------
+  - stage: AcceptanceTests
+    displayName: "6) Acceptance / Alpha Tests"
+    dependsOn: SystemTests
+    jobs:
+      - job: Acceptance
+        displayName: "mvn verify -P acceptance-tests"
+        steps:
+          - template: templates/setup-java-maven-cache.yml
+          - script: ./mvnw -B verify -P acceptance-tests -DskipTests
+            displayName: "Kabul testlerini calistir (is senaryolari)"
+          - template: templates/publish-test-results.yml
+            parameters:
+              testResultsFiles: "**/failsafe-reports/TEST-*.xml"
+              testRunTitle: "Acceptance"
