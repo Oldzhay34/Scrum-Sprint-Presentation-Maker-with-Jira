@@ -8,10 +8,11 @@ export const G = {
 };
 G.X_R = G.X_L + G.COL_W + G.GAP_X;
 
-// Kart icin denenecek yazi boyutlari, en buyukten en kucuge. Cok fazla madde
-// eklenirse (bkz. pickFS) kucuk uclara kadar inilir ki icerik hicbir zaman
-// slayt sinirlarinin disina tasip sessizce kaybolmasin.
-export const FS_CANDIDATES = [10.5, 10, 9.5, 9, 8.5, 8, 7.5, 7, 6.5, 6, 5.5, 5, 4.5, 4];
+// Kart icin denenecek yazi boyutlari, en buyukten en kucuge. Icerik azsa buyuk
+// uclar (12.5'e kadar) denenir; cok fazla madde eklenirse (bkz. pickFS) kucuk
+// uclara kadar inilir ki icerik hicbir zaman slayt sinirlarinin disina tasip
+// sessizce kaybolmasin.
+export const FS_CANDIDATES = [12.5, 12, 11.5, 11, 10.5, 10, 9.5, 9, 8.5, 8, 7.5, 7, 6.5, 6, 5.5, 5, 4.5, 4];
 export const FS_MIN = FS_CANDIDATES[FS_CANDIDATES.length - 1];
 
 /** Maddeler arasi bosluk, yazi boyutuyla orantili kuculur (sabit kalirsa kucuk fontlarda oranti bozulur). */
@@ -164,6 +165,23 @@ export function extractPriority(t) {
   let text = str.slice(0, m.index) + str.slice(m.index + m[0].length);
   text = text.replace(/\s*—\s*$/, "").trimEnd();
   return { priority: m[1], text };
+}
+
+/**
+ * Icerik az oldugunda kartlar sadece basligin sigacagi kadar kucuk kaliyor,
+ * slaytin buyuk kismi bos gorunuyordu. Dogal (icerik bazli) yukseklikleri
+ * hesapladiktan sonra, cardsTop-Y_BOT arasindaki bosluk kalirsa iki satira
+ * esit dagitip kartlari alani dolduracak sekilde gerer. fitSectionItems'in
+ * dondurdugu (mumkun olan en cok icerigi gosteren) topH/botH uzerine uygulanir -
+ * onizleme (SlideCanvas) ve PPTX (sprintDeckBuilder) AYNI fonksiyonu kullanir,
+ * ikisi de senkron kalir.
+ */
+export function stretchRowHeights(topH, botH, cardsTop) {
+  const avail = G.Y_BOT - cardsTop;
+  const extra = avail - (topH + G.GAP_Y + botH);
+  if (extra <= 0) return { topH, botH };
+  const add = extra / 2;
+  return { topH: topH + add, botH: botH + add };
 }
 
 /** "**metin**" isaretlemesini kalin run'lara ayirir. SlideCanvas ve sprintDeckBuilder ayni sekilde tuketir. */

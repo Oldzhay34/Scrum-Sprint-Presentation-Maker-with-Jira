@@ -15,24 +15,37 @@ const TABS = [
  */
 export default function UnifiedPreviewPane({ sprintData, dashData, assets, activeTab, onTabChange, onZoom }) {
   const { boxRef, scale } = useCanvasFit();
+  const idx = Math.max(0, TABS.findIndex((t) => t.key === activeTab));
+  const goTo = (delta) => onTabChange(TABS[(idx + delta + TABS.length) % TABS.length].key);
 
   return (
     <section className="previewwrap">
       <p className="panelttl">Canlı önizleme</p>
       <div className="stage">
-        <div className="tabs">
-          {TABS.map((t) => (
-            <button
-              key={t.key}
-              type="button"
-              className={`tab${activeTab === t.key ? " active" : ""}`}
-              onClick={() => onTabChange(t.key)}
-            >
-              {t.label}
-            </button>
-          ))}
-          <button type="button" className="tab zoomtrig" title="Önizlemeyi büyüt" onClick={onZoom}>
-            ⤢ Büyüt
+        <div className="tabs carousel-nav">
+          <button type="button" className="carousel-arrow" aria-label="Önceki slayt" onClick={() => goTo(-1)}>
+            ‹
+          </button>
+          <div className="carousel-center">
+            <span className="carousel-label">{TABS[idx].label}</span>
+            <div className="carousel-dots">
+              {TABS.map((t, i) => (
+                <button
+                  key={t.key}
+                  type="button"
+                  className={`carousel-dot${i === idx ? " active" : ""}`}
+                  aria-label={t.label}
+                  title={t.label}
+                  onClick={() => onTabChange(t.key)}
+                />
+              ))}
+            </div>
+          </div>
+          <button type="button" className="carousel-arrow" aria-label="Sonraki slayt" onClick={() => goTo(1)}>
+            ›
+          </button>
+          <button type="button" className="tab zoomtrig" title="Slaydı büyük ve düzenlenebilir önizlemede aç" onClick={onZoom}>
+            ⤢ Preview
           </button>
         </div>
         <div className="slidebox" ref={boxRef}>
@@ -43,7 +56,7 @@ export default function UnifiedPreviewPane({ sprintData, dashData, assets, activ
           )}
         </div>
         <div className="note">
-          Kapak, içerik slaytı ve kapasite dashboard'u arasında sekmelerle geçiş yapabilirsin — hepsi aynı anda güncel tutulur.
+          Kapak, içerik slaytı ve kapasite dashboard'u arasında oklarla/noktalarla geçiş yapabilirsin — hepsi aynı anda güncel tutulur.
         </div>
       </div>
     </section>

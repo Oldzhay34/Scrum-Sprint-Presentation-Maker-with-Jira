@@ -9,7 +9,7 @@ const DEFAULT_META = { team: "", dateRange: "01 Haziran – 31 Aralık 2026", re
  * duzenledigi kisi/rol/tamamlanan + son 2 hafta delta alanlari) yonetir ve
  * dashSlideHTML'in JSX karsiligi icin gereken `dashData` nesnesini uretir.
  */
-export function useDashboardData(fallbackTeamName) {
+export function useDashboardData(dTeam, setDTeam, dSprint, setDSprint) {
   const [loaded, setLoaded] = useState(false);
   const [persons, setPersons] = useState([]);
   const [kpis, setKpis] = useState(null);
@@ -18,8 +18,6 @@ export function useDashboardData(fallbackTeamName) {
   // toplamini burada tutup dashData.customKpis uzerinden ek bir kart olarak gosteriyoruz.
   const [totalFte, setTotalFte] = useState(null);
 
-  const [dTeam, setDTeam] = useState("");
-  const [dSprint, setDSprint] = useState("");
   const [dKapanan, setDKapanan] = useState("");
   const [dEklenen, setDEklenen] = useState("");
   const [dFte, setDFte] = useState("");
@@ -27,7 +25,7 @@ export function useDashboardData(fallbackTeamName) {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [info, setInfo] = useState("Excel yükleyin — Kapasite Takip dosyasındaki Rapor sayfası okunur. Sprint modundan farklı olarak burada tüm sayılar Excel'den gelir.");
+  const BASE_INFO = "Excel yükleyin — Kapasite Takip dosyasındaki Rapor sayfası okunur. Sprint modundan farklı olarak burada tüm sayılar Excel'den gelir.";
 
   const loadFile = (file) => {
     setLoading(true);
@@ -35,17 +33,13 @@ export function useDashboardData(fallbackTeamName) {
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
-        const parsed = parseDashboardExcel(e.target.result, fallbackTeamName);
+        const parsed = parseDashboardExcel(e.target.result, dTeam);
         setLoaded(true);
         setPersons(parsed.persons);
         setKpis(parsed.kpis);
         setMeta(parsed.meta);
         setTotalFte(parsed.totalFte);
         if (!dTeam.trim()) setDTeam(parsed.meta.team);
-        setInfo(
-          `Excel okundu — ${parsed.meta.team} · ${parsed.persons.length} kişi · Rapor Tarihi ${parsed.meta.reportDate}. ` +
-            "Aşağıdan ad/rol ve Tamamlanan değerlerini girin (Açık = Toplam − Tamamlanan otomatik)."
-        );
       } catch (err) {
         setError('Excel okunamadı: ' + (err?.message || "bilinmeyen hata") + ' — dosyanın "Rapor" sayfasını içerdiğinden emin olun.');
       } finally {
@@ -63,7 +57,7 @@ export function useDashboardData(fallbackTeamName) {
     setPersons((prev) => prev.map((p, i) => (i === index ? { ...p, ...patch } : p)));
 
   const dashData = useMemo(() => {
-    const team = dTeam.trim() || meta.team || fallbackTeamName || "Ekip";
+    const team = dTeam.trim() || meta.team || "Ekip";
     const mappedPersons = persons.map((p) => {
       const tam = num(p.tamamlanan);
       return { name: p.name, role: p.role, initials: p.initials, toplam: p.toplam, tamamlanan: tam, acik: p.toplam - tam, kapasite: num(p.kapasite), doluluk: p.doluluk, durum: p.durum };
@@ -98,7 +92,17 @@ export function useDashboardData(fallbackTeamName) {
       deltaRange: delta ? delta.range : "",
       customKpis,
     };
-  }, [dTeam, dSprint, dKapanan, dEklenen, dFte, dNet, persons, kpis, meta, loaded, fallbackTeamName, totalFte]);
+  }, [dTeam, dSprint, dKapanan, dEklenen, dFte, dNet, persons, kpis, meta, loaded, totalFte]);
+
+  // Ekip adi (dTeam) her degistiginde bu mesaj da guncellensin - Excel'den okunan
+  // ismi donup kalmasin, kapak sayfasindaki gibi guncel degeri yansitsin.
+  const info = useMemo(() => {
+    if (!loaded) return BASE_INFO;
+    return (
+      `Excel okundu — ${dTeam.trim() || meta.team} · ${persons.length} kişi · Rapor Tarihi ${meta.reportDate}. ` +
+      "Aşağıdan ad/rol ve Tamamlanan değerlerini girin (Açık = Toplam − Tamamlanan otomatik)."
+    );
+  }, [loaded, dTeam, meta, persons.length]);
 
   return {
     loaded, persons, loading, error, info,

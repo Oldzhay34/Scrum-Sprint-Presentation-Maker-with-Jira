@@ -82,8 +82,8 @@ export default function App() {
 
   // ---- Kapasite Dashboard (3. adim) durumu ----
   const [dashSource, setDashSource] = useState("excel");
-  const dashboard = useDashboardData(sprintForm.team);
-  const manual = useManualDashboard(sprintForm.team);
+  const dashboard = useDashboardData(sprintForm.team, sprintForm.setTeam, sprintForm.sprint, sprintForm.setSprint);
+  const manual = useManualDashboard(sprintForm.team, sprintForm.setTeam, sprintForm.sprint, sprintForm.setSprint);
   const activeDashData = dashSource === "manual" ? manual.dashData : dashboard.dashData;
 
   // Kapak + icerik + kapasite dashboard'u TEK pptx olarak indiren, sihirbazin
@@ -94,6 +94,9 @@ export default function App() {
   const [previewTab, setPreviewTab] = useState(PREVIEW_TAB_BY_MODE.cover);
   const [zoomOpen, setZoomOpen] = useState(false);
 
+  // Sihirbaz adimi (mode) degistiginde onizleme sekmesi de otomatik esler -
+  // "Kapak Sayfasi" adimina gecince onizleme de kapak gorselini (logo + ag deseni)
+  // gostersin, kullanici ayrica sekme tiklamak zorunda kalmasin.
   const changeMode = (newMode) => {
     setMode(newMode);
     setPreviewTab(PREVIEW_TAB_BY_MODE[newMode]);
@@ -108,10 +111,12 @@ export default function App() {
   // (Sprint veya Kapasite Dashboard), ayni dosya HER IKI sayfayi da besler -
   // standart "Kapasite Takip" dosyasi hem Is_Listesi/Parametreler hem de
   // Rapor/Kapasite sayfalarini bir arada icerir.
+  const [excelFileName, setExcelFileName] = useState(null);
   const handleExcelFile = (file) => {
     clearSampleIfNeeded();
     excel.loadFile(file, sprintForm.team);
     dashboard.loadFile(file);
+    setExcelFileName(file.name);
   };
 
   const handleFillSample = () => {
@@ -141,10 +146,9 @@ export default function App() {
   return (
     <>
       <TopBar
-        mode={mode}
-        onModeChange={changeMode}
         theme={theme}
         onToggleTheme={toggleTheme}
+        excelFileName={excelFileName}
         actions={
           mode === "cover" || mode === "sprint" ? (
             <SprintTopActions
@@ -234,7 +238,15 @@ export default function App() {
           previewTab === "dashboard" ? (
             <DashboardSlideCanvas dd={activeDashData || {}} assets={assets} scale={scale} />
           ) : (
-            <SlideCanvas data={sprintData} tab={previewTab} assets={assets} scale={scale} />
+            <SlideCanvas
+              data={sprintData}
+              tab={previewTab}
+              assets={assets}
+              scale={scale}
+              editable
+              onEditTeam={sprintForm.setTeam}
+              onEditSection={sprintForm.setSectionText}
+            />
           )
         }
       />

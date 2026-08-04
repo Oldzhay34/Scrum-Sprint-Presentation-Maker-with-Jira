@@ -8,21 +8,37 @@ import { useCanvasFit } from "../../hooks/useCanvasFit";
  */
 export default function ZoomModal({ open, onClose, tabs, activeTab, onTabChange, renderCanvas }) {
   const { boxRef, scale } = useCanvasFit();
+  const idx = tabs ? Math.max(0, tabs.findIndex((t) => t.key === activeTab)) : 0;
+  const goTo = (delta) => tabs && onTabChange(tabs[(idx + delta + tabs.length) % tabs.length].key);
 
   return (
     <Modal open={open} onClose={onClose} boxClassName="zoombox">
       <div className="zoombar">
-        {tabs &&
-          tabs.map((t) => (
-            <button
-              key={t.key}
-              type="button"
-              className={`tab${activeTab === t.key ? " active" : ""}`}
-              onClick={() => onTabChange(t.key)}
-            >
-              {t.label}
+        {tabs && (
+          <div className="carousel-nav">
+            <button type="button" className="carousel-arrow" aria-label="Önceki slayt" onClick={() => goTo(-1)}>
+              ‹
             </button>
-          ))}
+            <div className="carousel-center">
+              <span className="carousel-label">{tabs[idx]?.label}</span>
+              <div className="carousel-dots">
+                {tabs.map((t, i) => (
+                  <button
+                    key={t.key}
+                    type="button"
+                    className={`carousel-dot${i === idx ? " active" : ""}`}
+                    aria-label={t.label}
+                    title={t.label}
+                    onClick={() => onTabChange(t.key)}
+                  />
+                ))}
+              </div>
+            </div>
+            <button type="button" className="carousel-arrow" aria-label="Sonraki slayt" onClick={() => goTo(1)}>
+              ›
+            </button>
+          </div>
+        )}
         <Button variant="close" className="zoom-close" onClick={onClose} style={{ marginLeft: "auto" }}>
           Kapat
         </Button>

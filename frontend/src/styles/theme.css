@@ -68,11 +68,15 @@
   border-color: var(--line);
 }
 
-/* Slayt tuvali (SlideCanvas / DashboardSlideCanvas) PPTX ciktisiyla birebir
-   ayni gorunmeli - koyu modda SADECE cevresindeki uygulama arka plani
-   degisir, slaytin kendi renkleri (beyaz kartlar, koyu metin) hep sabit kalir. */
-.theme-dark .slidebox {
-  background: #fff;
+/* Slayt tuvali (SlideCanvas / DashboardSlideCanvas) - kapak slayti HER ZAMAN
+   PPTX ciktisiyla birebir ayni (acik) kalir. Icerik (tab-content) ve Kapasite
+   Dashboard (tab-dashboard) ise "cafcafli" istegiyle koyu modda kendi koyu
+   paletini de kullanir - bu noktadan sonra ekrandaki onizleme ile PPTX
+   ciktisi (sprintDeckBuilder.js bu CSS'i hic gormez, degismeden kalir) o iki
+   sekmede bicimsel olarak ayrisir; kapak sekmesi PPTX ile ayni kalmaya devam eder. */
+.theme-dark .slidebox,
+.theme-dark .zoomstage {
+  background: #16212f;
   border-color: var(--glass-border);
 }
 .theme-dark .slidecanvas {
@@ -81,6 +85,179 @@
   --line: #E5E7EB;
   --card: #FFFFFF;
   --bg: #F1F5F7;
+}
+.theme-dark .slidecanvas.tab-content,
+.theme-dark .slidecanvas.tab-dashboard {
+  --ink: #E7EDF5;
+  --mut: #9CB0C6;
+  --line: rgba(255, 255, 255, 0.14);
+  --card: #1c2733;
+  --bg: #131c27;
+}
+.theme-dark .slidecanvas.tab-content .card {
+  background: var(--card);
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.35);
+}
+.theme-dark .slidecanvas.tab-content .card li {
+  color: var(--ink);
+}
+.theme-dark .slidecanvas.tab-content .card li:before {
+  color: var(--mut);
+}
+.theme-dark .slidecanvas.tab-content .s-header {
+  color: var(--aksa-blue-light);
+}
+.theme-dark .slidecanvas.tab-dashboard .ddelta .dc.hl {
+  background: rgba(220, 38, 38, 0.16);
+  border-color: rgba(252, 165, 165, 0.4);
+}
+.theme-dark .slidecanvas.tab-dashboard .ddelta .dc.hl .l {
+  color: #fca5a5;
+}
+.theme-dark .slidecanvas.tab-dashboard .dttl {
+  color: var(--aksa-blue-light);
+}
+
+/* Asagidaki dekoratif katmanlar (ikon rozeti, kose filigrani, parlama, nefes
+   alma animasyonu, ortadaki "aksa" filigrani) tema secimine BAKMAKSIZIN her
+   zaman ayni sekilde uygulanir - acik modda soluk, koyu modda daha belirgin. */
+.slidecanvas.tab-content::before {
+  content: "aksa";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-family: 'Segoe UI', system-ui, Arial, sans-serif;
+  font-size: 150px;
+  font-weight: 800;
+  letter-spacing: 8px;
+  color: rgba(0, 0, 0, 0.055);
+  pointer-events: none;
+  white-space: nowrap;
+}
+.theme-dark .slidecanvas.tab-content::before {
+  color: rgba(0, 0, 0, 0.28);
+}
+
+/* Icerik slayti kartlari - ikon rozeti + kosede buyuk soluk filigran + kart
+   yuzeyinde renkli parlama + hafif nefes alma animasyonu. Kullanici istegiyle
+   HEM acik HEM koyu modda uygulanir (once sadece koyu moddaydi) - yani bu
+   noktadan sonra ekrandaki onizleme ile gercek PPTX ciktisi (sprintDeckBuilder.js
+   bu CSS'i hic gormez, degismeden kalir) her iki temada da bicimsel olarak
+   ayrisir. Kart olcum/konum geometrisine (padding/font/line-height) dokunulmadi.
+   .card-watermark'in TEMEL (position/boyut/opacity/pointer-events) kurallari
+   burada, tema kosullu DEGIL - yoksa acik modda konumsuz/dev boyutlu, normal
+   akista bir <img> olarak kartin tamamini kaplardi (yasanan hata buydu). */
+.slidecanvas.tab-content .card {
+  position: absolute;
+  isolation: isolate;
+}
+.slidecanvas.tab-content .card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: radial-gradient(220px 140px at 100% 0%, color-mix(in srgb, var(--card-accent, #4a9fe0) 14%, transparent), transparent 70%);
+}
+.slidecanvas.tab-content .card .chd img {
+  border-radius: 50%;
+  padding: 5px;
+  box-sizing: border-box;
+  background: var(--card-accent, #4a9fe0);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--card-accent, #4a9fe0) 55%, transparent);
+  animation: aksa-badge-breathe 5s ease-in-out infinite;
+}
+.slidecanvas.tab-content .card-watermark {
+  position: absolute;
+  right: -14px;
+  bottom: -14px;
+  width: 34%;
+  height: auto;
+  max-width: 110px;
+  opacity: 0.09;
+  transform: rotate(-8deg);
+  pointer-events: none;
+  z-index: -1;
+}
+.theme-dark .slidecanvas.tab-content .card-watermark {
+  opacity: 0.14;
+}
+.slidecanvas.tab-content .card .acc {
+  animation: aksa-acc-breathe 4.5s ease-in-out infinite;
+}
+
+@keyframes aksa-acc-breathe {
+  0%, 100% {
+    opacity: 1;
+    box-shadow: 0 0 10px var(--card-accent, transparent);
+  }
+  50% {
+    opacity: 0.38;
+    box-shadow: 0 0 2px transparent;
+  }
+}
+
+/* Her bolumun kendi vurgu rengi - accent hex'i (sec.accent) inline stille
+   .acc uzerinde zaten var; burada ayni degeri --card-accent olarak da
+   tanimlayip yukaridaki color-mix() kurallarinin okumasini sagliyoruz. */
+.slidecanvas.tab-content .card:has(.acc[style*="16A34A"]) { --card-accent: #16a34a; }
+.slidecanvas.tab-content .card:has(.acc[style*="2563EB"]) { --card-accent: #2563eb; }
+.slidecanvas.tab-content .card:has(.acc[style*="E0761F"]) { --card-accent: #e0761f; }
+.slidecanvas.tab-content .card:has(.acc[style*="7C3AED"]) { --card-accent: #7c3aed; }
+
+@media (prefers-reduced-motion: reduce) {
+  .slidecanvas.tab-content .card .chd img,
+  .slidecanvas.tab-content .card .acc {
+    animation: none !important;
+  }
+}
+
+/* Kapasite Dashboard slayti - KPI/kisi tablosu kartlarina golge + renk
+   cilasi. Acik modda hafif, koyu modda ("cafcafli") daha belirgin. */
+.slidecanvas.tab-dashboard .dcard,
+.slidecanvas.tab-dashboard .ddelta .dc {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+.theme-dark .slidecanvas.tab-dashboard .dcard,
+.theme-dark .slidecanvas.tab-dashboard .ddelta .dc {
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* KPI kartlari - her kartin kendi anlam rengiyle (--dcard-accent, JS'ten
+   inline aktarilir) ust kenar + kose parlamasi. Referans gorseldeki canli/
+   renkli KPI kart hissi - yeni grafik/veri eklemeden, sadece renk cilasi. */
+.slidecanvas.tab-dashboard .dcard {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  border-top: 2px solid color-mix(in srgb, var(--dcard-accent, #4a9fe0) 70%, transparent);
+}
+.slidecanvas.tab-dashboard .dcard::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: radial-gradient(140px 90px at 0% 0%, color-mix(in srgb, var(--dcard-accent, #4a9fe0) 12%, transparent), transparent 70%);
+}
+
+/* Kisi tablosu - doluluk cubugu ve durum rozetine kendi renginde parlama */
+.slidecanvas.tab-dashboard .dol .dbar i {
+  box-shadow: 0 0 8px color-mix(in srgb, var(--fill-accent, transparent) 60%, transparent);
+}
+.slidecanvas.tab-dashboard .pill {
+  box-shadow: 0 0 6px color-mix(in srgb, var(--pill-accent, transparent) 35%, transparent);
+}
+.slidecanvas.tab-dashboard .dtr .kisi .av {
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.2);
+}
+.theme-dark .slidecanvas.tab-dashboard .dol .dbar i {
+  box-shadow: 0 0 8px color-mix(in srgb, var(--fill-accent, transparent) 70%, transparent);
+}
+.theme-dark .slidecanvas.tab-dashboard .pill {
+  box-shadow: 0 0 8px color-mix(in srgb, var(--pill-accent, transparent) 45%, transparent);
+}
+.theme-dark .slidecanvas.tab-dashboard .dtr .kisi .av {
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.4);
 }
 
 .theme-dark .field input,
@@ -110,6 +287,11 @@
   color: #cfe0f2;
 }
 
+.theme-dark .btn.close {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--ink);
+}
+
 .theme-dark .chip {
   background: rgba(255, 255, 255, 0.04);
   color: var(--ink);
@@ -117,6 +299,15 @@
 
 .theme-dark .bar {
   background: rgba(255, 255, 255, 0.03);
+}
+
+/* app.css'te .addseg/.addbar acik mavi (#EFF6F8) sabit - karanlik modda
+   goze batiyordu, marka mavisiyle uyumlu koyu varyanta ceviriyoruz. */
+.theme-dark .addseg,
+.theme-dark .addbar {
+  background: rgba(74, 159, 224, 0.12);
+  border-color: rgba(74, 159, 224, 0.45);
+  color: var(--aksa-blue-light);
 }
 
 /* ---------------------------------------------------------------------- */
@@ -210,12 +401,52 @@ header.topbar {
   position: relative;
 }
 
-header.topbar::after {
-  content: "";
-  position: absolute;
-  left: 0; right: 0; bottom: 0;
-  height: 3px;
+/* ---------------------------------------------------------------------- */
+/* Ust bar daraltma tutamaci - alt kenardan yukari cekilince (veya         */
+/* tiklaninca) topbar-content daralip kaybolur, tekrar cekilince/          */
+/* tiklaninca acilir. Tutamaç her zaman gorunur kalir.                     */
+/* ---------------------------------------------------------------------- */
+.topbar-content {
+  max-height: 160px;
+  opacity: 1;
+  transition: max-height 0.28s ease, opacity 0.2s ease, padding 0.28s ease;
+}
+.topbar-collapsed .topbar-content {
+  max-height: 0;
+  opacity: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  pointer-events: none;
+}
+
+.topbar-handle {
+  width: 100%;
+  height: 13px;
+  flex: none;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  cursor: ns-resize;
+  touch-action: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: linear-gradient(90deg, var(--aksa-green), var(--aksa-green-dark) 60%, transparent);
+  transition: filter 0.15s ease;
+}
+.topbar-handle:hover,
+.topbar-handle:focus-visible {
+  filter: brightness(1.15);
+}
+.topbar-handle-grip {
+  width: 44px;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.55);
+  transition: background 0.15s ease;
+}
+.topbar-handle:hover .topbar-handle-grip {
+  background: rgba(255, 255, 255, 0.9);
 }
 
 .navbar-icon {
@@ -402,4 +633,427 @@ header.topbar::after {
 @keyframes aksa-pop-in {
   from { opacity: 0; transform: scale(0.92) translateY(6px); }
   to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* ---------------------------------------------------------------------- */
+/* Buton cilasi - yuvarlak kose, hafif golge, hover'da kalkma hissi        */
+/* ---------------------------------------------------------------------- */
+.btn {
+  border-radius: 10px;
+  transition: transform 0.15s ease, box-shadow 0.2s ease, background 0.15s ease;
+}
+.btn:not(:disabled):hover {
+  transform: translateY(-1px);
+}
+.btn.primary {
+  background: linear-gradient(135deg, var(--aksa-green), var(--aksa-green-dark));
+  box-shadow: 0 4px 14px rgba(110, 168, 43, 0.32);
+}
+.btn.primary:hover {
+  background: linear-gradient(135deg, var(--aksa-green), var(--aksa-green-dark));
+  box-shadow: 0 6px 20px rgba(110, 168, 43, 0.42);
+}
+.btn.soft {
+  box-shadow: 0 1px 3px rgba(11, 31, 51, 0.05);
+}
+.btn.soft:hover {
+  box-shadow: 0 4px 14px rgba(13, 94, 168, 0.14);
+  border-color: var(--aksa-blue-light);
+}
+.btn.ghost {
+  border-radius: 8px;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Input/textarea odak (focus) hali - marka rengiyle yumusak parlama,      */
+/* app.css'teki sabit acik mavi outline'in yerine gecer                    */
+/* ---------------------------------------------------------------------- */
+.field input,
+.sec textarea,
+.modal textarea,
+.pmrow input,
+.bar input.barlabel,
+.seg input {
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.field input:focus,
+.sec textarea:focus,
+.modal textarea:focus {
+  outline: none;
+  border-color: var(--aksa-blue-light);
+  box-shadow: 0 0 0 3px rgba(74, 159, 224, 0.22);
+}
+
+/* ---------------------------------------------------------------------- */
+/* Panel basligi - marka renginde kucuk vurgu cizgisi, gorsel capa         */
+/* ---------------------------------------------------------------------- */
+.panelttl {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.panelttl::before {
+  content: "";
+  width: 4px;
+  height: 12px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, var(--aksa-blue-light), var(--aksa-blue));
+  flex: none;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Bosluk ritmi - kartlar arasi biraz daha nefes alani                     */
+/* ---------------------------------------------------------------------- */
+.sec,
+.bandpanel {
+  margin-bottom: 16px;
+  padding: 14px 15px;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Karanlik modda ince, marka rengine yakin kaydirma cubugu                */
+/* ---------------------------------------------------------------------- */
+.theme-dark ::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+.theme-dark ::-webkit-scrollbar-track {
+  background: transparent;
+}
+.theme-dark ::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+.theme-dark ::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(74, 159, 224, 0.5);
+  background-clip: content-box;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Ust bar aksiyon butonlari (Excel Yukle / Ornek Doldur / PPTX Indir) -   */
+/* dikkat cekmesi icin yumusak, surekli nabiz (pulse) parlamasi. Hover'da  */
+/* durur (kullanici etkilesirken dikkat dagitmasin), reduced-motion'da     */
+/* tamamen kapanir.                                                        */
+/* ---------------------------------------------------------------------- */
+header.topbar .btn.ghost:not(:disabled) {
+  animation: aksa-topbtn-pulse-ghost 2.4s ease-in-out infinite;
+}
+header.topbar .btn.primary:not(:disabled) {
+  animation: aksa-topbtn-pulse-primary 2.4s ease-in-out infinite;
+}
+header.topbar .btn:hover {
+  animation-play-state: paused;
+}
+
+@keyframes aksa-topbtn-pulse-ghost {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); }
+  50% { box-shadow: 0 0 0 7px rgba(255, 255, 255, 0.16); }
+}
+@keyframes aksa-topbtn-pulse-primary {
+  0%, 100% { box-shadow: 0 4px 14px rgba(110, 168, 43, 0.32), 0 0 0 0 rgba(141, 198, 63, 0); }
+  50% { box-shadow: 0 4px 14px rgba(110, 168, 43, 0.32), 0 0 0 8px rgba(141, 198, 63, 0.35); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  header.topbar .btn.ghost,
+  header.topbar .btn.primary {
+    animation: none;
+  }
+}
+
+/* ---------------------------------------------------------------------- */
+/* Icerik bolum kartlari (Gecen Sprint / Aktif / Riskler / Bekleyen) -     */
+/* renkli ikon rozeti + kosede soluk dekoratif ikon + kart yuzeyinde       */
+/* hafif renkli parlama. Yavas (4.5s) ve dusuk genlikli "nefes alma"       */
+/* animasyonu - dikkat ceker ama goz yormaz (prefers-reduced-motion'da     */
+/* tamamen kapanir). PPTX'e giden gercek ikon/renklere (geometry.js) hic   */
+/* dokunulmadi, sadece form karti CSS'i.                                   */
+/* ---------------------------------------------------------------------- */
+.sec.done .head img,
+.sec.active .head img,
+.sec.risk .head img,
+.sec.pending .head img {
+  border-radius: 50%;
+  padding: 5px;
+  box-sizing: border-box;
+  animation: aksa-badge-breathe 4.5s ease-in-out infinite;
+}
+.sec.done .head img { background: linear-gradient(135deg, #22c55e, #16a34a); box-shadow: 0 3px 10px rgba(22, 163, 74, 0.4); }
+.sec.active .head img { background: linear-gradient(135deg, #3b82f6, #2563eb); box-shadow: 0 3px 10px rgba(37, 99, 235, 0.4); }
+.sec.pending .head img { background: linear-gradient(135deg, #a78bfa, #7c3aed); box-shadow: 0 3px 10px rgba(124, 58, 237, 0.4); }
+
+/* Riskler ikonu - "alev" hissi icin daha buyuk/sicak, iki katmanli parlama */
+.sec.risk .head img {
+  background: linear-gradient(135deg, #fbbf24, #e0761f 55%, #c2410c);
+  box-shadow: 0 0 10px rgba(251, 146, 60, 0.55), 0 0 22px rgba(224, 118, 20, 0.45), 0 3px 10px rgba(194, 65, 12, 0.5);
+  animation: aksa-flame-breathe 4.5s ease-in-out infinite !important;
+}
+
+@keyframes aksa-badge-breathe {
+  0%, 100% { transform: scale(1); filter: brightness(1); }
+  50% { transform: scale(1.07); filter: brightness(1.15); }
+}
+@keyframes aksa-flame-breathe {
+  0%, 100% {
+    transform: scale(1);
+    filter: brightness(1);
+    box-shadow: 0 0 10px rgba(251, 146, 60, 0.55), 0 0 22px rgba(224, 118, 20, 0.45), 0 3px 10px rgba(194, 65, 12, 0.5);
+  }
+  50% {
+    transform: scale(1.09);
+    filter: brightness(1.25);
+    box-shadow: 0 0 16px rgba(251, 146, 60, 0.8), 0 0 34px rgba(224, 118, 20, 0.65), 0 3px 14px rgba(194, 65, 12, 0.6);
+  }
+}
+
+.sec.done::after,
+.sec.active::after,
+.sec.risk::after,
+.sec.pending::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+}
+.sec.done::after { background: radial-gradient(220px 120px at 100% 0%, rgba(22, 163, 74, 0.10), transparent 70%); }
+.sec.active::after { background: radial-gradient(220px 120px at 100% 0%, rgba(37, 99, 235, 0.10), transparent 70%); }
+.sec.risk::after { background: radial-gradient(240px 140px at 100% 0%, rgba(224, 90, 20, 0.16), transparent 70%); }
+.sec.pending::after { background: radial-gradient(220px 120px at 100% 0%, rgba(124, 58, 237, 0.11), transparent 70%); }
+
+.sec-watermark {
+  position: absolute;
+  right: -12px;
+  bottom: -12px;
+  width: 78px;
+  height: 78px;
+  opacity: 0.07;
+  transform: rotate(-10deg);
+  pointer-events: none;
+  z-index: -1;
+}
+.theme-dark .sec-watermark {
+  opacity: 0.13;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sec.done .head img,
+  .sec.active .head img,
+  .sec.risk .head img,
+  .sec.pending .head img {
+    animation: none !important;
+  }
+}
+
+/* ---------------------------------------------------------------------- */
+/* Hedefler bandi paneli - acik modda normal beyaz/cam panel gorunumunu    */
+/* korur (ikon rozeti + parlama HARIC); koyu modda kullanicinin referans   */
+/* gorseline gore koyu, parlayan "hero" kart olur. Bar/segment ekleme-     */
+/* silme-duzenleme islevi her iki temada da aynen korunur.                 */
+/* ---------------------------------------------------------------------- */
+.bandpanel.bandpanel-hero {
+  position: relative;
+  overflow: hidden;
+}
+.theme-dark .bandpanel.bandpanel-hero {
+  background: linear-gradient(135deg, #10192b 0%, #16223d 55%, #1b1440 100%) !important;
+  border-color: rgba(124, 92, 255, 0.32) !important;
+  box-shadow: 0 10px 30px rgba(8, 14, 28, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+.bandhero-glow {
+  position: absolute;
+  right: -36px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 190px;
+  height: 190px;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(circle at 42% 42%, rgba(255, 255, 255, 0.10), transparent 22%),
+    radial-gradient(circle at center, rgba(124, 92, 255, 0.38), rgba(74, 159, 224, 0.18) 45%, transparent 72%);
+  filter: blur(1px);
+  animation: aksa-badge-breathe 5.5s ease-in-out infinite;
+}
+
+.bandhead {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  position: relative;
+  z-index: 1;
+}
+.bandhead-icon {
+  flex: none;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  background: linear-gradient(135deg, #8b6cff, #4a9fe0);
+  box-shadow: 0 0 16px rgba(139, 108, 255, 0.55);
+  animation: aksa-badge-breathe 4.5s ease-in-out infinite;
+}
+.bandhead-text {
+  flex: 1;
+  min-width: 0;
+}
+.theme-dark .bandpanel.bandpanel-hero .bandtoggle {
+  color: #f2f0ff;
+  font-weight: 700;
+}
+.theme-dark .bandpanel.bandpanel-hero .bandsub {
+  color: rgba(226, 226, 245, 0.62);
+}
+
+/* Bar/segment kutucuklari - koyu modda hero panel icinde koyu zemine uygun
+   cam efekti; acik modda normal (.bar/.seg varsayilan) gorunumu korunur.
+   .bar/.seg baska editorlerde de kullanildigindan buraya ozel skope edilir. */
+.bandpanel.bandpanel-hero #bandEditor {
+  position: relative;
+  z-index: 1;
+}
+.theme-dark .bandpanel.bandpanel-hero .bar {
+  background: rgba(255, 255, 255, 0.045);
+  border-color: rgba(255, 255, 255, 0.10);
+}
+.theme-dark .bandpanel.bandpanel-hero .bar input.barlabel {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.14);
+  color: #f2f0ff;
+}
+.theme-dark .bandpanel.bandpanel-hero .seg {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.16);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+.theme-dark .bandpanel.bandpanel-hero .seg input,
+.theme-dark .bandpanel.bandpanel-hero .seg select {
+  color: #f2f0ff;
+}
+.theme-dark .bandpanel.bandpanel-hero .seg select option {
+  color: #111;
+}
+.theme-dark .bandpanel.bandpanel-hero .addseg,
+.theme-dark .bandpanel.bandpanel-hero .addbar {
+  background: rgba(139, 108, 255, 0.14);
+  border-color: rgba(139, 108, 255, 0.5);
+  color: #c7bcff;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bandhero-glow,
+  .bandhead-icon {
+    animation: none !important;
+  }
+}
+
+/* ---------------------------------------------------------------------- */
+/* Onizleme carousel navigasyonu - Kapak/Icerik/Dashboard sekme butonlari   */
+/* yerine sol/sag ok + ortada etiket + nokta gostergeleri. Hem "Canli       */
+/* onizleme" panelinde hem Preview modalinda ayni gorunum.                 */
+/* ---------------------------------------------------------------------- */
+.carousel-nav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+.carousel-arrow {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: var(--aksa-blue);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease, color 0.15s ease;
+}
+.carousel-arrow:hover {
+  background: linear-gradient(135deg, var(--aksa-blue), var(--aksa-blue-light));
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(13, 94, 168, 0.35);
+  transform: translateY(-1px);
+}
+.carousel-center {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+.carousel-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+.carousel-dots {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.carousel-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  border: 0;
+  padding: 0;
+  background: var(--line);
+  cursor: pointer;
+  transition: background 0.15s ease, width 0.2s ease, box-shadow 0.15s ease;
+}
+.carousel-dot:hover {
+  background: var(--aksa-blue-light);
+}
+.carousel-dot.active {
+  width: 18px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, var(--aksa-blue), var(--aksa-blue-light));
+  box-shadow: 0 0 6px rgba(74, 159, 224, 0.6);
+}
+
+/* ---------------------------------------------------------------------- */
+/* Yuklenen Excel dosyasinin adini gosteren rozet - ust bar aksiyon         */
+/* butonlarinin hemen solunda, sadece bir dosya yuklendiginde gorunur.     */
+/* ---------------------------------------------------------------------- */
+.excel-file-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  max-width: 220px;
+  padding: 7px 13px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  color: #eaf3fb;
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  animation: aksa-pop-in 0.25s cubic-bezier(0.2, 0.9, 0.3, 1.3);
+}
+.excel-file-chip-icon {
+  flex: none;
+  font-size: 14px;
+  line-height: 1;
 }

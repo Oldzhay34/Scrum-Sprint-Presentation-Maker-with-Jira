@@ -1,5 +1,5 @@
 import {
-  G, SEGCOL, BAND, bandBars, fitSectionItems, rowHeights, parseRuns, num, sectionDefs, gapAt, extractPriority,
+  G, SEGCOL, BAND, bandBars, fitSectionItems, rowHeights, stretchRowHeights, parseRuns, num, sectionDefs, gapAt, extractPriority,
   PRIORITY_COLORS, PRIORITY_ORDER, PRIORITY_UNSET_LABEL, PRIORITY_UNSET_COLOR, hasPriorityTags, logoPositions,
 } from "./geometry";
 
@@ -72,7 +72,8 @@ export function addContentSlide(pptx, data, assets) {
 
   const CARDS_TOP = drawBand();
   const { fs: FS, sections } = fitSectionItems(data, CARDS_TOP);
-  const { topH, botH } = rowHeights(sections, FS);
+  const natural = rowHeights(sections, FS);
+  const { topH, botH } = stretchRowHeights(natural.topH, natural.botH, CARDS_TOP);
 
   function drawCard(x, y, items, sec, fs2, h) {
     s2.addShape(pptx.ShapeType.roundRect, { x, y, w: G.COL_W, h, rectRadius: 0.06, fill: { color: "FFFFFF" }, line: { color: LINE, width: 1 }, shadow: { type: "outer", color: "9CA3AF", blur: 6, offset: 2, angle: 90, opacity: 0.28 } });

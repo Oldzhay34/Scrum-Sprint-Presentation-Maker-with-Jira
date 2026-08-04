@@ -28,9 +28,7 @@ const DEFAULT_STATUSES = [
  * doner. addedDate/closedDate girilirse Donem Kapanan/Yeni Eklenen/Net Degisim
  * backend tarafindan otomatik hesaplanir (elle girilmez).
  */
-export function useManualDashboard(fallbackTeamName) {
-  const [team, setTeam] = useState("");
-  const [sprintNo, setSprintNo] = useState("");
+export function useManualDashboard(team, setTeam, sprintNo, setSprintNo) {
   const [period, setPeriod] = useState(defaultPeriod);
   const [previousSnapshotDate, setPreviousSnapshotDate] = useState("");
   const [maintenanceAllocationPercent, setMaintenanceAllocationPercent] = useState("0.2");
@@ -136,7 +134,7 @@ export function useManualDashboard(fallbackTeamName) {
       };
 
       const result = await computeStatelessDashboard(request);
-      setDashData(toDashData(result, team || fallbackTeamName, sprintNo, period, previousSnapshotDate, customKpis));
+      setDashData(toDashData(result, team, sprintNo, period, previousSnapshotDate, customKpis));
     } catch (err) {
       setError(err);
       setDashData(null);
