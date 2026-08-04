@@ -26,14 +26,14 @@ export default function DeltaForm({ dKapanan, setDKapanan, dEklenen, setDEklenen
           </div>
           <div className="field">
             <label>
-              Net İş Yükü Değişimi <span className="opt">opsiyonel · boşsa = Tamamlanan × −1</span>
+              Net İş Yükü Değişimi <span className="opt">opsiyonel · boşsa = Kapanan − Eklenen</span>
             </label>
             <input inputMode="decimal" value={dNet} onChange={(e) => setDNet(sanitizeDecimalInput(e.target.value, true))} placeholder="otomatik" />
           </div>
         </div>
         <div className="mhint">
           Kapanan ve Eklenen elle girilir (önceki dönem kıyası Excel'de tutulmaz). Tarih aralığı Rapor Tarihi'nden otomatik hesaplanır (son 14 gün).{" "}
-          <b>Canlıya Alınan FTE</b> yalnızca RPA'da; doldurursanız kart eklenir, boşsa hiç görünmez. <b>Net</b> boşsa toplam Tamamlanan'ın eksisi, doluysa girdiğiniz değer.
+          <b>Canlıya Alınan FTE</b> yalnızca RPA'da; doldurursanız kart eklenir, boşsa hiç görünmez. <b>Net</b> boşsa Dönem Kapanan İş Yükü − Yeni Eklenen İş Yükü, doluysa girdiğiniz değer.
         </div>
       </div>
     </>

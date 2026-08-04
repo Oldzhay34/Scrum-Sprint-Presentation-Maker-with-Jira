@@ -74,7 +74,7 @@ export function useDashboardData(dTeam, setDTeam, dSprint, setDSprint) {
         kapanan: dKapanan,
         eklenen: dEklenen,
         fte: dFte,
-        net: dNet !== "" ? num(dNet) : -tamamlanan,
+        net: dNet !== "" ? num(dNet) : num(dKapanan) - num(dEklenen),
         range: autoRange(meta.reportObj),
       };
     }
