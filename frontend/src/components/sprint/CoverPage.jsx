@@ -1,6 +1,7 @@
 import { useRef } from "react";
 import Button from "../shared/Button";
 import { IconUpload } from "../shared/icons";
+import { sanitizeIntegerInput } from "../../lib/format";
 
 /**
  * Sihirbazin 1. adimi: Kapak sayfasi parametreleri (ekip adi / sprint no /
@@ -20,7 +21,7 @@ export default function CoverPage({ team, setTeam, sprint, setSprint, range, set
         </div>
         <div className="field">
           <label>Sprint no</label>
-          <input value={sprint} onChange={(e) => setSprint(e.target.value)} />
+          <input inputMode="numeric" value={sprint} onChange={(e) => setSprint(sanitizeIntegerInput(e.target.value))} />
         </div>
         <div className="field grow">
           <label>Tarih aralığı</label>

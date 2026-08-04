@@ -1,4 +1,4 @@
-import { DAV_COLORS, nfmtInt, num } from "../../lib/format";
+import { DAV_COLORS, nfmtInt, num, sanitizeDecimalInput } from "../../lib/format";
 
 /**
  * Kisi eslestirme tablosu: Excel'den gelen ad/toplam sabit, rol/kisaltma/
@@ -34,8 +34,9 @@ export default function PersonMappingTable({ persons, onUpdate }) {
               className="pmtam"
               placeholder="0"
               title="Tamamlanan iş yükü (AG)"
+              inputMode="decimal"
               value={p.tamamlanan}
-              onChange={(e) => onUpdate(i, { tamamlanan: e.target.value })}
+              onChange={(e) => onUpdate(i, { tamamlanan: sanitizeDecimalInput(e.target.value) })}
             />
             <div className="pmmeta">{nfmtInt(p.toplam)} → {nfmtInt(acik)}</div>
           </div>

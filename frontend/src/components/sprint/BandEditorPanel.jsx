@@ -1,4 +1,5 @@
 import { IconGauge } from "../shared/icons";
+import { sanitizeDecimalInput } from "../../lib/format";
 
 const COLOR_OPTS = [
   ["green", "Yeşil"], ["blue", "Mavi"], ["orange", "Turuncu"], ["amber", "Sarı"],
@@ -57,7 +58,8 @@ export default function BandEditorPanel({ band }) {
                     <input
                       value={seg.value}
                       placeholder="0"
-                      onChange={(e) => band.updateSegment(bi, si, { value: e.target.value })}
+                      inputMode="decimal"
+                      onChange={(e) => band.updateSegment(bi, si, { value: sanitizeDecimalInput(e.target.value) })}
                     />
                     <select
                       value={seg.color}

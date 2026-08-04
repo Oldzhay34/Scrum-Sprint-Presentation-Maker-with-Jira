@@ -1,3 +1,5 @@
+import { sanitizeDecimalInput } from "../../lib/format";
+
 /**
  * Takima ozgu ek gostergeler (orn. RPA'da "FTE Hedef", "Hedef Süreç Sayısı").
  * Bunlar backend'in genel kapasite formulune girmez, sadece onizlemede/PPTX'te
@@ -26,8 +28,9 @@ export default function CustomKpiEditor({ kpis, onAdd, onUpdate, onRemove }) {
               className="barlabel"
               style={{ flex: "0 0 110px" }}
               placeholder="Değer (örn: 25.7)"
+              inputMode="decimal"
               value={k.value}
-              onChange={(e) => onUpdate(i, { value: e.target.value })}
+              onChange={(e) => onUpdate(i, { value: sanitizeDecimalInput(e.target.value, true) })}
             />
             <input
               className="barlabel"

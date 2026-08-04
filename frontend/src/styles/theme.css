@@ -107,6 +107,9 @@
 .theme-dark .slidecanvas.tab-content .s-header {
   color: var(--aksa-blue-light);
 }
+.theme-dark .slidecanvas.tab-content .card .chd .ct {
+  text-shadow: 0 0 10px color-mix(in srgb, currentColor 65%, transparent);
+}
 .theme-dark .slidecanvas.tab-dashboard .ddelta .dc.hl {
   background: rgba(220, 38, 38, 0.16);
   border-color: rgba(252, 165, 165, 0.4);
@@ -1056,4 +1059,137 @@ header.topbar .btn:hover {
   flex: none;
   font-size: 14px;
   line-height: 1;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Giris ekrani - tasarim asamasi (gercek dogrulama yok). Sayfa geneli      */
+/* Aksa gradyaniyla, ortada camsi bir kart; acik/koyu tema aninda uyum      */
+/* saglar (--page-gradient, --glass-* zaten tema degiskenli).              */
+/* ---------------------------------------------------------------------- */
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: var(--page-gradient);
+  position: relative;
+}
+.login-theme-toggle {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: rgba(13, 94, 168, 0.12);
+  border: 1px solid var(--glass-border);
+  color: var(--aksa-blue);
+}
+.theme-dark .login-theme-toggle {
+  background: rgba(255, 255, 255, 0.08);
+  color: #eaf3fb;
+}
+.login-card {
+  width: min(380px, 100%);
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px) saturate(150%);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  border: 1px solid var(--glass-border);
+  border-radius: 20px;
+  padding: 34px 30px 30px;
+  box-shadow: 0 24px 60px rgba(11, 31, 51, 0.25);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  animation: aksa-pop-in 0.3s cubic-bezier(0.2, 0.9, 0.3, 1.3);
+}
+.login-logo {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  align-self: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--aksa-blue), var(--aksa-blue-light));
+  box-shadow: 0 0 20px rgba(74, 159, 224, 0.5);
+  margin-bottom: 4px;
+}
+.login-title {
+  margin: 0;
+  text-align: center;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--ink);
+}
+.login-sub {
+  margin: -6px 0 8px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--mut);
+}
+.login-error {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #b91c1c;
+  background: #fee2e2;
+  border-radius: 8px;
+  padding: 8px 12px;
+  text-align: center;
+}
+.theme-dark .login-error {
+  background: rgba(239, 68, 68, 0.16);
+  color: #fca5a5;
+}
+.login-submit {
+  width: 100%;
+  justify-content: center;
+  margin-top: 6px;
+  font-size: 14.5px;
+  padding: 11px 15px;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Giris sonrasi personel bilgisi rozeti - ust bar, tema anahtarinin        */
+/* hemen solunda. Backend'den gelen unvan/departman gosterilir.            */
+/* ---------------------------------------------------------------------- */
+.personnel-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 13px 5px 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  max-width: 200px;
+}
+.personnel-chip-avatar {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--aksa-green), var(--aksa-green-dark));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+}
+.personnel-chip-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  line-height: 1.15;
+}
+.personnel-chip-text strong {
+  font-size: 12px;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.personnel-chip-sub {
+  font-size: 10.5px;
+  color: rgba(255, 255, 255, 0.65);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }

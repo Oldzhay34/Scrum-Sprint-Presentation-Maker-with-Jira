@@ -1,3 +1,5 @@
+import { sanitizeDecimalInput, sanitizeIntegerInput } from "../../lib/format";
+
 export default function DeltaForm({ dKapanan, setDKapanan, dEklenen, setDEklenen, dFte, setDFte, dNet, setDNet }) {
   return (
     <>
@@ -8,25 +10,25 @@ export default function DeltaForm({ dKapanan, setDKapanan, dEklenen, setDEklenen
             <label>
               Dönem Kapanan İş Yükü <span className="req">zorunlu</span>
             </label>
-            <input value={dKapanan} onChange={(e) => setDKapanan(e.target.value)} placeholder="örn: 37" />
+            <input inputMode="numeric" value={dKapanan} onChange={(e) => setDKapanan(sanitizeIntegerInput(e.target.value))} placeholder="örn: 37" />
           </div>
           <div className="field">
             <label>
               Yeni Eklenen İş Yükü <span className="req">zorunlu</span>
             </label>
-            <input value={dEklenen} onChange={(e) => setDEklenen(e.target.value)} placeholder="örn: 62" />
+            <input inputMode="numeric" value={dEklenen} onChange={(e) => setDEklenen(sanitizeIntegerInput(e.target.value))} placeholder="örn: 62" />
           </div>
           <div className="field">
             <label>
               Canlıya Alınan FTE <span className="opt">opsiyonel · RPA</span>
             </label>
-            <input value={dFte} onChange={(e) => setDFte(e.target.value)} placeholder="örn: 0,05 — yoksa boş bırak" />
+            <input inputMode="decimal" value={dFte} onChange={(e) => setDFte(sanitizeDecimalInput(e.target.value))} placeholder="örn: 0,05 — yoksa boş bırak" />
           </div>
           <div className="field">
             <label>
               Net İş Yükü Değişimi <span className="opt">opsiyonel · boşsa = Tamamlanan × −1</span>
             </label>
-            <input value={dNet} onChange={(e) => setDNet(e.target.value)} placeholder="otomatik" />
+            <input inputMode="decimal" value={dNet} onChange={(e) => setDNet(sanitizeDecimalInput(e.target.value, true))} placeholder="otomatik" />
           </div>
         </div>
         <div className="mhint">

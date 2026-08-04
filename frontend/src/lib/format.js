@@ -77,6 +77,40 @@ export function num(v) {
   return isFinite(n) ? n : 0;
 }
 
+/**
+ * Sayisal input alanlarinda yazarken gecersiz karakterleri (harf, sembol vb.)
+ * aninda siler - kullanici string yazamaz, sadece rakam (ve istenirse tek bir
+ * ondalik ayiraci / bastaki eksi) girebilir. Turkce virgul VE nokta ondalik
+ * ayiraci olarak kabul edilir (mevcut num() de ayni sekilde virgulu noktaya
+ * cevirip parse ediyor).
+ */
+export function sanitizeDecimalInput(value, allowNegative = false) {
+  let v = String(value).replace(allowNegative ? /[^0-9,.\-]/g : /[^0-9,.]/g, "");
+  if (allowNegative) {
+    const neg = v.startsWith("-");
+    v = v.replace(/-/g, "");
+    if (neg) v = "-" + v;
+  }
+  let sepSeen = false;
+  v = v.replace(/[.,]/g, (m) => {
+    if (sepSeen) return "";
+    sepSeen = true;
+    return m;
+  });
+  return v;
+}
+
+/** sanitizeDecimalInput'un ondalik ayiraci olmayan (tam sayi) hali. */
+export function sanitizeIntegerInput(value, allowNegative = false) {
+  let v = String(value).replace(allowNegative ? /[^0-9\-]/g : /[^0-9]/g, "");
+  if (allowNegative) {
+    const neg = v.startsWith("-");
+    v = v.replace(/-/g, "");
+    if (neg) v = "-" + v;
+  }
+  return v;
+}
+
 export function autoRange(rd) {
   if (!rd) return "";
   const st = new Date(rd.getTime() - 14 * 86400000);

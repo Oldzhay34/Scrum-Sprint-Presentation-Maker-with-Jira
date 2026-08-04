@@ -1,3 +1,5 @@
+import { sanitizeDecimalInput, sanitizeIntegerInput } from "../../lib/format";
+
 /**
  * Tek bir ekip uyesi karti: kisi bilgileri + o kisiye ait is kalemleri.
  * Pressman - User Help Facilities: startDate icin "1 Haziran'dan once ise
@@ -46,16 +48,18 @@ export default function MemberCard({ member, statuses, items, onUpdateMember, on
           style={{ flex: "0 0 130px" }}
           placeholder="Hedef gün (opsiyonel)"
           title="Boş bırakılırsa 1 Haziran kuralına göre otomatik hesaplanır, sonradan değiştirilebilir"
+          inputMode="numeric"
           value={member.targetWorkDays || ""}
-          onChange={(e) => onUpdateMember({ targetWorkDays: e.target.value })}
+          onChange={(e) => onUpdateMember({ targetWorkDays: sanitizeIntegerInput(e.target.value) })}
         />
         <input
           className="barlabel"
           style={{ flex: "0 0 130px" }}
           placeholder="Kişiye özel bakım oranı"
           title="Boş bırakılırsa takım seviyesindeki genel bakım/SR oranı kullanılır (örn: 0.2 = %20)"
+          inputMode="decimal"
           value={member.maintenanceAllocationPercent || ""}
-          onChange={(e) => onUpdateMember({ maintenanceAllocationPercent: e.target.value })}
+          onChange={(e) => onUpdateMember({ maintenanceAllocationPercent: sanitizeDecimalInput(e.target.value) })}
         />
         <button type="button" className="delbar" onClick={onRemoveMember}>
           Kişiyi sil
@@ -76,8 +80,9 @@ export default function MemberCard({ member, statuses, items, onUpdateMember, on
           <input
             style={{ width: 90, border: "1px solid var(--line)", borderRadius: 7, padding: "6px 9px", fontSize: 13 }}
             placeholder="Efor (AG)"
+            inputMode="decimal"
             value={item.plannedEffortDays}
-            onChange={(e) => onUpdateItem(item.clientId, { plannedEffortDays: e.target.value })}
+            onChange={(e) => onUpdateItem(item.clientId, { plannedEffortDays: sanitizeDecimalInput(e.target.value) })}
           />
           <select
             style={{ border: "1px solid var(--line)", borderRadius: 7, padding: "6px 9px", fontSize: 13 }}

@@ -1,3 +1,5 @@
+import { sanitizeIntegerInput } from "../../lib/format";
+
 export default function DashboardMetaForm({ dTeam, setDTeam, dSprint, setDSprint }) {
   return (
     <>
@@ -12,7 +14,7 @@ export default function DashboardMetaForm({ dTeam, setDTeam, dSprint, setDSprint
             <label>
               Sprint No <span className="opt">opsiyonel</span>
             </label>
-            <input value={dSprint} onChange={(e) => setDSprint(e.target.value)} placeholder="örn: 7" />
+            <input inputMode="numeric" value={dSprint} onChange={(e) => setDSprint(sanitizeIntegerInput(e.target.value))} placeholder="örn: 7" />
           </div>
         </div>
         <div className="mhint">
