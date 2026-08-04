@@ -63,10 +63,24 @@
 .theme-dark .zoombox,
 .theme-dark .bandpanel,
 .theme-dark .meta,
-.theme-dark .slidebox,
 .theme-dark .alert-modal-box {
   background: var(--glass-bg);
   border-color: var(--line);
+}
+
+/* Slayt tuvali (SlideCanvas / DashboardSlideCanvas) PPTX ciktisiyla birebir
+   ayni gorunmeli - koyu modda SADECE cevresindeki uygulama arka plani
+   degisir, slaytin kendi renkleri (beyaz kartlar, koyu metin) hep sabit kalir. */
+.theme-dark .slidebox {
+  background: #fff;
+  border-color: var(--glass-border);
+}
+.theme-dark .slidecanvas {
+  --ink: #1F2937;
+  --mut: #6B7280;
+  --line: #E5E7EB;
+  --card: #FFFFFF;
+  --bg: #F1F5F7;
 }
 
 .theme-dark .field input,
@@ -80,6 +94,17 @@
   border-color: var(--line);
 }
 
+/* Bu kutucuklar app.css'te sabit "background:#fff" ile tanimli - koyu modda
+   ustlerine binen acik renkli metin (var(--ink)) beyaz zemin uzerinde
+   okunaksiz kaliyordu. Zemin de koyulastirilip kontrast saglanir. */
+.theme-dark .seg,
+.theme-dark .pmrow,
+.theme-dark .tb,
+.theme-dark .tab:not(.active) {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--line);
+}
+
 .theme-dark .btn.soft {
   background: rgba(255, 255, 255, 0.06);
   color: #cfe0f2;
@@ -90,9 +115,6 @@
   color: var(--ink);
 }
 
-.theme-dark .card,
-.theme-dark .dcard,
-.theme-dark .dc,
 .theme-dark .bar {
   background: rgba(255, 255, 255, 0.03);
 }
@@ -121,8 +143,6 @@ body {
   box-shadow: var(--glass-shadow);
 }
 
-.dcard,
-.dc,
 .pmrow,
 .bar {
   background: rgba(255, 255, 255, 0.55);
@@ -134,9 +154,6 @@ body {
 /* Hover'da kayan mavi LED sirit efekti                                    */
 /* ---------------------------------------------------------------------- */
 .sec,
-.dcard,
-.dc,
-.card,
 .bandpanel,
 .pmrow {
   position: relative;
@@ -146,9 +163,6 @@ body {
 }
 
 .sec::before,
-.dcard::before,
-.dc::before,
-.card::before,
 .bandpanel::before,
 .pmrow::before {
   content: "";
@@ -164,9 +178,6 @@ body {
 }
 
 .sec:hover,
-.dcard:hover,
-.dc:hover,
-.card:hover,
 .bandpanel:hover,
 .pmrow:hover {
   transform: translateY(-2px);
@@ -174,9 +185,6 @@ body {
 }
 
 .sec:hover::before,
-.dcard:hover::before,
-.dc:hover::before,
-.card:hover::before,
 .bandpanel:hover::before,
 .pmrow:hover::before {
   opacity: 1;
@@ -189,7 +197,7 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .sec::before, .dcard::before, .dc::before, .card::before, .bandpanel::before, .pmrow::before {
+  .sec::before, .bandpanel::before, .pmrow::before {
     display: none;
   }
 }

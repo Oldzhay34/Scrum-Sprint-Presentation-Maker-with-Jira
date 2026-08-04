@@ -13,7 +13,7 @@ import SprintPage from "./components/sprint/SprintPage";
 import SprintTopActions from "./components/sprint/SprintTopActions";
 import EditorModal from "./components/sprint/EditorModal";
 import SlideCanvas from "./components/sprint/SlideCanvas";
-import MetaBar from "./components/sprint/MetaBar";
+import CoverPage from "./components/sprint/CoverPage";
 
 import DashboardPage from "./components/dashboard/DashboardPage";
 import DashboardTopActions from "./components/dashboard/DashboardTopActions";
@@ -26,6 +26,7 @@ import { usePptxExport } from "./hooks/usePptxExport";
 import { useDashboardData } from "./hooks/useDashboardData";
 import { useManualDashboard } from "./hooks/useManualDashboard";
 import { useTheme } from "./hooks/useTheme";
+import { useCoverImage } from "./hooks/useCoverImage";
 
 import { sectionDefs } from "./lib/geometry";
 import { buildSprintDeck } from "./lib/sprintDeckBuilder";
@@ -39,17 +40,20 @@ const SAMPLE_BAND_BARS = [
 
 export default function App() {
   // "mode/step" ayni degisken: hem ust nav hem sihirbaz adimi olarak kullanilir.
-  const [mode, setMode] = useState("sprint");
+  const [mode, setMode] = useState("cover");
   const { theme, toggleTheme } = useTheme();
 
-  // ---- Sprint (1. adim) durumu ----
+  // ---- Kapak (1. adim) durumu ----
+  const cover = useCoverImage(ASSETS.cover_bg);
+
+  // ---- Sprint (2. adim) durumu ----
   const sprintForm = useSprintForm();
   const band = useBandEditor();
   const excel = useExcelSuggestions();
   const sprintExport = usePptxExport();
   const [editorKey, setEditorKey] = useState(null);
 
-  // ---- Kapasite Dashboard (2. adim) durumu ----
+  // ---- Kapasite Dashboard (3. adim) durumu ----
   const [dashSource, setDashSource] = useState("excel");
   const dashboard = useDashboardData(sprintForm.team);
   const manual = useManualDashboard(sprintForm.team);
@@ -60,7 +64,19 @@ export default function App() {
   const [previewTab, setPreviewTab] = useState("content");
   const [zoomOpen, setZoomOpen] = useState(false);
 
-  const SEC = sectionDefs(ASSETS);
+  // Kapak gorseli kullanicidan gelmisse ASSETS'in uzerine yazilir - SlideCanvas,
+  // DashboardSlideCanvas ve buildSprintDeck bunu degistirmeden ayni sekilde tuketir.
+  const assets = { ...ASSETS, cover_bg: cover.coverBg };
+  const SEC = sectionDefs(assets);
+
+  // Excel yukleme tek bir kaynaktan gelir: hangi sayfadan yuklenirse yuklensin
+  // (Sprint veya Kapasite Dashboard), ayni dosya HER IKI sayfayi da besler -
+  // standart "Kapasite Takip" dosyasi hem Is_Listesi/Parametreler hem de
+  // Rapor/Kapasite sayfalarini bir arada icerir.
+  const handleExcelFile = (file) => {
+    excel.loadFile(file);
+    dashboard.loadFile(file);
+  };
 
   const handleFillSample = () => {
     if (!window.confirm("Tüm bölümler örnek verilerle doldurulacak ve mevcut içerik değişecek. Emin misiniz?")) return;
@@ -71,7 +87,7 @@ export default function App() {
   const handleGenerateSprint = () =>
     sprintExport.run(async () => {
       const data = { ...sprintForm.data, showBand: band.show, targets: band.bars };
-      const pptx = buildSprintDeck(data, ASSETS);
+      const pptx = buildSprintDeck(data, assets);
       const sp = (sprintForm.sprint.trim() || "X").replace(/[^\w]/g, "");
       await pptx.writeFile({ fileName: `Sprint_Sunumu_${sp}.pptx` });
     });
@@ -81,7 +97,7 @@ export default function App() {
       if (!activeDashData || !activeDashData.kpis) {
         throw new Error(dashSource === "manual" ? "Önce verileri girip Hesapla'ya basın." : "Önce Excel yükleyin.");
       }
-      const pptx = buildDashboardDeck(activeDashData, ASSETS);
+      const pptx = buildDashboardDeck(activeDashData, assets);
       await pptx.writeFile({ fileName: "Kapasite_Dashboard.pptx" });
     });
 
@@ -95,9 +111,9 @@ export default function App() {
         theme={theme}
         onToggleTheme={toggleTheme}
         actions={
-          mode === "sprint" ? (
+          mode === "cover" || mode === "sprint" ? (
             <SprintTopActions
-              onExcelFile={excel.loadFile}
+              onExcelFile={handleExcelFile}
               excelLoading={excel.loading}
               onFillSample={handleFillSample}
               onGenerate={handleGenerateSprint}
@@ -105,7 +121,7 @@ export default function App() {
             />
           ) : (
             <DashboardTopActions
-              onExcelFile={dashboard.loadFile}
+              onExcelFile={handleExcelFile}
               excelLoading={dashboard.loading}
               onGenerate={handleGenerateDashboard}
               generating={dashExport.loading}
@@ -114,31 +130,35 @@ export default function App() {
         }
       />
 
-      {mode === "sprint" && <ErrorBanner error={sprintExport.error} onDismiss={() => sprintExport.setError(null)} />}
+      {(mode === "cover" || mode === "sprint") && (
+        <ErrorBanner error={sprintExport.error} onDismiss={() => sprintExport.setError(null)} />
+      )}
       {mode === "dash" && <ErrorBanner error={dashExport.error} onDismiss={() => dashExport.setError(null)} />}
-
-      <MetaBar
-        team={sprintForm.team} setTeam={sprintForm.setTeam}
-        sprint={sprintForm.sprint} setSprint={sprintForm.setSprint}
-        range={sprintForm.range} setRange={sprintForm.setRange}
-        excelInfo={excel.info}
-      />
 
       <WizardSteps step={mode} onStepChange={setMode} />
 
       <main>
         <div className="wizard-col">
-          {mode === "sprint" ? (
-            <SprintPage form={sprintForm} band={band} excel={excel} assets={ASSETS} onExpandSection={setEditorKey} />
-          ) : (
+          {mode === "cover" && (
+            <CoverPage
+              team={sprintForm.team} setTeam={sprintForm.setTeam}
+              sprint={sprintForm.sprint} setSprint={sprintForm.setSprint}
+              range={sprintForm.range} setRange={sprintForm.setRange}
+              cover={cover}
+            />
+          )}
+          {mode === "sprint" && (
+            <SprintPage form={sprintForm} band={band} excel={excel} assets={assets} onExpandSection={setEditorKey} />
+          )}
+          {mode === "dash" && (
             <DashboardPage source={dashSource} onSourceChange={setDashSource} dashboard={dashboard} manual={manual} />
           )}
           <div className="wizard-nav">
-            <Button variant="soft" disabled={mode === "sprint"} onClick={() => setMode("sprint")}>
-              ← Geri: İçerik Slaytı
+            <Button variant="soft" disabled={mode === "cover"} onClick={() => setMode(mode === "dash" ? "sprint" : "cover")}>
+              {mode === "dash" ? "← Geri: İçerik Slaytı" : "← Geri: Kapak Sayfası"}
             </Button>
-            <Button variant="primary" disabled={mode === "dash"} onClick={() => setMode("dash")}>
-              İleri: Kapasite Dashboard →
+            <Button variant="primary" disabled={mode === "dash"} onClick={() => setMode(mode === "cover" ? "sprint" : "dash")}>
+              {mode === "cover" ? "İleri: İçerik Slaytı →" : "İleri: Kapasite Dashboard →"}
             </Button>
           </div>
         </div>
@@ -146,7 +166,7 @@ export default function App() {
         <UnifiedPreviewPane
           sprintData={sprintData}
           dashData={activeDashData}
-          assets={ASSETS}
+          assets={assets}
           activeTab={previewTab}
           onTabChange={setPreviewTab}
           onZoom={() => setZoomOpen(true)}
@@ -174,9 +194,9 @@ export default function App() {
         onTabChange={setPreviewTab}
         renderCanvas={(scale) =>
           previewTab === "dashboard" ? (
-            <DashboardSlideCanvas dd={activeDashData || {}} assets={ASSETS} scale={scale} />
+            <DashboardSlideCanvas dd={activeDashData || {}} assets={assets} scale={scale} />
           ) : (
-            <SlideCanvas data={sprintData} tab={previewTab} assets={ASSETS} scale={scale} />
+            <SlideCanvas data={sprintData} tab={previewTab} assets={assets} scale={scale} />
           )
         }
       />

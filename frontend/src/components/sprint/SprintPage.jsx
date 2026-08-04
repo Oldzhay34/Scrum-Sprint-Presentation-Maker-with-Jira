@@ -16,6 +16,7 @@ export default function SprintPage({ form, band, excel, assets, onExpandSection 
 
   return (
     <section>
+      {excel.info && <div className="excelinfo" style={{ marginBottom: 10 }}>{excel.info}</div>}
       <BandEditorPanel band={band} />
       <p className="panelttl">{SECTION_TITLES_TR.done}</p>
       {excel.error && <ErrorBanner error={excel.error} onDismiss={() => {}} />}

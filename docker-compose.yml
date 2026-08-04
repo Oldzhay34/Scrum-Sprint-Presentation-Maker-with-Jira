@@ -57,5 +57,25 @@ services:
     depends_on:
       - postgres
 
+  minio:
+    image: minio/minio:latest
+    container_name: capacity-planner-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-capacity_planner}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-capacity_planner}
+    ports:
+      - "${MINIO_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - capacity-planner-minio-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
 volumes:
   capacity-planner-postgres-data:
+  capacity-planner-minio-data:

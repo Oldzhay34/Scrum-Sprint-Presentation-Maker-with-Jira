@@ -90,7 +90,7 @@ export default function ManualDashboardForm({ m }) {
 
       <AlertModal
         open={!!m.alertMessage}
-        title="Tarih hatası"
+        title={m.alertTitle}
         message={m.alertMessage}
         onClose={m.clearAlert}
       />

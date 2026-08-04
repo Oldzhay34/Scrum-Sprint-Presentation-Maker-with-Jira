@@ -27,8 +27,10 @@ export default function ZoomModal({ open, onClose, tabs, activeTab, onTabChange,
           Kapat
         </Button>
       </div>
-      <div className="zoomstage" ref={boxRef}>
-        {open && renderCanvas(scale)}
+      <div className="zoomstagewrap">
+        <div className="zoomstage" ref={boxRef}>
+          {open && renderCanvas(scale)}
+        </div>
       </div>
     </Modal>
   );

@@ -1,5 +1,6 @@
 package com.aksa.capacityplanner.common.web;
 
+import com.aksa.capacityplanner.asset.adapter.out.storage.StorageException;
 import com.aksa.capacityplanner.common.domain.DomainValidationException;
 import com.aksa.capacityplanner.common.domain.NotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -21,6 +22,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler({DomainValidationException.class, IllegalArgumentException.class})
     public ResponseEntity<ApiErrorResponse> handleBadRequest(RuntimeException ex, HttpServletRequest request) {
         return build(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(StorageException.class)
+    public ResponseEntity<ApiErrorResponse> handleStorageError(StorageException ex, HttpServletRequest request) {
+        return build(HttpStatus.BAD_GATEWAY, ex.getMessage(), request);
     }
 
     private ResponseEntity<ApiErrorResponse> build(HttpStatus status, String message, HttpServletRequest request) {

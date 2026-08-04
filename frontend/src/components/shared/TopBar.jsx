@@ -25,8 +25,8 @@ export default function TopBar({ mode, onModeChange, actions, theme, onToggleThe
       <div className="modesw">
         <button
           type="button"
-          className={`mbtn${mode === "sprint" ? " active" : ""}`}
-          onClick={() => onModeChange("sprint")}
+          className={`mbtn${mode === "cover" || mode === "sprint" ? " active" : ""}`}
+          onClick={() => onModeChange("cover")}
         >
           <IconPresentation className="navbar-icon" />
           Sprint Sunumu

@@ -47,6 +47,7 @@ export function useManualDashboard(fallbackTeamName) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [alertMessage, setAlertMessage] = useState(null);
+  const [alertTitle, setAlertTitle] = useState("Uyarı");
 
   const addMember = () =>
     setMembers((prev) => [...prev, { clientId: nextClientId(), fullName: "", role: "", startDate: period.periodStart, statusCode: "OPEN" }]);
@@ -81,8 +82,22 @@ export function useManualDashboard(fallbackTeamName) {
   }, [workItems]);
 
   const compute = async () => {
+    const hasAnyName = members.some((m) => m.fullName.trim());
+    if (members.length === 0 || !hasAnyName) {
+      setAlertTitle("Eksik bilgi");
+      setAlertMessage("En az bir isim girmelisiniz.");
+      return;
+    }
+    const blankNameMember = members.find((m) => !m.fullName.trim());
+    if (blankNameMember) {
+      setAlertTitle("Eksik bilgi");
+      setAlertMessage("İsim alanı boş bırakılamaz. Lütfen tüm ekip üyeleri için isim girin.");
+      return;
+    }
+
     const dateIssue = validateDateOrder({ periodStart: period.periodStart, periodEnd: period.periodEnd, members, workItems });
     if (dateIssue) {
+      setAlertTitle("Tarih hatası");
       setAlertMessage(dateIssue);
       return;
     }
@@ -90,9 +105,6 @@ export function useManualDashboard(fallbackTeamName) {
     setLoading(true);
     setError(null);
     try {
-      if (members.length === 0) {
-        throw { message: "En az bir ekip üyesi eklemelisiniz." };
-      }
       const request = {
         periodStart: period.periodStart,
         periodEnd: period.periodEnd,
@@ -137,7 +149,7 @@ export function useManualDashboard(fallbackTeamName) {
     team, setTeam, sprintNo, setSprintNo,
     period, setPeriod, previousSnapshotDate, setPreviousSnapshotDate,
     maintenanceAllocationPercent, setMaintenanceAllocationPercent,
-    alertMessage, clearAlert: () => setAlertMessage(null),
+    alertMessage, alertTitle, clearAlert: () => setAlertMessage(null),
     members, addMember, updateMember, removeMember,
     workItems, workItemsByMember, addWorkItem, updateWorkItem, removeWorkItem,
     statuses, addStatus, updateStatus, removeStatus,

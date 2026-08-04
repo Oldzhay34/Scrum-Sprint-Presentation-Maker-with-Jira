@@ -1,11 +1,12 @@
 const STEPS = [
-  { key: "sprint", no: 1, label: "İçerik Slaytı Parametreleri" },
-  { key: "dash", no: 2, label: "Kapasite Dashboard Parametreleri" },
+  { key: "cover", no: 1, label: "Kapak Sayfası Parametreleri" },
+  { key: "sprint", no: 2, label: "İçerik Slaytı Parametreleri" },
+  { key: "dash", no: 3, label: "Kapasite Dashboard Parametreleri" },
 ];
 
 /**
- * Parametreleri sayfali (wizard) hale getiren adim gostergesi: once icerik
- * slaytinin parametreleri, sonra kapasite dashboard'unkiler doldurulur.
+ * Parametreleri sayfali (wizard) hale getiren adim gostergesi: once kapak,
+ * sonra icerik slayti, en son kapasite dashboard'unkiler doldurulur.
  * Adimlara dogrudan tiklayarak da atlanabilir.
  */
 export default function WizardSteps({ step, onStepChange }) {
