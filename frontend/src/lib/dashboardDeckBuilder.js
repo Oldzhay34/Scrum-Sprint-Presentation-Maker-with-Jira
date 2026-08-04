@@ -1,25 +1,26 @@
-import PptxGenJS from "pptxgenjs";
 import { nfmtInt } from "./format";
 import { dStatus, barColor, DAV_COLORS } from "./format";
+import { logoPositions } from "./geometry";
 
 /**
- * Kapasite dashboard PPTX'ini uretir. Canli onizlemedeki (DashboardSlideCanvas) ile
- * BIREBIR AYNI duzeni kullanir. dd (dashboard data) su alanlari icerir:
+ * Kapasite dashboard slaydini verilen pptx'e ekler - buildFullDeck tarafindan
+ * kullanilir. Canli onizlemedeki (DashboardSlideCanvas) ile BIREBIR AYNI
+ * duzeni kullanir. dd (dashboard data) su alanlari icerir:
  * team, sprintNo, dateRange, reportDate, kpis{toplam,tamamlanan,acik,kapasite,doluluk,acikFazla,durum},
  * persons[{name,role,initials,toplam,tamamlanan,acik,kapasite,doluluk,durum}], delta, deltaRange.
  */
-export function buildDashboardDeck(dd, assets) {
-  const pptx = new PptxGenJS();
-  pptx.defineLayout({ name: "W16x9", width: 13.333, height: 7.5 });
-  pptx.layout = "W16x9";
+export function addDashboardSlide(pptx, dd, assets) {
   const INK = "1F2937", MUT = "6B7280", LINE = "E5E7EB", CARDBG = "FFFFFF", PANEL = "F1F5F7";
 
   const s = pptx.addSlide();
   s.background = { color: PANEL };
   s.addText((dd.team || "") + " Kapasite Planı", { x: 0.4, y: 0.26, w: 9, h: 0.5, fontFace: "Calibri", fontSize: 24, bold: true, color: INK, margin: 0 });
   s.addText((dd.sprintNo ? "Sprint " + dd.sprintNo + "   •   " : "") + dd.dateRange + "   •   Rapor Tarihi: " + dd.reportDate, { x: 0.42, y: 0.76, w: 9, h: 0.3, fontFace: "Calibri", fontSize: 11, color: MUT, margin: 0 });
-  s.addImage({ data: assets.logo_b, x: 11.05, y: 0.2, w: 0.95, h: 0.95 * (83 / 227) });
-  s.addImage({ data: assets.logo_a, x: 11.35, y: 0.66, w: 1.55, h: 1.55 * (63 / 308) });
+  // Onizlemedeki .dlogos (right:24px, top:22px, flex row, img height:30px) ile
+  // birebir ayni konumlandirma - bkz. geometry.js/logoPositions.
+  const dashLogos = logoPositions({ rightEdge: 13.196, top: 0.231, height: 0.315, gap: 0.084 });
+  s.addImage({ data: assets.logo_b, ...dashLogos.b });
+  s.addImage({ data: assets.logo_a, ...dashLogos.a });
 
   const k = dd.kpis, dur = dStatus(k.durum, k.doluluk);
   const cards = [
@@ -105,5 +106,5 @@ export function buildDashboardDeck(dd, assets) {
   });
 
   s.addText((dd.team || "") + " Kapasite Dashboard", { x: 8.5, y: 7.16, w: 4.4, h: 0.28, fontFace: "Calibri", fontSize: 8, color: "9AA3AF", align: "right", margin: 0 });
-  return pptx;
+  return s;
 }

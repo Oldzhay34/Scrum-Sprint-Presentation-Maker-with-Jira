@@ -69,5 +69,7 @@ export function useSprintForm() {
     });
   };
 
-  return { team, setTeam, sprint, setSprint, range, setRange, sections, setSectionText, appendToSection, data, counts, fillSample };
+  const clearSections = () => setSections({ done: "", active: "", risk: "", pending: "" });
+
+  return { team, setTeam, sprint, setSprint, range, setRange, sections, setSectionText, appendToSection, clearSections, data, counts, fillSample };
 }

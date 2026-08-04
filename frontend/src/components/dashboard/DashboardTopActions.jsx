@@ -23,7 +23,7 @@ export default function DashboardTopActions({ onExcelFile, excelLoading, onGener
       </Button>
       <Button variant="primary" loading={generating} loadingLabel="Hazırlanıyor…" onClick={onGenerate}>
         <IconDownload className="navbar-icon" />
-        Dashboard İndir
+        PPTX İndir
       </Button>
     </span>
   );

@@ -1,3 +1,8 @@
+import { isValidNumberInput } from "../../lib/validation";
+
+const NUMBER_TITLE_SUFFIX = " (Sayı olmalı, örn: 12 veya 12,5.)";
+const invalidStyle = { borderColor: "#DC2626", outlineColor: "#DC2626" };
+
 /**
  * Tek bir ekip uyesi karti: kisi bilgileri + o kisiye ait is kalemleri.
  * Pressman - User Help Facilities: startDate icin "1 Haziran'dan once ise
@@ -43,17 +48,23 @@ export default function MemberCard({ member, statuses, items, onUpdateMember, on
         </select>
         <input
           className="barlabel"
-          style={{ flex: "0 0 130px" }}
+          style={{ flex: "0 0 130px", ...(isValidNumberInput(member.targetWorkDays) ? null : invalidStyle) }}
           placeholder="Hedef gün (opsiyonel)"
-          title="Boş bırakılırsa 1 Haziran kuralına göre otomatik hesaplanır, sonradan değiştirilebilir"
+          title={
+            "Boş bırakılırsa 1 Haziran kuralına göre otomatik hesaplanır, sonradan değiştirilebilir" +
+            (isValidNumberInput(member.targetWorkDays) ? "" : NUMBER_TITLE_SUFFIX)
+          }
           value={member.targetWorkDays || ""}
           onChange={(e) => onUpdateMember({ targetWorkDays: e.target.value })}
         />
         <input
           className="barlabel"
-          style={{ flex: "0 0 130px" }}
+          style={{ flex: "0 0 130px", ...(isValidNumberInput(member.maintenanceAllocationPercent) ? null : invalidStyle) }}
           placeholder="Kişiye özel bakım oranı"
-          title="Boş bırakılırsa takım seviyesindeki genel bakım/SR oranı kullanılır (örn: 0.2 = %20)"
+          title={
+            "Boş bırakılırsa takım seviyesindeki genel bakım/SR oranı kullanılır (örn: 0.2 = %20)" +
+            (isValidNumberInput(member.maintenanceAllocationPercent) ? "" : NUMBER_TITLE_SUFFIX)
+          }
           value={member.maintenanceAllocationPercent || ""}
           onChange={(e) => onUpdateMember({ maintenanceAllocationPercent: e.target.value })}
         />
@@ -74,8 +85,12 @@ export default function MemberCard({ member, statuses, items, onUpdateMember, on
             onChange={(e) => onUpdateItem(item.clientId, { title: e.target.value })}
           />
           <input
-            style={{ width: 90, border: "1px solid var(--line)", borderRadius: 7, padding: "6px 9px", fontSize: 13 }}
+            style={{
+              width: 90, border: "1px solid var(--line)", borderRadius: 7, padding: "6px 9px", fontSize: 13,
+              ...(isValidNumberInput(item.plannedEffortDays) ? null : invalidStyle),
+            }}
             placeholder="Efor (AG)"
+            title={isValidNumberInput(item.plannedEffortDays) ? undefined : "Sayı olmalı (örn: 12 veya 12,5)."}
             value={item.plannedEffortDays}
             onChange={(e) => onUpdateItem(item.clientId, { plannedEffortDays: e.target.value })}
           />

@@ -1,10 +1,12 @@
 package com.aksa.capacityplanner.team.usecase;
 
+import com.aksa.capacityplanner.common.domain.DomainValidationException;
 import com.aksa.capacityplanner.common.domain.NotFoundException;
 import com.aksa.capacityplanner.team.domain.TargetWorkDaysCalculator;
 import com.aksa.capacityplanner.team.domain.TeamMember;
 import com.aksa.capacityplanner.team.port.in.TeamMemberUseCase;
 import com.aksa.capacityplanner.team.port.out.HolidayCalendarPort;
+import com.aksa.capacityplanner.team.port.out.StatusOptionRepositoryPort;
 import com.aksa.capacityplanner.team.port.out.TeamMemberRepositoryPort;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -20,15 +22,19 @@ public class TeamMemberService implements TeamMemberUseCase {
 
     private final TeamMemberRepositoryPort memberRepository;
     private final HolidayCalendarPort holidayCalendarPort;
+    private final StatusOptionRepositoryPort statusOptionRepository;
 
-    public TeamMemberService(TeamMemberRepositoryPort memberRepository, HolidayCalendarPort holidayCalendarPort) {
+    public TeamMemberService(TeamMemberRepositoryPort memberRepository, HolidayCalendarPort holidayCalendarPort,
+                              StatusOptionRepositoryPort statusOptionRepository) {
         this.memberRepository = memberRepository;
         this.holidayCalendarPort = holidayCalendarPort;
+        this.statusOptionRepository = statusOptionRepository;
     }
 
     @Override
     @CacheEvict(value = "team-members-by-team", key = "#member.teamId")
     public TeamMember addMember(TeamMember member) {
+        validateStatusCode(member.getTeamId(), member.getStatusCode());
         if (member.getTargetWorkDays() == null) {
             int year = member.getStartDate() != null ? member.getStartDate().getYear() : LocalDate.now().getYear();
             BigDecimal defaultTarget = TargetWorkDaysCalculator.calculateDefault(
@@ -50,6 +56,7 @@ public class TeamMemberService implements TeamMemberUseCase {
     })
     public TeamMember updateMember(Long id, TeamMember member) {
         TeamMember existing = getMember(id);
+        validateStatusCode(existing.getTeamId(), member.getStatusCode());
         existing.setFullName(member.getFullName());
         existing.setRole(member.getRole());
         existing.setEmail(member.getEmail());
@@ -65,8 +72,19 @@ public class TeamMemberService implements TeamMemberUseCase {
     })
     public TeamMember changeStatus(Long id, String statusCode) {
         TeamMember existing = getMember(id);
+        validateStatusCode(existing.getTeamId(), statusCode);
         existing.setStatusCode(statusCode);
         return memberRepository.save(existing);
+    }
+
+    /** statusCode bos degilse, takim icin tanimli (genel + takima ozgu) statulerden biri olmali. */
+    private void validateStatusCode(Long teamId, String statusCode) {
+        if (statusCode == null || statusCode.isBlank()) return;
+        boolean exists = statusOptionRepository.findAvailableForTeam(teamId).stream()
+                .anyMatch(s -> s.getCode().equals(statusCode));
+        if (!exists) {
+            throw new DomainValidationException("Gecersiz statu kodu: " + statusCode);
+        }
     }
 
     @Override

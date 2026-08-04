@@ -6,6 +6,7 @@ import com.aksa.capacityplanner.capacity.domain.CapacityCalculationService.Capac
 import com.aksa.capacityplanner.capacity.domain.CapacityDashboard;
 import com.aksa.capacityplanner.capacity.domain.WorkItem;
 import com.aksa.capacityplanner.capacity.domain.WorkItemSource;
+import com.aksa.capacityplanner.common.domain.DomainValidationException;
 import com.aksa.capacityplanner.team.domain.StatusOption;
 import com.aksa.capacityplanner.team.domain.TeamMember;
 import com.aksa.capacityplanner.team.port.out.HolidayCalendarPort;
@@ -14,6 +15,7 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -35,17 +37,18 @@ public class StatelessCapacityDashboardService {
     }
 
     public CapacityDashboard compute(StatelessDashboardRequest request) {
+        List<StatusOption> statuses = request.statuses() == null ? List.of()
+                : request.statuses().stream()
+                        .map(s -> new StatusOption(null, null, s.code(), s.label(), s.countsAsCompleted(), null, 0))
+                        .toList();
+        validateStatusCodes(request, statuses);
+
         List<TeamMember> members = request.members().stream()
                 .map(this::toTeamMember)
                 .toList();
 
         List<WorkItem> workItems = request.workItems() == null ? List.of()
                 : request.workItems().stream().map(this::toWorkItem).toList();
-
-        List<StatusOption> statuses = request.statuses() == null ? List.of()
-                : request.statuses().stream()
-                        .map(s -> new StatusOption(null, null, s.code(), s.label(), s.countsAsCompleted(), null, 0))
-                        .toList();
 
         Map<Long, BigDecimal> personalLeaveDays = request.personalLeaveDaysByMemberId() == null
                 ? Map.of() : request.personalLeaveDaysByMemberId();
@@ -65,6 +68,31 @@ public class StatelessCapacityDashboardService {
                 holidayCalendarPort.getHalfDayHolidays(year));
 
         return calculationService.calculate(input);
+    }
+
+    /**
+     * statusCode burada sabit bir enum degil - istekte gelen "statuses" listesindeki
+     * kodlardan biri olmali (bkz. StatusOption yorumu: her takim kendi statu listesini
+     * yonetir). "statuses" bos/gonderilmemisse dogrulama atlanir (geriye donuk uyum).
+     */
+    private void validateStatusCodes(StatelessDashboardRequest request, List<StatusOption> statuses) {
+        if (statuses.isEmpty()) return;
+        Set<String> validCodes = statuses.stream().map(StatusOption::getCode).collect(Collectors.toSet());
+
+        for (StatelessDashboardRequest.MemberInput m : request.members()) {
+            if (m.statusCode() != null && !m.statusCode().isBlank() && !validCodes.contains(m.statusCode())) {
+                throw new DomainValidationException(
+                        "\"" + m.fullName() + "\" icin gecersiz statu kodu: " + m.statusCode());
+            }
+        }
+        if (request.workItems() != null) {
+            for (StatelessDashboardRequest.WorkItemInput wi : request.workItems()) {
+                if (wi.statusCode() != null && !wi.statusCode().isBlank() && !validCodes.contains(wi.statusCode())) {
+                    throw new DomainValidationException(
+                            "\"" + wi.title() + "\" icin gecersiz statu kodu: " + wi.statusCode());
+                }
+            }
+        }
     }
 
     private TeamMember toTeamMember(StatelessDashboardRequest.MemberInput input) {

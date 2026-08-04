@@ -7,6 +7,7 @@ import com.aksa.capacityplanner.capacity.facade.CapacityFacade;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.PositiveOrZero;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -57,7 +58,8 @@ public class WorkItemController {
     }
 
     public record WorkItemRequest(Long teamMemberId, @NotBlank String title, String jiraIssueKey,
-                                   @NotNull BigDecimal plannedEffortDays, String statusCode, LocalDate addedDate) {
+                                   @NotNull @PositiveOrZero BigDecimal plannedEffortDays, String statusCode,
+                                   LocalDate addedDate) {
     }
 
     public record StatusChangeRequest(@NotBlank String statusCode) {

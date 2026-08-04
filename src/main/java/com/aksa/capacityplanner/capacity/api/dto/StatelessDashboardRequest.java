@@ -1,9 +1,12 @@
 package com.aksa.capacityplanner.capacity.api.dto;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.PositiveOrZero;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -24,7 +27,7 @@ public record StatelessDashboardRequest(
         @NotNull LocalDate periodEnd,
         @NotNull LocalDate reportDate,
         LocalDate previousSnapshotDate,
-        BigDecimal maintenanceAllocationPercent,
+        @DecimalMin("0.0") @DecimalMax("1.0") BigDecimal maintenanceAllocationPercent,
         @NotEmpty List<@Valid MemberInput> members,
         List<@Valid WorkItemInput> workItems,
         List<@Valid StatusInput> statuses,
@@ -36,12 +39,13 @@ public record StatelessDashboardRequest(
      * genel oran (ust seviye maintenanceAllocationPercent) kullanilir.
      */
     public record MemberInput(@NotNull Long clientId, @NotBlank String fullName, String role,
-                               LocalDate startDate, String statusCode, BigDecimal targetWorkDays,
-                               BigDecimal maintenanceAllocationPercent) {
+                               LocalDate startDate, String statusCode,
+                               @PositiveOrZero BigDecimal targetWorkDays,
+                               @DecimalMin("0.0") @DecimalMax("1.0") BigDecimal maintenanceAllocationPercent) {
     }
 
     public record WorkItemInput(@NotNull Long memberClientId, @NotBlank String title,
-                                 @NotNull BigDecimal plannedEffortDays, String statusCode,
+                                 @NotNull @PositiveOrZero BigDecimal plannedEffortDays, String statusCode,
                                  LocalDate addedDate, LocalDate closedDate) {
     }
 

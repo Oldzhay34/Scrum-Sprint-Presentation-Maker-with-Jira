@@ -1,18 +1,11 @@
-import PptxGenJS from "pptxgenjs";
-import { G, SEGCOL, BAND, bandBars, pickFS, rowHeights, parseRuns, num, sectionDefs } from "./geometry";
+import {
+  G, SEGCOL, BAND, bandBars, fitSectionItems, rowHeights, parseRuns, num, sectionDefs, gapAt, extractPriority,
+  PRIORITY_COLORS, PRIORITY_ORDER, PRIORITY_UNSET_LABEL, PRIORITY_UNSET_COLOR, hasPriorityTags, logoPositions,
+} from "./geometry";
 
-/**
- * Sprint sunumu PPTX'ini uretir. Canli onizlemedeki (SlideCanvas) ile
- * BIREBIR AYNI geometriyi (lib/geometry.js) kullanir.
- */
-export function buildSprintDeck(data, assets) {
-  const pptx = new PptxGenJS();
-  pptx.defineLayout({ name: "W16x9", width: 13.333, height: 7.5 });
-  pptx.layout = "W16x9";
-  const TEAL = "164E63", ORANGE = "E67514", INK = "1F2937", LINE = "E5E7EB";
-  const SEC = sectionDefs(assets);
-
-  // kapak
+/** Kapak slaydini verilen pptx'e ekler - buildFullDeck tarafindan kullanilir. */
+export function addCoverSlide(pptx, data, assets) {
+  const TEAL = "164E63", ORANGE = "E67514", INK = "1F2937";
   const s1 = pptx.addSlide();
   s1.background = { color: "FFFFFF" };
   if (assets.cover_bg) s1.addImage({ data: assets.cover_bg, x: 0, y: 0, w: 13.333, h: 7.5 });
@@ -22,13 +15,22 @@ export function buildSprintDeck(data, assets) {
   s1.addText(data.teamName || "Yapay Zeka Ekibi", { x: 0.55, y: 5.15, w: 8.0, h: 0.9, fontFace: "Calibri", fontSize: 40, bold: true, color: TEAL, margin: 0 });
   s1.addShape(pptx.ShapeType.line, { x: 0.6, y: 6.05, w: 2.6, h: 0, line: { color: ORANGE, width: 2.25 } });
   s1.addText(data.subtitle, { x: 0.55, y: 6.12, w: 9.0, h: 0.5, fontFace: "Calibri", fontSize: 18, color: INK, margin: 0 });
+  return s1;
+}
 
-  // icerik
+/** Icerik slaydini verilen pptx'e ekler - buildFullDeck tarafindan kullanilir. */
+export function addContentSlide(pptx, data, assets) {
+  const TEAL = "164E63", ORANGE = "E67514", INK = "1F2937", LINE = "E5E7EB";
+  const SEC = sectionDefs(assets);
+
   const s2 = pptx.addSlide();
   s2.background = { color: "FFFFFF" };
   s2.addText(data.subtitle, { x: 0.4, y: 0.24, w: 9.8, h: 0.6, fontFace: "Calibri", fontSize: 25, bold: true, color: TEAL, margin: 0, valign: "middle" });
-  s2.addImage({ data: assets.logo_b, x: 11.05, y: 0.16, w: 0.95, h: 0.95 * (83 / 227) });
-  s2.addImage({ data: assets.logo_a, x: 11.35, y: 0.62, w: 1.55, h: 1.55 * (63 / 308) });
+  // Onizlemedeki .s-logos (right:24px, top:14px, flex row, img height:34px) ile
+  // birebir ayni konumlandirma - bkz. geometry.js/logoPositions.
+  const contentLogos = logoPositions({ rightEdge: 13.195, top: 0.147, height: 0.357, gap: 0.084 });
+  s2.addImage({ data: assets.logo_b, ...contentLogos.b });
+  s2.addImage({ data: assets.logo_a, ...contentLogos.a });
   s2.addShape(pptx.ShapeType.rect, { x: 0, y: 1.02, w: 13.333, h: 0.035, fill: { color: ORANGE } });
 
   const bars = bandBars(data);
@@ -56,11 +58,21 @@ export function buildSprintDeck(data, assets) {
   }
 
   s2.addShape(pptx.ShapeType.rect, { x: 0, y: 7.14, w: 13.333, h: 0.36, fill: { color: TEAL } });
-  s2.addText("Gizli & Dahili Kullanım   |   Scrum Ekibi – Planlama Toplantısı", { x: 0.4, y: 7.14, w: 9, h: 0.36, fontFace: "Calibri", fontSize: 10, color: "D6E4EA", margin: 0, valign: "middle" });
+  s2.addText("Gizli & Dahili Kullanım   |   Scrum Ekibi – Planlama Toplantısı", { x: 0.4, y: 7.14, w: 7, h: 0.36, fontFace: "Calibri", fontSize: 10, color: "D6E4EA", margin: 0, valign: "middle" });
+
+  if (hasPriorityTags(data)) {
+    const legendEntries = [...PRIORITY_ORDER.map((p) => [p, PRIORITY_COLORS[p]]), [PRIORITY_UNSET_LABEL, PRIORITY_UNSET_COLOR]];
+    const legendRuns = legendEntries.flatMap(([label, color], i) => [
+      ...(i > 0 ? [{ text: "     ", options: {} }] : []),
+      { text: "●  ", options: { color, fontSize: 9 } },
+      { text: label, options: { color: "D6E4EA" } },
+    ]);
+    s2.addText(legendRuns, { x: 6.6, y: 7.14, w: 6.3, h: 0.36, fontFace: "Calibri", fontSize: 9.5, margin: 0, valign: "middle", align: "right" });
+  }
 
   const CARDS_TOP = drawBand();
-  const FS = pickFS(data, CARDS_TOP);
-  const { topH, botH } = rowHeights(data, FS);
+  const { fs: FS, sections } = fitSectionItems(data, CARDS_TOP);
+  const { topH, botH } = rowHeights(sections, FS);
 
   function drawCard(x, y, items, sec, fs2, h) {
     s2.addShape(pptx.ShapeType.roundRect, { x, y, w: G.COL_W, h, rectRadius: 0.06, fill: { color: "FFFFFF" }, line: { color: LINE, width: 1 }, shadow: { type: "outer", color: "9CA3AF", blur: 6, offset: 2, angle: 90, opacity: 0.28 } });
@@ -70,8 +82,16 @@ export function buildSprintDeck(data, assets) {
     if (items.length) {
       const runs = items
         .map((t, i) => {
-          const para = parseRuns(t).map((r) => ({ text: r.text, options: { bold: r.bold, color: r.bold ? INK : "374151" } }));
-          para[0].options = Object.assign({}, para[0].options, { bullet: { code: "2022", indent: 12 }, paraSpaceAfter: G.BUL_GAP * 72, breakLine: true });
+          const { priority, text } = extractPriority(t);
+          const bulletColor = priority ? PRIORITY_COLORS[priority] : PRIORITY_UNSET_COLOR;
+          const para = parseRuns(text).map((r) => ({ text: r.text, options: { bold: r.bold, color: r.bold ? INK : "374151" } }));
+          para[0].options = Object.assign({}, para[0].options, {
+            // "25CF" (●) - kucuk "•" isaretinden daha buyuk/net, oncelik rengini
+            // daha belirgin gosterir (bkz. app.css .card li .dot ile onizlemede ayni fikir).
+            bullet: { code: "25CF", indent: 14, color: bulletColor },
+            paraSpaceAfter: gapAt(fs2) * 72,
+            breakLine: true,
+          });
           para[para.length - 1].options = Object.assign({}, para[para.length - 1].options, { breakLine: i < items.length - 1 });
           return para;
         })
@@ -82,10 +102,10 @@ export function buildSprintDeck(data, assets) {
   }
 
   const yBot = CARDS_TOP + topH + G.GAP_Y;
-  drawCard(G.X_L, CARDS_TOP, data.done, SEC.done, FS, topH);
-  drawCard(G.X_L, yBot, data.risk, SEC.risk, FS, botH);
-  drawCard(G.X_R, CARDS_TOP, data.active, SEC.active, FS, topH);
-  drawCard(G.X_R, yBot, data.pending, SEC.pending, FS, botH);
+  drawCard(G.X_L, CARDS_TOP, sections.done, SEC.done, FS, topH);
+  drawCard(G.X_L, yBot, sections.risk, SEC.risk, FS, botH);
+  drawCard(G.X_R, CARDS_TOP, sections.active, SEC.active, FS, topH);
+  drawCard(G.X_R, yBot, sections.pending, SEC.pending, FS, botH);
 
-  return pptx;
+  return s2;
 }

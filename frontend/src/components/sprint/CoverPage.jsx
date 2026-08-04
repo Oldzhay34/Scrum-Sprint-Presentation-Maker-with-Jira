@@ -1,6 +1,8 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import Button from "../shared/Button";
+import AlertModal from "../shared/AlertModal";
 import { IconUpload } from "../shared/icons";
+import { isValidNumberInput } from "../../lib/validation";
 
 /**
  * Sihirbazin 1. adimi: Kapak sayfasi parametreleri (ekip adi / sprint no /
@@ -10,6 +12,11 @@ import { IconUpload } from "../shared/icons";
  */
 export default function CoverPage({ team, setTeam, sprint, setSprint, range, setRange, cover }) {
   const fileInputRef = useRef(null);
+  const [sprintAlert, setSprintAlert] = useState(false);
+
+  const handleSprintBlur = () => {
+    if (!isValidNumberInput(sprint)) setSprintAlert(true);
+  };
 
   return (
     <section>
@@ -20,13 +27,20 @@ export default function CoverPage({ team, setTeam, sprint, setSprint, range, set
         </div>
         <div className="field">
           <label>Sprint no</label>
-          <input value={sprint} onChange={(e) => setSprint(e.target.value)} />
+          <input value={sprint} onChange={(e) => setSprint(e.target.value)} onBlur={handleSprintBlur} />
         </div>
         <div className="field grow">
           <label>Tarih aralığı</label>
           <input value={range} onChange={(e) => setRange(e.target.value)} />
         </div>
       </div>
+
+      <AlertModal
+        open={sprintAlert}
+        title="Eksik bilgi"
+        message="Sprint no sayı olmalı (örn: 7)."
+        onClose={() => setSprintAlert(false)}
+      />
 
       <p className="panelttl" style={{ marginTop: 14 }}>Kapak görseli</p>
       <div className="sec">

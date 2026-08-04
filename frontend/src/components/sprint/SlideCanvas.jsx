@@ -1,5 +1,8 @@
 import { Fragment } from "react";
-import { G, BAND, SEGCOL, bandBars, cardsTopFor, pickFS, rowHeights, parseRuns, num, sectionDefs } from "../../lib/geometry";
+import {
+  G, BAND, SEGCOL, bandBars, cardsTopFor, fitSectionItems, rowHeights, parseRuns, num, sectionDefs,
+  extractPriority, PRIORITY_COLORS, PRIORITY_ORDER, PRIORITY_UNSET_LABEL, PRIORITY_UNSET_COLOR, hasPriorityTags,
+} from "../../lib/geometry";
 
 const S = 96; // px per inch - orijinal ile birebir ayni olcek
 
@@ -13,6 +16,23 @@ function BulletText({ text }) {
   );
 }
 
+function PriorityLegend() {
+  return (
+    <div className="s-legend">
+      {PRIORITY_ORDER.map((p) => (
+        <span className="s-legend-item" key={p}>
+          <i style={{ background: "#" + PRIORITY_COLORS[p] }} />
+          {p}
+        </span>
+      ))}
+      <span className="s-legend-item">
+        <i style={{ background: "#" + PRIORITY_UNSET_COLOR }} />
+        {PRIORITY_UNSET_LABEL}
+      </span>
+    </div>
+  );
+}
+
 function Card({ x, y, w, h, items, sec, fontSize }) {
   return (
     <div className="card" style={{ left: x * S, top: y * S, width: w * S, height: h * S }}>
@@ -22,11 +42,16 @@ function Card({ x, y, w, h, items, sec, fontSize }) {
         <span className="ct" style={{ color: "#" + sec.accent }}>{sec.title}</span>
       </div>
       <ul style={{ fontSize: fontSize * 1.333 }}>
-        {items.map((t, i) => (
-          <li key={i}>
-            <BulletText text={t} />
-          </li>
-        ))}
+        {items.map((t, i) => {
+          const { priority, text } = extractPriority(t);
+          const bulletColor = priority ? PRIORITY_COLORS[priority] : PRIORITY_UNSET_COLOR;
+          return (
+            <li key={i} style={{ "--bullet-color": "#" + bulletColor }}>
+              <span className="dot" />
+              <BulletText text={text} />
+            </li>
+          );
+        })}
       </ul>
     </div>
   );
@@ -89,8 +114,8 @@ export default function SlideCanvas({ data, tab, assets, scale }) {
   } else {
     const bars = bandBars(data);
     const cardsTop = cardsTopFor(data);
-    const FS = pickFS(data, cardsTop);
-    const { topH, botH } = rowHeights(data, FS);
+    const { fs: FS, sections } = fitSectionItems(data, cardsTop);
+    const { topH, botH } = rowHeights(sections, FS);
     const yBot = cardsTop + topH + G.GAP_Y;
     content = (
       <>
@@ -101,11 +126,14 @@ export default function SlideCanvas({ data, tab, assets, scale }) {
         </div>
         <div className="s-rule" />
         <Band bars={bars} />
-        <Card x={G.X_L} y={cardsTop} w={G.COL_W} h={topH} items={data.done} sec={SEC.done} fontSize={FS} />
-        <Card x={G.X_L} y={yBot} w={G.COL_W} h={botH} items={data.risk} sec={SEC.risk} fontSize={FS} />
-        <Card x={G.X_R} y={cardsTop} w={G.COL_W} h={topH} items={data.active} sec={SEC.active} fontSize={FS} />
-        <Card x={G.X_R} y={yBot} w={G.COL_W} h={botH} items={data.pending} sec={SEC.pending} fontSize={FS} />
-        <div className="s-footer">Gizli &amp; Dahili Kullanım&nbsp;&nbsp;|&nbsp;&nbsp;Scrum Ekibi – Planlama Toplantısı</div>
+        <Card x={G.X_L} y={cardsTop} w={G.COL_W} h={topH} items={sections.done} sec={SEC.done} fontSize={FS} />
+        <Card x={G.X_L} y={yBot} w={G.COL_W} h={botH} items={sections.risk} sec={SEC.risk} fontSize={FS} />
+        <Card x={G.X_R} y={cardsTop} w={G.COL_W} h={topH} items={sections.active} sec={SEC.active} fontSize={FS} />
+        <Card x={G.X_R} y={yBot} w={G.COL_W} h={botH} items={sections.pending} sec={SEC.pending} fontSize={FS} />
+        <div className="s-footer">
+          Gizli &amp; Dahili Kullanım&nbsp;&nbsp;|&nbsp;&nbsp;Scrum Ekibi – Planlama Toplantısı
+          {hasPriorityTags(data) && <PriorityLegend />}
+        </div>
       </>
     );
   }

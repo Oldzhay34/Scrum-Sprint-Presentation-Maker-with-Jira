@@ -8,18 +8,20 @@ import { parseSprintExcel } from "../lib/excelParsers";
  */
 export function useExcelSuggestions() {
   const [suggestions, setSuggestions] = useState({ done: [], active: [], risk: [], pending: [] });
+  const [bandTargets, setBandTargets] = useState([]);
   const [info, setInfo] = useState("");
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const loadFile = (file) => {
+  const loadFile = (file, teamName) => {
     setLoading(true);
     setError(null);
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
-        const { suggestions: parsed, itemCount, reportDateHint } = parseSprintExcel(e.target.result);
+        const { suggestions: parsed, itemCount, reportDateHint, bandTargets: bars } = parseSprintExcel(e.target.result, teamName);
         setSuggestions(parsed);
+        setBandTargets(bars);
         const parts = [itemCount + " iş kalemi"];
         if (reportDateHint) parts.push("Rapor tarihi: " + reportDateHint);
         setInfo("Excel okundu — " + parts.join(" · ") + ". Öneriler bölümlerin altında.");
@@ -42,5 +44,5 @@ export function useExcelSuggestions() {
 
   const clear = () => setSuggestions({ done: [], active: [], risk: [], pending: [] });
 
-  return { suggestions, info, error, loading, loadFile, removeSuggestion, clear };
+  return { suggestions, bandTargets, info, error, loading, loadFile, removeSuggestion, clear };
 }

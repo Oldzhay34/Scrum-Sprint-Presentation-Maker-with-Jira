@@ -5,6 +5,7 @@ import com.aksa.capacityplanner.team.domain.TeamMember;
 import com.aksa.capacityplanner.team.facade.TeamFacade;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.PositiveOrZero;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -55,7 +56,8 @@ public class TeamMemberController {
     }
 
     public record MemberRequest(@NotBlank String fullName, String role, String email,
-                                 LocalDate startDate, String statusCode, BigDecimal targetWorkDays) {
+                                 LocalDate startDate, String statusCode,
+                                 @PositiveOrZero BigDecimal targetWorkDays) {
     }
 
     public record StatusChangeRequest(@NotBlank String statusCode) {

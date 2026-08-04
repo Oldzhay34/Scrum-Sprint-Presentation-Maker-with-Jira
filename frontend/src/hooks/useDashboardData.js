@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { parseDashboardExcel } from "../lib/excelParsers";
-import { num, autoRange } from "../lib/format";
+import { num, autoRange, nfmt1 } from "../lib/format";
 
 const DEFAULT_META = { team: "", dateRange: "01 Haziran – 31 Aralık 2026", reportDate: "", reportObj: null };
 
@@ -14,6 +14,9 @@ export function useDashboardData(fallbackTeamName) {
   const [persons, setPersons] = useState([]);
   const [kpis, setKpis] = useState(null);
   const [meta, setMeta] = useState(DEFAULT_META);
+  // "İş_Listesi" sayfasindaki "FTE" sutunu baska hicbir hesaplamada kullanilmiyordu -
+  // toplamini burada tutup dashData.customKpis uzerinden ek bir kart olarak gosteriyoruz.
+  const [totalFte, setTotalFte] = useState(null);
 
   const [dTeam, setDTeam] = useState("");
   const [dSprint, setDSprint] = useState("");
@@ -37,6 +40,7 @@ export function useDashboardData(fallbackTeamName) {
         setPersons(parsed.persons);
         setKpis(parsed.kpis);
         setMeta(parsed.meta);
+        setTotalFte(parsed.totalFte);
         if (!dTeam.trim()) setDTeam(parsed.meta.team);
         setInfo(
           `Excel okundu — ${parsed.meta.team} · ${parsed.persons.length} kişi · Rapor Tarihi ${parsed.meta.reportDate}. ` +
@@ -81,6 +85,8 @@ export function useDashboardData(fallbackTeamName) {
         range: autoRange(meta.reportObj),
       };
     }
+    const customKpis = totalFte != null ? [{ label: "Toplam FTE", value: nfmt1(totalFte), unit: "İş kalemlerinden (Excel)" }] : [];
+
     return {
       team,
       sprintNo: dSprint,
@@ -90,8 +96,9 @@ export function useDashboardData(fallbackTeamName) {
       persons: mappedPersons,
       delta,
       deltaRange: delta ? delta.range : "",
+      customKpis,
     };
-  }, [dTeam, dSprint, dKapanan, dEklenen, dFte, dNet, persons, kpis, meta, loaded, fallbackTeamName]);
+  }, [dTeam, dSprint, dKapanan, dEklenen, dFte, dNet, persons, kpis, meta, loaded, fallbackTeamName, totalFte]);
 
   return {
     loaded, persons, loading, error, info,
