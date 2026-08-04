@@ -1,7 +1,4 @@
-import { isValidNumberInput } from "../../lib/validation";
-
-const NUMBER_TITLE_SUFFIX = " (Sayı olmalı, örn: 12 veya 12,5.)";
-const invalidStyle = { borderColor: "#DC2626", outlineColor: "#DC2626" };
+import { sanitizeDecimalInput, sanitizeIntegerInput } from "../../lib/format";
 
 /**
  * Tek bir ekip uyesi karti: kisi bilgileri + o kisiye ait is kalemleri.
@@ -48,25 +45,21 @@ export default function MemberCard({ member, statuses, items, onUpdateMember, on
         </select>
         <input
           className="barlabel"
-          style={{ flex: "0 0 130px", ...(isValidNumberInput(member.targetWorkDays) ? null : invalidStyle) }}
+          style={{ flex: "0 0 130px" }}
           placeholder="Hedef gün (opsiyonel)"
-          title={
-            "Boş bırakılırsa 1 Haziran kuralına göre otomatik hesaplanır, sonradan değiştirilebilir" +
-            (isValidNumberInput(member.targetWorkDays) ? "" : NUMBER_TITLE_SUFFIX)
-          }
+          title="Boş bırakılırsa 1 Haziran kuralına göre otomatik hesaplanır, sonradan değiştirilebilir"
+          inputMode="numeric"
           value={member.targetWorkDays || ""}
-          onChange={(e) => onUpdateMember({ targetWorkDays: e.target.value })}
+          onChange={(e) => onUpdateMember({ targetWorkDays: sanitizeIntegerInput(e.target.value) })}
         />
         <input
           className="barlabel"
-          style={{ flex: "0 0 130px", ...(isValidNumberInput(member.maintenanceAllocationPercent) ? null : invalidStyle) }}
+          style={{ flex: "0 0 130px" }}
           placeholder="Kişiye özel bakım oranı"
-          title={
-            "Boş bırakılırsa takım seviyesindeki genel bakım/SR oranı kullanılır (örn: 0.2 = %20)" +
-            (isValidNumberInput(member.maintenanceAllocationPercent) ? "" : NUMBER_TITLE_SUFFIX)
-          }
+          title="Boş bırakılırsa takım seviyesindeki genel bakım/SR oranı kullanılır (örn: 0.2 = %20)"
+          inputMode="decimal"
           value={member.maintenanceAllocationPercent || ""}
-          onChange={(e) => onUpdateMember({ maintenanceAllocationPercent: e.target.value })}
+          onChange={(e) => onUpdateMember({ maintenanceAllocationPercent: sanitizeDecimalInput(e.target.value) })}
         />
         <button type="button" className="delbar" onClick={onRemoveMember}>
           Kişiyi sil
@@ -85,14 +78,11 @@ export default function MemberCard({ member, statuses, items, onUpdateMember, on
             onChange={(e) => onUpdateItem(item.clientId, { title: e.target.value })}
           />
           <input
-            style={{
-              width: 90, border: "1px solid var(--line)", borderRadius: 7, padding: "6px 9px", fontSize: 13,
-              ...(isValidNumberInput(item.plannedEffortDays) ? null : invalidStyle),
-            }}
+            style={{ width: 90, border: "1px solid var(--line)", borderRadius: 7, padding: "6px 9px", fontSize: 13 }}
             placeholder="Efor (AG)"
-            title={isValidNumberInput(item.plannedEffortDays) ? undefined : "Sayı olmalı (örn: 12 veya 12,5)."}
+            inputMode="decimal"
             value={item.plannedEffortDays}
-            onChange={(e) => onUpdateItem(item.clientId, { plannedEffortDays: e.target.value })}
+            onChange={(e) => onUpdateItem(item.clientId, { plannedEffortDays: sanitizeDecimalInput(e.target.value) })}
           />
           <select
             style={{ border: "1px solid var(--line)", borderRadius: 7, padding: "6px 9px", fontSize: 13 }}

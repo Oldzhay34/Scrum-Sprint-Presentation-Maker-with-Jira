@@ -3,6 +3,7 @@ import Button from "../shared/Button";
 import AlertModal from "../shared/AlertModal";
 import { IconUpload } from "../shared/icons";
 import { isValidNumberInput } from "../../lib/validation";
+import { sanitizeIntegerInput } from "../../lib/format";
 import { TEAM_TYPES, teamTypeLabel } from "../../lib/teamTypes";
 
 /**
@@ -56,7 +57,7 @@ export default function CoverPage({ team, setTeam, teamType, setTeamType, sprint
         </div>
         <div className="field">
           <label>Sprint no</label>
-          <input value={sprint} onChange={(e) => setSprint(e.target.value)} onBlur={handleSprintBlur} />
+          <input inputMode="numeric" value={sprint} onChange={(e) => setSprint(sanitizeIntegerInput(e.target.value))} onBlur={handleSprintBlur} />
         </div>
         <div className="field grow">
           <label>Tarih aralığı</label>

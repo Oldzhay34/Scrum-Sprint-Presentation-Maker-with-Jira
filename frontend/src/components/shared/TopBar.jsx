@@ -10,7 +10,7 @@ const COLLAPSE_THRESHOLD = 14; // px - yukari/asagi bu kadar cekilince acilir/ka
  * yukari cekilince (veya tutamaca tiklaninca) daralir/kapanir, asagi
  * cekilince tekrar acilir.
  */
-export default function TopBar({ actions, theme, onToggleTheme, excelFileName }) {
+export default function TopBar({ actions, theme, onToggleTheme, excelFileName, personnel }) {
   const [collapsed, setCollapsed] = useState(false);
   const dragState = useRef(null); // { startY, moved }
 
@@ -70,6 +70,18 @@ export default function TopBar({ actions, theme, onToggleTheme, excelFileName })
           </span>
         )}
         {actions}
+        {personnel && (
+          <span
+            className="personnel-chip"
+            title={[personnel.company, personnel.department, personnel.ExtensionAttribute4].filter(Boolean).join(" · ")}
+          >
+            <span className="personnel-chip-avatar" aria-hidden="true">👤</span>
+            <span className="personnel-chip-text">
+              <strong>{personnel.title || personnel.ExtensionAttribute4 || "Kullanıcı"}</strong>
+              {personnel.department && <span className="personnel-chip-sub">{personnel.department}</span>}
+            </span>
+          </span>
+        )}
         <button
           type="button"
           className="theme-toggle"

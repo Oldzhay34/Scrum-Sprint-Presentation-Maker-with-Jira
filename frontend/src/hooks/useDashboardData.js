@@ -40,7 +40,10 @@ export function useDashboardData(dTeam, setDTeam, dSprint, setDSprint, teamType)
         setKpis(parsed.kpis);
         setMeta(parsed.meta);
         setTotalFte(parsed.totalFte);
-        if (!dTeam.trim()) setDTeam(parsed.meta.team);
+        // Her yeni Excel yuklendiginde ekip adi da o dosyadan gelenle
+        // guncellensin - "sadece bossa doldur" mantigi, alan zaten dolu
+        // (varsayilan) oldugu icin hicbir zaman tetiklenmiyordu.
+        setDTeam(parsed.meta.team);
       } catch (err) {
         setError('Excel okunamadı: ' + (err?.message || "bilinmeyen hata") + ' — dosyanın "Rapor" sayfasını içerdiğinden emin olun.');
       } finally {
@@ -76,7 +79,7 @@ export function useDashboardData(dTeam, setDTeam, dSprint, setDSprint, teamType)
         kapanan: dKapanan,
         eklenen: dEklenen,
         fte: dFte,
-        net: dNet !== "" ? num(dNet) : -tamamlanan,
+        net: dNet !== "" ? num(dNet) : num(dKapanan) - num(dEklenen),
         range: autoRange(meta.reportObj),
       };
     }

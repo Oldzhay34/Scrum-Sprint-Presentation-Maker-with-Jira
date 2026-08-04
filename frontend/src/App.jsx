@@ -2,12 +2,14 @@ import { useEffect, useState } from "react";
 import "./styles/app.css";
 import "./styles/theme.css";
 
+import LoginPage from "./components/shared/LoginPage";
 import TopBar from "./components/shared/TopBar";
 import ZoomModal from "./components/shared/ZoomModal";
 import ErrorBanner from "./components/shared/ErrorBanner";
 import WizardSteps from "./components/shared/WizardSteps";
 import UnifiedPreviewPane from "./components/shared/UnifiedPreviewPane";
 import Button from "./components/shared/Button";
+import AlertModal from "./components/shared/AlertModal";
 
 import SprintPage from "./components/sprint/SprintPage";
 import SprintTopActions from "./components/sprint/SprintTopActions";
@@ -38,14 +40,29 @@ const SAMPLE_BAND_BARS = [
   { label: "FTE", segments: [{ value: "1.31", color: "green" }, { value: "24.39", color: "blue" }] },
 ];
 
-// Sihirbaz adimi degistiginde canli onizleme de o adimin slaydina gecer
-// (kapak adiminda Kapak sekmesi, icerik adiminda Icerik Slayti, vb.).
-const PREVIEW_TAB_BY_MODE = { cover: "cover", sprint: "content", dash: "dashboard" };
+// GECICI: backend /api/auth/login hazir olana kadar login ekrani atlaniyor.
+// Endpoint hazir olunca bu satiri (ve asagidaki "|| SKIP_LOGIN" kosulunu) kaldir.
+const SKIP_LOGIN = true;
 
+/**
+ * Giris durumunu yonetir - girmeden once sadece LoginPage, girince ana
+ * uygulama (MainApp) render edilir. Iki farkli bilesen olarak ayrildi ki
+ * hook sayisi/sirasi render'lar arasinda tutarli kalsin (Rules of Hooks) -
+ * ayni bilesen icinde erken "return" ile kalan hook'lari atlamak gecersizdi.
+ */
 export default function App() {
+  const [personnel, setPersonnel] = useState(null);
+  const { theme, toggleTheme } = useTheme();
+
+  if (!personnel && !SKIP_LOGIN) {
+    return <LoginPage onLogin={setPersonnel} theme={theme} onToggleTheme={toggleTheme} />;
+  }
+  return <MainApp theme={theme} toggleTheme={toggleTheme} personnel={personnel} />;
+}
+
+function MainApp({ theme, toggleTheme, personnel }) {
   // "mode/step" ayni degisken: hem ust nav hem sihirbaz adimi olarak kullanilir.
   const [mode, setMode] = useState("cover");
-  const { theme, toggleTheme } = useTheme();
 
   // ---- Kapak (1. adim) durumu ----
   const cover = useCoverImage(ASSETS.cover_bg);
@@ -92,15 +109,33 @@ export default function App() {
   const fullExport = usePptxExport();
 
   // ---- Birlesik onizleme (kapak / icerik / kapasite dashboard) ----
-  const [previewTab, setPreviewTab] = useState(PREVIEW_TAB_BY_MODE.cover);
+  const [previewTab, setPreviewTab] = useState("cover");
   const [zoomOpen, setZoomOpen] = useState(false);
 
   // Sihirbaz adimi (mode) degistiginde onizleme sekmesi de otomatik esler -
   // "Kapak Sayfasi" adimina gecince onizleme de kapak gorselini (logo + ag deseni)
   // gostersin, kullanici ayrica sekme tiklamak zorunda kalmasin.
+  const MODE_TO_PREVIEW_TAB = { cover: "cover", sprint: "content", dash: "dashboard" };
+  const [wizardAlert, setWizardAlert] = useState(null);
   const changeMode = (newMode) => {
+    if (mode === "cover" && newMode !== "cover") {
+      const teamMissing = !sprintForm.team.trim();
+      const sprintMissing = !sprintForm.sprint.trim();
+      if (teamMissing && sprintMissing) {
+        setWizardAlert("Ekip adı ve Sprint No boş bırakılamaz.");
+        return;
+      }
+      if (teamMissing) {
+        setWizardAlert("Ekip adı boş bırakılamaz.");
+        return;
+      }
+      if (sprintMissing) {
+        setWizardAlert("Sprint No boş bırakılamaz.");
+        return;
+      }
+    }
     setMode(newMode);
-    setPreviewTab(PREVIEW_TAB_BY_MODE[newMode]);
+    setPreviewTab(MODE_TO_PREVIEW_TAB[newMode]);
   };
 
   // Kapak gorseli kullanicidan gelmisse ASSETS'in uzerine yazilir - SlideCanvas,
@@ -153,6 +188,7 @@ export default function App() {
         theme={theme}
         onToggleTheme={toggleTheme}
         excelFileName={excelFileName}
+        personnel={personnel}
         actions={
           mode === "cover" || mode === "sprint" ? (
             <SprintTopActions
@@ -254,6 +290,13 @@ export default function App() {
             />
           )
         }
+      />
+
+      <AlertModal
+        open={!!wizardAlert}
+        title="Eksik bilgi"
+        message={wizardAlert}
+        onClose={() => setWizardAlert(null)}
       />
     </>
   );
