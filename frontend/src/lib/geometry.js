@@ -66,12 +66,27 @@ export function rowHeights(d, f) {
 
 export function pickFS(d, cardsTop) {
   const avail = G.Y_BOT - cardsTop;
-  const cands = [10.5, 10, 9.5, 9, 8.5, 8, 7.5, 7];
+  const cands = [12.5, 12, 11.5, 11, 10.5, 10, 9.5, 9, 8.5, 8, 7.5, 7];
   for (const c of cands) {
     const r = rowHeights(d, c);
     if (r.topH + G.GAP_Y + r.botH <= avail) return c;
   }
   return 7;
+}
+
+/**
+ * Icerik az oldugunda kartlar sadece basligin sigacagi kadar kucuk kaliyor,
+ * slaytin buyuk kismi bos gorunuyordu. Dogal (icerik bazli) yukseklikleri
+ * hesapladiktan sonra, cardsTop-Y_BOT arasindaki bosluk kalirsa iki satira
+ * esit dagitip kartlari alani dolduracak sekilde gerer. Onizleme (SlideCanvas)
+ * ve PPTX (sprintDeckBuilder) AYNI fonksiyonu kullanir, ikisi de senkron kalir.
+ */
+export function stretchRowHeights(topH, botH, cardsTop) {
+  const avail = G.Y_BOT - cardsTop;
+  const extra = avail - (topH + G.GAP_Y + botH);
+  if (extra <= 0) return { topH, botH };
+  const add = extra / 2;
+  return { topH: topH + add, botH: botH + add };
 }
 
 export function parseRuns(t) {

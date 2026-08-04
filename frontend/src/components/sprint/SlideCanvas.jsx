@@ -1,5 +1,5 @@
 import { Fragment } from "react";
-import { G, BAND, SEGCOL, bandBars, cardsTopFor, pickFS, rowHeights, parseRuns, num, sectionDefs } from "../../lib/geometry";
+import { G, BAND, SEGCOL, bandBars, cardsTopFor, pickFS, rowHeights, stretchRowHeights, parseRuns, num, sectionDefs } from "../../lib/geometry";
 
 const S = 96; // px per inch - orijinal ile birebir ayni olcek
 
@@ -16,7 +16,7 @@ function BulletText({ text }) {
 function Card({ x, y, w, h, items, sec, fontSize }) {
   return (
     <div className="card" style={{ left: x * S, top: y * S, width: w * S, height: h * S }}>
-      <div className="acc" style={{ background: "#" + sec.accent }} />
+      <div className="acc" style={{ background: "#" + sec.accent, boxShadow: "0 0 10px #" + sec.accent + "70" }} />
       <div className="chd">
         <img src={sec.icon} alt="" />
         <span className="ct" style={{ color: "#" + sec.accent }}>{sec.title}</span>
@@ -90,7 +90,8 @@ export default function SlideCanvas({ data, tab, assets, scale }) {
     const bars = bandBars(data);
     const cardsTop = cardsTopFor(data);
     const FS = pickFS(data, cardsTop);
-    const { topH, botH } = rowHeights(data, FS);
+    const natural = rowHeights(data, FS);
+    const { topH, botH } = stretchRowHeights(natural.topH, natural.botH, cardsTop);
     const yBot = cardsTop + topH + G.GAP_Y;
     content = (
       <>
@@ -111,7 +112,7 @@ export default function SlideCanvas({ data, tab, assets, scale }) {
   }
 
   return (
-    <div className="slidecanvas" style={{ transform: `scale(${scale})` }}>
+    <div className={`slidecanvas tab-${tab}`} style={{ transform: `scale(${scale})` }}>
       {content}
     </div>
   );

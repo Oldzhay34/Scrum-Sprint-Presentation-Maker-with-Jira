@@ -7,7 +7,7 @@ import { DAV_COLORS, barColor, dStatus, nfmt1, nfmtInt, npct } from "../../lib/f
 export default function DashboardSlideCanvas({ dd, assets, scale }) {
   if (!dd.kpis) {
     return (
-      <div className="slidecanvas" style={{ transform: `scale(${scale})` }}>
+      <div className="slidecanvas tab-dashboard" style={{ transform: `scale(${scale})` }}>
         <div className="dash">
           <div className="dttl">Kapasite Dashboard</div>
           <div className="dsub" style={{ marginTop: 40 }}>
@@ -20,12 +20,12 @@ export default function DashboardSlideCanvas({ dd, assets, scale }) {
 
   const k = dd.kpis, dur = dStatus(k.durum, k.doluluk);
   const cards = [
-    ["Toplam İş Yükü", nfmtInt(k.toplam), "A/G", "#1F2937"],
+    ["Toplam İş Yükü", nfmtInt(k.toplam), "A/G", "var(--ink)"],
     ["Tamamlanan İş Yükü", nfmtInt(k.tamamlanan), "A/G", "#16A34A"],
-    ["Açık İş Yükü", nfmtInt(k.acik), "A/G", "#1F2937"],
+    ["Açık İş Yükü", nfmtInt(k.acik), "A/G", "var(--ink)"],
     ["Kullanılabilir Kapasite", nfmtInt(k.kapasite), "A/G", "#2563EB"],
     ["Bakımlı Doluluk", npct(k.doluluk), "Bakım/SR sonrası %", "#" + dur.bar],
-    ["Kapasite Açığı / Fazlası", nfmt1(k.acikFazla), "A/G", k.acikFazla < 0 ? "#DC2626" : "#1F2937"],
+    ["Kapasite Açığı / Fazlası", nfmt1(k.acikFazla), "A/G", k.acikFazla < 0 ? "#DC2626" : "var(--ink)"],
     ["Genel Durum", dur.label, "Doluluk eşiklerine göre", "#" + dur.fg],
     ...(dd.customKpis || []).map((c) => [c.label, c.value, c.unit || "", "#7C3AED"]),
   ];
@@ -40,7 +40,7 @@ export default function DashboardSlideCanvas({ dd, assets, scale }) {
     : [];
 
   return (
-    <div className="slidecanvas" style={{ transform: `scale(${scale})` }}>
+    <div className="slidecanvas tab-dashboard" style={{ transform: `scale(${scale})` }}>
       <div className="dash">
         <div className="dlogos">
           <img src={assets.logo_b} alt="" />
@@ -108,7 +108,7 @@ export default function DashboardSlideCanvas({ dd, assets, scale }) {
                   <div className="dbar"><i style={{ width: fill + "%", background: "#" + barColor(p.doluluk) }} /></div>
                   <div className="pc" title={p.bakimOrani != null ? `Kişiye özel bakım oranı: %${Math.round(p.bakimOrani * 100)}` : "Takım geneli bakım oranı kullanılıyor"}>
                     {npct(p.doluluk)}
-                    {p.bakimOrani != null && <span style={{ fontSize: 9, color: "#9AA3AF", marginLeft: 4 }}>(bakım %{Math.round(p.bakimOrani * 100)})</span>}
+                    {p.bakimOrani != null && <span style={{ fontSize: 9, color: "var(--mut)", marginLeft: 4 }}>(bakım %{Math.round(p.bakimOrani * 100)})</span>}
                   </div>
                 </div>
                 <div className="pill" style={{ color: "#" + ps.fg, background: "#" + ps.bg, borderColor: "#" + ps.fg }}>

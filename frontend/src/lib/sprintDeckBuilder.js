@@ -1,5 +1,5 @@
 import PptxGenJS from "pptxgenjs";
-import { G, SEGCOL, BAND, bandBars, pickFS, rowHeights, parseRuns, num, sectionDefs } from "./geometry";
+import { G, SEGCOL, BAND, bandBars, pickFS, rowHeights, stretchRowHeights, parseRuns, num, sectionDefs } from "./geometry";
 
 /**
  * Sprint sunumu PPTX'ini uretir. Canli onizlemedeki (SlideCanvas) ile
@@ -60,7 +60,8 @@ export function buildSprintDeck(data, assets) {
 
   const CARDS_TOP = drawBand();
   const FS = pickFS(data, CARDS_TOP);
-  const { topH, botH } = rowHeights(data, FS);
+  const natural = rowHeights(data, FS);
+  const { topH, botH } = stretchRowHeights(natural.topH, natural.botH, CARDS_TOP);
 
   function drawCard(x, y, items, sec, fs2, h) {
     s2.addShape(pptx.ShapeType.roundRect, { x, y, w: G.COL_W, h, rectRadius: 0.06, fill: { color: "FFFFFF" }, line: { color: LINE, width: 1 }, shadow: { type: "outer", color: "9CA3AF", blur: 6, offset: 2, angle: 90, opacity: 0.28 } });

@@ -55,14 +55,23 @@ export default function App() {
 
   // ---- Kapasite Dashboard (3. adim) durumu ----
   const [dashSource, setDashSource] = useState("excel");
-  const dashboard = useDashboardData(sprintForm.team);
-  const manual = useManualDashboard(sprintForm.team);
+  const dashboard = useDashboardData(sprintForm.team, sprintForm.setTeam, sprintForm.sprint, sprintForm.setSprint);
+  const manual = useManualDashboard(sprintForm.team, sprintForm.setTeam, sprintForm.sprint, sprintForm.setSprint);
   const dashExport = usePptxExport();
   const activeDashData = dashSource === "manual" ? manual.dashData : dashboard.dashData;
 
   // ---- Birlesik onizleme (kapak / icerik / kapasite dashboard) ----
-  const [previewTab, setPreviewTab] = useState("content");
+  const [previewTab, setPreviewTab] = useState("cover");
   const [zoomOpen, setZoomOpen] = useState(false);
+
+  // Sihirbaz adimi (mode) degistiginde onizleme sekmesi de otomatik esler -
+  // "Kapak Sayfasi" adimina gecince onizleme de kapak gorselini (logo + ag deseni)
+  // gostersin, kullanici ayrica sekme tiklamak zorunda kalmasin.
+  const MODE_TO_PREVIEW_TAB = { cover: "cover", sprint: "content", dash: "dashboard" };
+  const changeMode = (newMode) => {
+    setMode(newMode);
+    setPreviewTab(MODE_TO_PREVIEW_TAB[newMode]);
+  };
 
   // Kapak gorseli kullanicidan gelmisse ASSETS'in uzerine yazilir - SlideCanvas,
   // DashboardSlideCanvas ve buildSprintDeck bunu degistirmeden ayni sekilde tuketir.
@@ -135,7 +144,7 @@ export default function App() {
       )}
       {mode === "dash" && <ErrorBanner error={dashExport.error} onDismiss={() => dashExport.setError(null)} />}
 
-      <WizardSteps step={mode} onStepChange={setMode} />
+      <WizardSteps step={mode} onStepChange={changeMode} />
 
       <main>
         <div className="wizard-col">
@@ -154,10 +163,10 @@ export default function App() {
             <DashboardPage source={dashSource} onSourceChange={setDashSource} dashboard={dashboard} manual={manual} />
           )}
           <div className="wizard-nav">
-            <Button variant="soft" disabled={mode === "cover"} onClick={() => setMode(mode === "dash" ? "sprint" : "cover")}>
+            <Button variant="soft" disabled={mode === "cover"} onClick={() => changeMode(mode === "dash" ? "sprint" : "cover")}>
               {mode === "dash" ? "← Geri: İçerik Slaytı" : "← Geri: Kapak Sayfası"}
             </Button>
-            <Button variant="primary" disabled={mode === "dash"} onClick={() => setMode(mode === "cover" ? "sprint" : "dash")}>
+            <Button variant="primary" disabled={mode === "dash"} onClick={() => changeMode(mode === "cover" ? "sprint" : "dash")}>
               {mode === "cover" ? "İleri: İçerik Slaytı →" : "İleri: Kapasite Dashboard →"}
             </Button>
           </div>

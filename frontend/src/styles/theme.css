@@ -68,19 +68,66 @@
   border-color: var(--line);
 }
 
-/* Slayt tuvali (SlideCanvas / DashboardSlideCanvas) PPTX ciktisiyla birebir
-   ayni gorunmeli - koyu modda SADECE cevresindeki uygulama arka plani
-   degisir, slaytin kendi renkleri (beyaz kartlar, koyu metin) hep sabit kalir. */
-.theme-dark .slidebox {
+/* Slayt tuvali (SlideCanvas / DashboardSlideCanvas) varsayilan olarak PPTX
+   ciktisiyla birebir ayni gorunmeli - kapak slayti icin bu boyle kalir (export
+   hep beyaz zeminli). Icerik (tab-content) ve Kapasite Dashboard (tab-dashboard)
+   slaytlari ise kullanici tercihiyle koyu modda kendi renklerini de koyulastirir;
+   bu durumda ekrandaki onizleme ile indirilen PPTX (hep acik zeminli) farklilasir. */
+.theme-dark .slidebox:not(:has(.tab-content, .tab-dashboard)) {
   background: #fff;
   border-color: var(--glass-border);
 }
-.theme-dark .slidecanvas {
+.theme-dark .slidecanvas:not(.tab-content):not(.tab-dashboard) {
   --ink: #1F2937;
   --mut: #6B7280;
   --line: #E5E7EB;
   --card: #FFFFFF;
   --bg: #F1F5F7;
+}
+
+/* Icerik slayti ve Kapasite Dashboard - koyu modda ortak koyu palet
+   (kartlar/yazilar okunur kalsin) */
+.theme-dark .slidebox:has(.tab-content, .tab-dashboard) {
+  background: #16212f;
+  border-color: var(--glass-border);
+}
+.theme-dark .slidecanvas.tab-content,
+.theme-dark .slidecanvas.tab-dashboard {
+  --ink: #E7EDF5;
+  --mut: #9CB0C6;
+  --line: rgba(255, 255, 255, 0.14);
+  --card: #1c2733;
+  --bg: #131c27;
+}
+.theme-dark .slidecanvas.tab-content .card {
+  background: var(--card);
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.35);
+}
+.theme-dark .slidecanvas.tab-content .card li {
+  color: var(--ink);
+}
+.theme-dark .slidecanvas.tab-content .card li:before {
+  color: var(--mut);
+}
+.theme-dark .slidecanvas.tab-content .s-header {
+  color: var(--aksa-blue-light);
+}
+
+/* Kapasite Dashboard slayti - koyu modda KPI/kisi tablosu kartlarina golge +
+   "net degisim" vurgu kutusunun (hl) acik pembe tonu koyu varyanta doner. */
+.theme-dark .slidecanvas.tab-dashboard .dcard,
+.theme-dark .slidecanvas.tab-dashboard .ddelta .dc {
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.3);
+}
+.theme-dark .slidecanvas.tab-dashboard .ddelta .dc.hl {
+  background: rgba(220, 38, 38, 0.16);
+  border-color: rgba(252, 165, 165, 0.4);
+}
+.theme-dark .slidecanvas.tab-dashboard .ddelta .dc.hl .l {
+  color: #fca5a5;
+}
+.theme-dark .slidecanvas.tab-dashboard .dttl {
+  color: var(--aksa-blue-light);
 }
 
 .theme-dark .field input,
@@ -110,6 +157,11 @@
   color: #cfe0f2;
 }
 
+.theme-dark .btn.close {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--ink);
+}
+
 .theme-dark .chip {
   background: rgba(255, 255, 255, 0.04);
   color: var(--ink);
@@ -117,6 +169,15 @@
 
 .theme-dark .bar {
   background: rgba(255, 255, 255, 0.03);
+}
+
+/* app.css'te .addseg/.addbar acik mavi (#EFF6F8) sabit - karanlik modda
+   goze batiyordu, marka mavisiyle uyumlu koyu varyanta ceviriyoruz. */
+.theme-dark .addseg,
+.theme-dark .addbar {
+  background: rgba(74, 159, 224, 0.12);
+  border-color: rgba(74, 159, 224, 0.45);
+  color: var(--aksa-blue-light);
 }
 
 /* ---------------------------------------------------------------------- */
@@ -210,12 +271,52 @@ header.topbar {
   position: relative;
 }
 
-header.topbar::after {
-  content: "";
-  position: absolute;
-  left: 0; right: 0; bottom: 0;
-  height: 3px;
+/* ---------------------------------------------------------------------- */
+/* Ust bar daraltma tutamaci - alt kenardan yukari cekilince (veya         */
+/* tiklaninca) topbar-content daralip kaybolur, tekrar cekilince/          */
+/* tiklaninca acilir. Tutamaç her zaman gorunur kalir.                     */
+/* ---------------------------------------------------------------------- */
+.topbar-content {
+  max-height: 160px;
+  opacity: 1;
+  transition: max-height 0.28s ease, opacity 0.2s ease, padding 0.28s ease;
+}
+.topbar-collapsed .topbar-content {
+  max-height: 0;
+  opacity: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  pointer-events: none;
+}
+
+.topbar-handle {
+  width: 100%;
+  height: 13px;
+  flex: none;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  cursor: ns-resize;
+  touch-action: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: linear-gradient(90deg, var(--aksa-green), var(--aksa-green-dark) 60%, transparent);
+  transition: filter 0.15s ease;
+}
+.topbar-handle:hover,
+.topbar-handle:focus-visible {
+  filter: brightness(1.15);
+}
+.topbar-handle-grip {
+  width: 44px;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.55);
+  transition: background 0.15s ease;
+}
+.topbar-handle:hover .topbar-handle-grip {
+  background: rgba(255, 255, 255, 0.9);
 }
 
 .navbar-icon {
@@ -402,4 +503,132 @@ header.topbar::after {
 @keyframes aksa-pop-in {
   from { opacity: 0; transform: scale(0.92) translateY(6px); }
   to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* ---------------------------------------------------------------------- */
+/* Buton cilasi - yuvarlak kose, hafif golge, hover'da kalkma hissi        */
+/* ---------------------------------------------------------------------- */
+.btn {
+  border-radius: 10px;
+  transition: transform 0.15s ease, box-shadow 0.2s ease, background 0.15s ease;
+}
+.btn:not(:disabled):hover {
+  transform: translateY(-1px);
+}
+.btn.primary {
+  background: linear-gradient(135deg, var(--aksa-green), var(--aksa-green-dark));
+  box-shadow: 0 4px 14px rgba(110, 168, 43, 0.32);
+}
+.btn.primary:hover {
+  background: linear-gradient(135deg, var(--aksa-green), var(--aksa-green-dark));
+  box-shadow: 0 6px 20px rgba(110, 168, 43, 0.42);
+}
+.btn.soft {
+  box-shadow: 0 1px 3px rgba(11, 31, 51, 0.05);
+}
+.btn.soft:hover {
+  box-shadow: 0 4px 14px rgba(13, 94, 168, 0.14);
+  border-color: var(--aksa-blue-light);
+}
+.btn.ghost {
+  border-radius: 8px;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Input/textarea odak (focus) hali - marka rengiyle yumusak parlama,      */
+/* app.css'teki sabit acik mavi outline'in yerine gecer                    */
+/* ---------------------------------------------------------------------- */
+.field input,
+.sec textarea,
+.modal textarea,
+.pmrow input,
+.bar input.barlabel,
+.seg input {
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.field input:focus,
+.sec textarea:focus,
+.modal textarea:focus {
+  outline: none;
+  border-color: var(--aksa-blue-light);
+  box-shadow: 0 0 0 3px rgba(74, 159, 224, 0.22);
+}
+
+/* ---------------------------------------------------------------------- */
+/* Panel basligi - marka renginde kucuk vurgu cizgisi, gorsel capa         */
+/* ---------------------------------------------------------------------- */
+.panelttl {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.panelttl::before {
+  content: "";
+  width: 4px;
+  height: 12px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, var(--aksa-blue-light), var(--aksa-blue));
+  flex: none;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Bosluk ritmi - kartlar arasi biraz daha nefes alani                     */
+/* ---------------------------------------------------------------------- */
+.sec,
+.bandpanel {
+  margin-bottom: 16px;
+  padding: 14px 15px;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Karanlik modda ince, marka rengine yakin kaydirma cubugu                */
+/* ---------------------------------------------------------------------- */
+.theme-dark ::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+.theme-dark ::-webkit-scrollbar-track {
+  background: transparent;
+}
+.theme-dark ::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+.theme-dark ::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(74, 159, 224, 0.5);
+  background-clip: content-box;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Ust bar aksiyon butonlari (Excel Yukle / Ornek Doldur / PPTX Indir) -   */
+/* dikkat cekmesi icin yumusak, surekli nabiz (pulse) parlamasi. Hover'da  */
+/* durur (kullanici etkilesirken dikkat dagitmasin), reduced-motion'da     */
+/* tamamen kapanir.                                                        */
+/* ---------------------------------------------------------------------- */
+header.topbar .btn.ghost:not(:disabled) {
+  animation: aksa-topbtn-pulse-ghost 2.4s ease-in-out infinite;
+}
+header.topbar .btn.primary:not(:disabled) {
+  animation: aksa-topbtn-pulse-primary 2.4s ease-in-out infinite;
+}
+header.topbar .btn:hover {
+  animation-play-state: paused;
+}
+
+@keyframes aksa-topbtn-pulse-ghost {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); }
+  50% { box-shadow: 0 0 0 7px rgba(255, 255, 255, 0.16); }
+}
+@keyframes aksa-topbtn-pulse-primary {
+  0%, 100% { box-shadow: 0 4px 14px rgba(110, 168, 43, 0.32), 0 0 0 0 rgba(141, 198, 63, 0); }
+  50% { box-shadow: 0 4px 14px rgba(110, 168, 43, 0.32), 0 0 0 8px rgba(141, 198, 63, 0.35); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  header.topbar .btn.ghost,
+  header.topbar .btn.primary {
+    animation: none;
+  }
 }
