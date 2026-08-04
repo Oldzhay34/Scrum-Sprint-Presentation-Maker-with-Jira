@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { computeStatelessDashboard } from "../lib/apiClient";
 import { riskLevelToLabel } from "../lib/format";
+import { validateDateOrder } from "../lib/dateValidation";
 
 let clientIdSeq = 1;
 const nextClientId = () => clientIdSeq++;
@@ -37,10 +38,15 @@ export function useManualDashboard(fallbackTeamName) {
   const [members, setMembers] = useState([]);
   const [workItems, setWorkItems] = useState([]);
   const [statuses, setStatuses] = useState(DEFAULT_STATUSES);
+  // Takima ozgu, backend'in genel formulune girmeyen ek gostergeler (orn. RPA'da
+  // "FTE Hedef", "Hedef Sürec Sayisi") - tamamen istemci tarafinda, sadece onizlemede
+  // ekstra kart olarak gosterilir, hesaplamaya karismaz.
+  const [customKpis, setCustomKpis] = useState([]);
 
   const [dashData, setDashData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [alertMessage, setAlertMessage] = useState(null);
 
   const addMember = () =>
     setMembers((prev) => [...prev, { clientId: nextClientId(), fullName: "", role: "", startDate: period.periodStart, statusCode: "OPEN" }]);
@@ -61,6 +67,10 @@ export function useManualDashboard(fallbackTeamName) {
   const updateStatus = (index, patch) => setStatuses((prev) => prev.map((s, i) => (i === index ? { ...s, ...patch } : s)));
   const removeStatus = (index) => setStatuses((prev) => prev.filter((_, i) => i !== index));
 
+  const addCustomKpi = () => setCustomKpis((prev) => [...prev, { label: "", value: "", unit: "" }]);
+  const updateCustomKpi = (index, patch) => setCustomKpis((prev) => prev.map((k, i) => (i === index ? { ...k, ...patch } : k)));
+  const removeCustomKpi = (index) => setCustomKpis((prev) => prev.filter((_, i) => i !== index));
+
   const workItemsByMember = useMemo(() => {
     const map = {};
     workItems.forEach((wi) => {
@@ -71,6 +81,12 @@ export function useManualDashboard(fallbackTeamName) {
   }, [workItems]);
 
   const compute = async () => {
+    const dateIssue = validateDateOrder({ periodStart: period.periodStart, periodEnd: period.periodEnd, members, workItems });
+    if (dateIssue) {
+      setAlertMessage(dateIssue);
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
@@ -90,6 +106,9 @@ export function useManualDashboard(fallbackTeamName) {
           startDate: m.startDate || null,
           statusCode: m.statusCode || null,
           targetWorkDays: m.targetWorkDays ? Number(m.targetWorkDays) : null,
+          maintenanceAllocationPercent: m.maintenanceAllocationPercent
+            ? Number(String(m.maintenanceAllocationPercent).replace(",", "."))
+            : null,
         })),
         workItems: workItems
           .filter((wi) => wi.title.trim())
@@ -105,7 +124,7 @@ export function useManualDashboard(fallbackTeamName) {
       };
 
       const result = await computeStatelessDashboard(request);
-      setDashData(toDashData(result, team || fallbackTeamName, sprintNo, period, previousSnapshotDate));
+      setDashData(toDashData(result, team || fallbackTeamName, sprintNo, period, previousSnapshotDate, customKpis));
     } catch (err) {
       setError(err);
       setDashData(null);
@@ -118,15 +137,17 @@ export function useManualDashboard(fallbackTeamName) {
     team, setTeam, sprintNo, setSprintNo,
     period, setPeriod, previousSnapshotDate, setPreviousSnapshotDate,
     maintenanceAllocationPercent, setMaintenanceAllocationPercent,
+    alertMessage, clearAlert: () => setAlertMessage(null),
     members, addMember, updateMember, removeMember,
     workItems, workItemsByMember, addWorkItem, updateWorkItem, removeWorkItem,
     statuses, addStatus, updateStatus, removeStatus,
+    customKpis, addCustomKpi, updateCustomKpi, removeCustomKpi,
     dashData, loading, error, compute,
   };
 }
 
 /** Backend'in CapacityDashboardDto'sunu DashboardSlideCanvas'ın beklediği dashData şekline çevirir. */
-function toDashData(dto, team, sprintNo, period, previousSnapshotDate) {
+function toDashData(dto, team, sprintNo, period, previousSnapshotDate, customKpis = []) {
   const durum = riskLevelToLabel(dto.overallRiskLevel);
   return {
     team: team || "Ekip",
@@ -152,10 +173,12 @@ function toDashData(dto, team, sprintNo, period, previousSnapshotDate) {
       kapasite: m.rawRemainingCapacity,
       doluluk: (m.occupancyPercent || 0) / 100,
       durum: riskLevelToLabel(m.riskLevel),
+      bakimOrani: m.maintenanceAllocationPercent,
     })),
     delta: previousSnapshotDate
       ? { kapanan: dto.periodClosedEffort, eklenen: dto.newlyAddedEffort, fte: "", net: dto.netChange, range: `${formatTr(previousSnapshotDate)} – ${formatTr(period.reportDate)}` }
       : null,
+    customKpis: (customKpis || []).filter((k) => k.label.trim() && k.value !== ""),
   };
 }
 

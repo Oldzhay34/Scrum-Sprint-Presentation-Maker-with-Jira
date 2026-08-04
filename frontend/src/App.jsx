@@ -1,9 +1,13 @@
 import { useState } from "react";
 import "./styles/app.css";
+import "./styles/theme.css";
 
 import TopBar from "./components/shared/TopBar";
 import ZoomModal from "./components/shared/ZoomModal";
 import ErrorBanner from "./components/shared/ErrorBanner";
+import WizardSteps from "./components/shared/WizardSteps";
+import UnifiedPreviewPane from "./components/shared/UnifiedPreviewPane";
+import Button from "./components/shared/Button";
 
 import SprintPage from "./components/sprint/SprintPage";
 import SprintTopActions from "./components/sprint/SprintTopActions";
@@ -21,6 +25,7 @@ import { useExcelSuggestions } from "./hooks/useExcelSuggestions";
 import { usePptxExport } from "./hooks/usePptxExport";
 import { useDashboardData } from "./hooks/useDashboardData";
 import { useManualDashboard } from "./hooks/useManualDashboard";
+import { useTheme } from "./hooks/useTheme";
 
 import { sectionDefs } from "./lib/geometry";
 import { buildSprintDeck } from "./lib/sprintDeckBuilder";
@@ -33,26 +38,27 @@ const SAMPLE_BAND_BARS = [
 ];
 
 export default function App() {
+  // "mode/step" ayni degisken: hem ust nav hem sihirbaz adimi olarak kullanilir.
   const [mode, setMode] = useState("sprint");
+  const { theme, toggleTheme } = useTheme();
 
-  // ---- Sprint modu durumu ----
+  // ---- Sprint (1. adim) durumu ----
   const sprintForm = useSprintForm();
   const band = useBandEditor();
   const excel = useExcelSuggestions();
   const sprintExport = usePptxExport();
-  const [curTab, setCurTab] = useState("content");
   const [editorKey, setEditorKey] = useState(null);
 
-  // ---- Kapasite Dashboard modu durumu ----
+  // ---- Kapasite Dashboard (2. adim) durumu ----
   const [dashSource, setDashSource] = useState("excel");
   const dashboard = useDashboardData(sprintForm.team);
   const manual = useManualDashboard(sprintForm.team);
   const dashExport = usePptxExport();
   const activeDashData = dashSource === "manual" ? manual.dashData : dashboard.dashData;
 
-  // ---- Buyutulmus onizleme (her iki modda da paylasilir) ----
+  // ---- Birlesik onizleme (kapak / icerik / kapasite dashboard) ----
+  const [previewTab, setPreviewTab] = useState("content");
   const [zoomOpen, setZoomOpen] = useState(false);
-  const [zoomTab, setZoomTab] = useState("content");
 
   const SEC = sectionDefs(ASSETS);
 
@@ -79,18 +85,15 @@ export default function App() {
       await pptx.writeFile({ fileName: "Kapasite_Dashboard.pptx" });
     });
 
-  const openZoom = () => {
-    setZoomTab(curTab);
-    setZoomOpen(true);
-  };
-
-  const sprintZoomData = { ...sprintForm.data, showBand: band.show, targets: band.bars };
+  const sprintData = { ...sprintForm.data, showBand: band.show, targets: band.bars };
 
   return (
     <>
       <TopBar
         mode={mode}
         onModeChange={setMode}
+        theme={theme}
+        onToggleTheme={toggleTheme}
         actions={
           mode === "sprint" ? (
             <SprintTopActions
@@ -121,27 +124,34 @@ export default function App() {
         excelInfo={excel.info}
       />
 
-      <SprintPage
-        visible={mode === "sprint"}
-        form={sprintForm}
-        band={band}
-        excel={excel}
-        assets={ASSETS}
-        curTab={curTab}
-        onTabChange={setCurTab}
-        onZoom={openZoom}
-        onExpandSection={setEditorKey}
-      />
+      <WizardSteps step={mode} onStepChange={setMode} />
 
-      <DashboardPage
-        visible={mode === "dash"}
-        source={dashSource}
-        onSourceChange={setDashSource}
-        dashboard={dashboard}
-        manual={manual}
-        assets={ASSETS}
-        onZoom={openZoom}
-      />
+      <main>
+        <div className="wizard-col">
+          {mode === "sprint" ? (
+            <SprintPage form={sprintForm} band={band} excel={excel} assets={ASSETS} onExpandSection={setEditorKey} />
+          ) : (
+            <DashboardPage source={dashSource} onSourceChange={setDashSource} dashboard={dashboard} manual={manual} />
+          )}
+          <div className="wizard-nav">
+            <Button variant="soft" disabled={mode === "sprint"} onClick={() => setMode("sprint")}>
+              ← Geri: İçerik Slaytı
+            </Button>
+            <Button variant="primary" disabled={mode === "dash"} onClick={() => setMode("dash")}>
+              İleri: Kapasite Dashboard →
+            </Button>
+          </div>
+        </div>
+
+        <UnifiedPreviewPane
+          sprintData={sprintData}
+          dashData={activeDashData}
+          assets={ASSETS}
+          activeTab={previewTab}
+          onTabChange={setPreviewTab}
+          onZoom={() => setZoomOpen(true)}
+        />
+      </main>
 
       <EditorModal
         open={editorKey != null}
@@ -155,14 +165,18 @@ export default function App() {
       <ZoomModal
         open={zoomOpen}
         onClose={() => setZoomOpen(false)}
-        tabs={mode === "sprint" ? [{ key: "content", label: "İçerik slaytı" }, { key: "cover", label: "Kapak" }] : null}
-        activeTab={zoomTab}
-        onTabChange={setZoomTab}
+        tabs={[
+          { key: "cover", label: "Kapak" },
+          { key: "content", label: "İçerik Slaytı" },
+          { key: "dashboard", label: "Kapasite Dashboard" },
+        ]}
+        activeTab={previewTab}
+        onTabChange={setPreviewTab}
         renderCanvas={(scale) =>
-          mode === "dash" ? (
+          previewTab === "dashboard" ? (
             <DashboardSlideCanvas dd={activeDashData || {}} assets={ASSETS} scale={scale} />
           ) : (
-            <SlideCanvas data={sprintZoomData} tab={zoomTab} assets={ASSETS} scale={scale} />
+            <SlideCanvas data={sprintData} tab={previewTab} assets={ASSETS} scale={scale} />
           )
         }
       />

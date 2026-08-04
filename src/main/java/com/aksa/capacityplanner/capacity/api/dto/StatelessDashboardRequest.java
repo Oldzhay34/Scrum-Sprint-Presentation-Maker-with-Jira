@@ -30,9 +30,14 @@ public record StatelessDashboardRequest(
         List<@Valid StatusInput> statuses,
         Map<Long, BigDecimal> personalLeaveDaysByMemberId) {
 
-    /** clientId: bu istek icinde uyeyi is kalemlerinden referans vermek icin kullanilan gecici id (DB id'si degil). */
+    /**
+     * clientId: bu istek icinde uyeyi is kalemlerinden referans vermek icin kullanilan gecici id (DB id'si degil).
+     * maintenanceAllocationPercent: kisiye ozel bakim/SR orani - bos birakilirsa takim seviyesindeki
+     * genel oran (ust seviye maintenanceAllocationPercent) kullanilir.
+     */
     public record MemberInput(@NotNull Long clientId, @NotBlank String fullName, String role,
-                               LocalDate startDate, String statusCode, BigDecimal targetWorkDays) {
+                               LocalDate startDate, String statusCode, BigDecimal targetWorkDays,
+                               BigDecimal maintenanceAllocationPercent) {
     }
 
     public record WorkItemInput(@NotNull Long memberClientId, @NotBlank String title,

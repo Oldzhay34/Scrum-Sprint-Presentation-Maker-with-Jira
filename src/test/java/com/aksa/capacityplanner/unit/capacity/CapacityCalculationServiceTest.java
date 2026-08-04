@@ -34,7 +34,7 @@ class CapacityCalculationServiceTest {
         CapacityDashboard dashboard = service.calculate(new CapacityCalculationInput(
                 1L, PERIOD_START, PERIOD_END, LocalDate.of(2026, 6, 1), null,
                 BigDecimal.ZERO, List.of(open, done), List.of(member), statuses,
-                Map.of(), Set.of(), Set.of()));
+                Map.of(), Map.of(), Set.of(), Set.of()));
 
         assertThat(dashboard.getTotalPlannedEffort()).isEqualByComparingTo("15");
         assertThat(dashboard.getCompletedEffort()).isEqualByComparingTo("5");
@@ -53,7 +53,7 @@ class CapacityCalculationServiceTest {
         CapacityDashboard dashboard = service.calculate(new CapacityCalculationInput(
                 1L, PERIOD_START, PERIOD_END, LocalDate.of(2026, 12, 1), null,
                 BigDecimal.ZERO, List.of(heavy), List.of(member), statuses,
-                Map.of(), Set.of(), Set.of()));
+                Map.of(), Map.of(), Set.of(), Set.of()));
 
         assertThat(dashboard.getMemberMetrics().get(0).getRiskLevel()).isEqualTo(RiskLevel.YUKSEK_RISK);
         assertThat(dashboard.getOverallRiskLevel()).isEqualTo(RiskLevel.YUKSEK_RISK);
@@ -68,14 +68,31 @@ class CapacityCalculationServiceTest {
         CapacityDashboard withoutMaintenance = service.calculate(new CapacityCalculationInput(
                 1L, PERIOD_START, PERIOD_END, LocalDate.of(2026, 6, 1), null,
                 BigDecimal.ZERO, List.of(item), List.of(member), statuses,
-                Map.of(), Set.of(), Set.of()));
+                Map.of(), Map.of(), Set.of(), Set.of()));
         CapacityDashboard withMaintenance = service.calculate(new CapacityCalculationInput(
                 1L, PERIOD_START, PERIOD_END, LocalDate.of(2026, 6, 1), null,
                 new BigDecimal("0.20"), List.of(item), List.of(member), statuses,
-                Map.of(), Set.of(), Set.of()));
+                Map.of(), Map.of(), Set.of(), Set.of()));
 
         assertThat(withMaintenance.getMemberMetrics().get(0).getMaintainedCapacity())
                 .isLessThan(withoutMaintenance.getMemberMetrics().get(0).getMaintainedCapacity());
+    }
+
+    @Test
+    void perMemberMaintenanceOverride_takesPrecedenceOverTeamLevel() {
+        TeamMember member = member(1L, LocalDate.of(2026, 1, 1));
+        WorkItem item = workItem(1L, member.getId(), new BigDecimal("10"), "OPEN", null);
+
+        CapacityDashboard dashboard = service.calculate(new CapacityCalculationInput(
+                1L, PERIOD_START, PERIOD_END, LocalDate.of(2026, 6, 1), null,
+                new BigDecimal("0.20"), List.of(item), List.of(member), statuses,
+                Map.of(), Map.of(1L, new BigDecimal("0.50")), Set.of(), Set.of()));
+
+        MemberCapacityMetrics metrics = dashboard.getMemberMetrics().get(0);
+        assertThat(metrics.getMaintenanceAllocationPercent()).isEqualByComparingTo("0.50");
+        // takim orani (%20) yerine kisiye ozel %50 uygulanmis olmali -> kullanilabilir kapasite daha dusuk
+        BigDecimal expectedCapacity = metrics.getRawRemainingCapacity().multiply(new BigDecimal("0.50"));
+        assertThat(metrics.getMaintainedCapacity()).isEqualByComparingTo(expectedCapacity);
     }
 
     @Test
@@ -86,11 +103,11 @@ class CapacityCalculationServiceTest {
         CapacityDashboard noLeave = service.calculate(new CapacityCalculationInput(
                 1L, PERIOD_START, PERIOD_END, LocalDate.of(2026, 6, 1), null,
                 BigDecimal.ZERO, List.of(item), List.of(member), statuses,
-                Map.of(), Set.of(), Set.of()));
+                Map.of(), Map.of(), Set.of(), Set.of()));
         CapacityDashboard withLeave = service.calculate(new CapacityCalculationInput(
                 1L, PERIOD_START, PERIOD_END, LocalDate.of(2026, 6, 1), null,
                 BigDecimal.ZERO, List.of(item), List.of(member), statuses,
-                Map.of(1L, new BigDecimal("10")), Set.of(), Set.of()));
+                Map.of(1L, new BigDecimal("10")), Map.of(), Set.of(), Set.of()));
 
         assertThat(withLeave.getRemainingCapacity()).isLessThan(noLeave.getRemainingCapacity());
     }
@@ -102,7 +119,7 @@ class CapacityCalculationServiceTest {
         CapacityDashboard dashboard = service.calculate(new CapacityCalculationInput(
                 1L, PERIOD_START, PERIOD_END, LocalDate.of(2027, 1, 1), null,
                 BigDecimal.ZERO, List.of(), List.of(member), statuses,
-                Map.of(), Set.of(), Set.of()));
+                Map.of(), Map.of(), Set.of(), Set.of()));
 
         assertThat(dashboard.getMemberMetrics().get(0).getOccupancyPercent()).isEqualByComparingTo("0");
     }
@@ -118,7 +135,7 @@ class CapacityCalculationServiceTest {
                 1L, PERIOD_START, PERIOD_END, LocalDate.of(2026, 6, 20),
                 LocalDate.of(2026, 6, 10),
                 BigDecimal.ZERO, List.of(closedRecently, addedRecently), List.of(member), statuses,
-                Map.of(), Set.of(), Set.of()));
+                Map.of(), Map.of(), Set.of(), Set.of()));
 
         assertThat(dashboard.getPeriodClosedEffort()).isEqualByComparingTo("8");
         assertThat(dashboard.getNewlyAddedEffort()).isEqualByComparingTo("6");

@@ -27,6 +27,7 @@ export default function DashboardSlideCanvas({ dd, assets, scale }) {
     ["Bakımlı Doluluk", npct(k.doluluk), "Bakım/SR sonrası %", "#" + dur.bar],
     ["Kapasite Açığı / Fazlası", nfmt1(k.acikFazla), "A/G", k.acikFazla < 0 ? "#DC2626" : "#1F2937"],
     ["Genel Durum", dur.label, "Doluluk eşiklerine göre", "#" + dur.fg],
+    ...(dd.customKpis || []).map((c) => [c.label, c.value, c.unit || "", "#7C3AED"]),
   ];
   const d = dd.delta;
   const deltaCards = d
@@ -105,7 +106,10 @@ export default function DashboardSlideCanvas({ dd, assets, scale }) {
                 <div className="c">{nfmtInt(p.kapasite)}</div>
                 <div className="dol">
                   <div className="dbar"><i style={{ width: fill + "%", background: "#" + barColor(p.doluluk) }} /></div>
-                  <div className="pc">{npct(p.doluluk)}</div>
+                  <div className="pc" title={p.bakimOrani != null ? `Kişiye özel bakım oranı: %${Math.round(p.bakimOrani * 100)}` : "Takım geneli bakım oranı kullanılıyor"}>
+                    {npct(p.doluluk)}
+                    {p.bakimOrani != null && <span style={{ fontSize: 9, color: "#9AA3AF", marginLeft: 4 }}>(bakım %{Math.round(p.bakimOrani * 100)})</span>}
+                  </div>
                 </div>
                 <div className="pill" style={{ color: "#" + ps.fg, background: "#" + ps.bg, borderColor: "#" + ps.fg }}>
                   {ps.label}

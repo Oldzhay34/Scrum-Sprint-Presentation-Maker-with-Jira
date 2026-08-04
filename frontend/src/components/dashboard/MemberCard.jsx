@@ -49,6 +49,14 @@ export default function MemberCard({ member, statuses, items, onUpdateMember, on
           value={member.targetWorkDays || ""}
           onChange={(e) => onUpdateMember({ targetWorkDays: e.target.value })}
         />
+        <input
+          className="barlabel"
+          style={{ flex: "0 0 130px" }}
+          placeholder="Kişiye özel bakım oranı"
+          title="Boş bırakılırsa takım seviyesindeki genel bakım/SR oranı kullanılır (örn: 0.2 = %20)"
+          value={member.maintenanceAllocationPercent || ""}
+          onChange={(e) => onUpdateMember({ maintenanceAllocationPercent: e.target.value })}
+        />
         <button type="button" className="delbar" onClick={onRemoveMember}>
           Kişiyi sil
         </button>

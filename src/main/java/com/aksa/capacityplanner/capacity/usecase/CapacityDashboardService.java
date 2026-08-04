@@ -60,6 +60,7 @@ public class CapacityDashboardService implements CapacityDashboardUseCase {
                 team.getMaintenanceAllocationPercent(), workItems, members,
                 statusOptionRepository.findAvailableForTeam(query.teamId()),
                 approvedLeaveDaysByMember,
+                Map.of(),
                 holidayCalendarPort.getFullDayHolidays(year),
                 holidayCalendarPort.getHalfDayHolidays(year));
 

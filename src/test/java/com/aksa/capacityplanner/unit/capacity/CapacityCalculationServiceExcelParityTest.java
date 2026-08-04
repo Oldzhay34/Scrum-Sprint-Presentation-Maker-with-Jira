@@ -61,7 +61,7 @@ class CapacityCalculationServiceExcelParityTest {
         CapacityDashboard dashboard = service.calculate(new CapacityCalculationInput(
                 1L, PERIOD_START, PERIOD_END, REPORT_DATE, null,
                 MAINTENANCE, List.of(), List.of(member), statuses,
-                Map.of(member.getId(), leaveDays), Set.of(), Set.of()));
+                Map.of(member.getId(), leaveDays), Map.of(), Set.of(), Set.of()));
         return dashboard.getMemberMetrics().get(0);
     }
 

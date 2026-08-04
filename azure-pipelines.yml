@@ -69,7 +69,7 @@ stages:
         displayName: "mvn verify -P integration-tests"
         steps:
           - template: templates/setup-java-maven-cache.yml
-          - script: ./mvnw -B verify -P integration-tests -DskipTests
+          - script: ./mvnw -B verify -P integration-tests
             displayName: "Integration testleri calistir (persistence adapter, H2)"
           - template: templates/publish-test-results.yml
             parameters:
@@ -85,7 +85,7 @@ stages:
         displayName: "mvn verify -P module-tests"
         steps:
           - template: templates/setup-java-maven-cache.yml
-          - script: ./mvnw -B verify -P module-tests -DskipTests
+          - script: ./mvnw -B verify -P module-tests
             displayName: "Modul testlerini calistir (tek modul uctan uca, gercek Postgres)"
           - template: templates/publish-test-results.yml
             parameters:
@@ -101,7 +101,7 @@ stages:
         displayName: "mvn verify -P subsystem-tests"
         steps:
           - template: templates/setup-java-maven-cache.yml
-          - script: ./mvnw -B verify -P subsystem-tests -DskipTests
+          - script: ./mvnw -B verify -P subsystem-tests
             displayName: "Subsystem testlerini calistir (capacity + team + leave orkestrasyonu, cache, RabbitMQ)"
           - template: templates/publish-test-results.yml
             parameters:
@@ -117,7 +117,7 @@ stages:
         displayName: "mvn verify -P system-tests"
         steps:
           - template: templates/setup-java-maven-cache.yml
-          - script: ./mvnw -B verify -P system-tests -DskipTests
+          - script: ./mvnw -B verify -P system-tests
             displayName: "Sistem testlerini calistir (tam uygulama, sadece HTTP siniri)"
           - template: templates/publish-test-results.yml
             parameters:
@@ -133,7 +133,7 @@ stages:
         displayName: "mvn verify -P acceptance-tests"
         steps:
           - template: templates/setup-java-maven-cache.yml
-          - script: ./mvnw -B verify -P acceptance-tests -DskipTests
+          - script: ./mvnw -B verify -P acceptance-tests
             displayName: "Kabul testlerini calistir (is senaryolari)"
           - template: templates/publish-test-results.yml
             parameters:

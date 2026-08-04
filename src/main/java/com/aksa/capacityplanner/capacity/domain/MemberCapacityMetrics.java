@@ -21,6 +21,8 @@ public class MemberCapacityMetrics {
     private BigDecimal rawRemainingCapacity;
     /** Bakim/SR sonrasi kullanilabilir kapasite (Kapasite AG kolonu). */
     private BigDecimal maintainedCapacity;
+    /** Bu kisi icin gecerli olan bakim/SR orani (kisiye ozel override varsa o, yoksa takim orani). */
+    private BigDecimal maintenanceAllocationPercent;
     private BigDecimal occupancyPercent;
     private RiskLevel riskLevel;
 }

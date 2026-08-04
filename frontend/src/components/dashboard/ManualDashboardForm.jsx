@@ -1,6 +1,8 @@
 import Button from "../shared/Button";
 import ErrorBanner from "../shared/ErrorBanner";
+import AlertModal from "../shared/AlertModal";
 import StatusEditor from "./StatusEditor";
+import CustomKpiEditor from "./CustomKpiEditor";
 import MemberCard from "./MemberCard";
 
 /**
@@ -57,6 +59,8 @@ export default function ManualDashboardForm({ m }) {
 
       <StatusEditor statuses={m.statuses} onAdd={m.addStatus} onUpdate={m.updateStatus} onRemove={m.removeStatus} />
 
+      <CustomKpiEditor kpis={m.customKpis} onAdd={m.addCustomKpi} onUpdate={m.updateCustomKpi} onRemove={m.removeCustomKpi} />
+
       <p className="panelttl">Ekip üyeleri ve iş kalemleri</p>
       {m.members.length === 0 && <div className="mhint">Henüz üye eklenmedi. Aşağıdaki butonla başla.</div>}
       {m.members.map((member) => (
@@ -83,6 +87,13 @@ export default function ManualDashboardForm({ m }) {
           Hesapla
         </Button>
       </div>
+
+      <AlertModal
+        open={!!m.alertMessage}
+        title="Tarih hatası"
+        message={m.alertMessage}
+        onClose={m.clearAlert}
+      />
     </>
   );
 }

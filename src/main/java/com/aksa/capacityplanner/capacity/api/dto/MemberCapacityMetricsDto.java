@@ -7,6 +7,6 @@ import java.math.BigDecimal;
 public record MemberCapacityMetricsDto(Long teamMemberId, String fullName, String role,
                                         BigDecimal totalPlannedEffort, BigDecimal completedEffort,
                                         BigDecimal remainingEffort, BigDecimal rawRemainingCapacity,
-                                        BigDecimal maintainedCapacity, BigDecimal occupancyPercent,
-                                        RiskLevel riskLevel) {
+                                        BigDecimal maintainedCapacity, BigDecimal maintenanceAllocationPercent,
+                                        BigDecimal occupancyPercent, RiskLevel riskLevel) {
 }

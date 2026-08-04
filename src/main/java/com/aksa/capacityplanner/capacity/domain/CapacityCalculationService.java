@@ -40,11 +40,11 @@ public class CapacityCalculationService {
 
         BigDecimal netChange = newlyAdded.subtract(periodClosed);
 
-        BigDecimal maintenanceFactor = BigDecimal.ONE.subtract(
-                input.maintenanceAllocationPercent() == null ? BigDecimal.ZERO : input.maintenanceAllocationPercent());
+        BigDecimal teamMaintenancePercent = input.maintenanceAllocationPercent() == null
+                ? BigDecimal.ZERO : input.maintenanceAllocationPercent();
 
         List<MemberCapacityMetrics> memberMetrics = input.teamMembers().stream()
-                .map(member -> calculateMemberMetrics(member, input, statusByCode, maintenanceFactor))
+                .map(member -> calculateMemberMetrics(member, input, statusByCode, teamMaintenancePercent))
                 .toList();
 
         BigDecimal remainingCapacity = memberMetrics.stream()
@@ -81,7 +81,16 @@ public class CapacityCalculationService {
 
     private MemberCapacityMetrics calculateMemberMetrics(TeamMember member, CapacityCalculationInput input,
                                                            Map<String, StatusOption> statusByCode,
-                                                           BigDecimal maintenanceFactor) {
+                                                           BigDecimal teamMaintenancePercent) {
+        // Kisi bazli bakim/SR orani, tanimliysa takim seviyesindeki oranin yerine gecer
+        // (orn. bir kisi baska bir kisiden daha fazla/az bakim isine ayriliyor olabilir).
+        BigDecimal effectiveMaintenancePercent = input.maintenanceOverridesByMember() == null ? null
+                : input.maintenanceOverridesByMember().get(member.getId());
+        if (effectiveMaintenancePercent == null) {
+            effectiveMaintenancePercent = teamMaintenancePercent;
+        }
+        BigDecimal maintenanceFactor = BigDecimal.ONE.subtract(effectiveMaintenancePercent);
+
         BigDecimal planned = sumEffort(input.workItems(),
                 wi -> member.getId().equals(wi.getTeamMemberId()));
         BigDecimal completed = sumEffort(input.workItems(),
@@ -121,6 +130,7 @@ public class CapacityCalculationService {
         metrics.setRemainingEffort(scale(remaining));
         metrics.setRawRemainingCapacity(scale(netCapacity));
         metrics.setMaintainedCapacity(maintainedCapacity);
+        metrics.setMaintenanceAllocationPercent(effectiveMaintenancePercent);
         metrics.setOccupancyPercent(occupancyPercent);
         metrics.setRiskLevel(riskLevelOf(occupancyPercent));
         return metrics;
@@ -179,6 +189,7 @@ public class CapacityCalculationService {
             List<TeamMember> teamMembers,
             List<StatusOption> statusOptions,
             Map<Long, BigDecimal> approvedLeaveDaysByMember,
+            Map<Long, BigDecimal> maintenanceOverridesByMember,
             Set<LocalDate> fullHolidays,
             Set<LocalDate> halfDayHolidays) {
     }

@@ -1,5 +1,6 @@
 import { useRef } from "react";
 import Button from "../shared/Button";
+import { IconUpload, IconSparkles, IconDownload } from "../shared/icons";
 
 /**
  * Sprint modu ust bar eylemleri. Pressman - Command/Menu Labeling: tum
@@ -21,12 +22,15 @@ export default function SprintTopActions({ onExcelFile, excelLoading, onFillSamp
         }}
       />
       <Button variant="ghost" loading={excelLoading} loadingLabel="Okunuyor…" onClick={() => fileInputRef.current?.click()}>
+        <IconUpload className="navbar-icon" />
         Excel Yükle
       </Button>
       <Button variant="ghost" onClick={onFillSample}>
+        <IconSparkles className="navbar-icon" />
         Örnek Doldur
       </Button>
       <Button variant="primary" loading={generating} loadingLabel="Hazırlanıyor…" onClick={onGenerate}>
+        <IconDownload className="navbar-icon" />
         PPTX İndir
       </Button>
     </span>

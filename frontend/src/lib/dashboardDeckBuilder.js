@@ -30,6 +30,7 @@ export function buildDashboardDeck(dd, assets) {
     ["Bakımlı Doluluk", "%" + Math.round(k.doluluk * 100), "Bakım/SR sonrası %", dur.bar, false],
     ["Kapasite Açığı / Fazlası", nfmtInt(k.acikFazla), "A/G", k.acikFazla < 0 ? "DC2626" : INK, false],
     ["Genel Durum", dur.label, "Doluluk eşiklerine göre", dur.fg, true],
+    ...(dd.customKpis || []).map((c) => [c.label, String(c.value), c.unit || "", "7C3AED", true]),
   ];
   const KX = 0.4, KW = 12.53, KGAP = 0.14, KY = 1.28, KH = 1.08, cw = (KW - (cards.length - 1) * KGAP) / cards.length;
   cards.forEach((c, i) => {

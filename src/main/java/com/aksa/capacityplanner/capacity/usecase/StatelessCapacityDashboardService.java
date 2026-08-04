@@ -50,12 +50,17 @@ public class StatelessCapacityDashboardService {
         Map<Long, BigDecimal> personalLeaveDays = request.personalLeaveDaysByMemberId() == null
                 ? Map.of() : request.personalLeaveDaysByMemberId();
 
+        Map<Long, BigDecimal> maintenanceOverrides = request.members().stream()
+                .filter(m -> m.maintenanceAllocationPercent() != null)
+                .collect(Collectors.toMap(StatelessDashboardRequest.MemberInput::clientId,
+                        StatelessDashboardRequest.MemberInput::maintenanceAllocationPercent));
+
         int year = request.periodEnd().getYear();
 
         CapacityCalculationInput input = new CapacityCalculationInput(
                 null, request.periodStart(), request.periodEnd(), request.reportDate(), request.previousSnapshotDate(),
                 request.maintenanceAllocationPercent() == null ? BigDecimal.ZERO : request.maintenanceAllocationPercent(),
-                workItems, members, statuses, personalLeaveDays,
+                workItems, members, statuses, personalLeaveDays, maintenanceOverrides,
                 holidayCalendarPort.getFullDayHolidays(year),
                 holidayCalendarPort.getHalfDayHolidays(year));
 
