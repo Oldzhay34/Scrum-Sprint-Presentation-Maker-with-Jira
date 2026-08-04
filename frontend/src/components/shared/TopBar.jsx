@@ -1,16 +1,16 @@
 import { useEffect, useRef, useState } from "react";
-import { IconLayers, IconPresentation, IconGauge, IconSun, IconMoon } from "./icons";
+import { IconLayers, IconSun, IconMoon } from "./icons";
 
 const DRAG_THRESHOLD = 6; // px - bunun altindaki hareket "tiklama" sayilir
 const COLLAPSE_THRESHOLD = 14; // px - yukari/asagi bu kadar cekilince acilir/kapanir
 
 /**
- * Ust bar: Aksa markasina uygun logo/ikon, mod anahtari (Sprint Sunumu /
- * Kapasite Dashboard) ve moda gore degisen eylem butonlari (actions slot),
- * artı acik/koyu tema anahtari. Alt kenardaki tutamactan yukari cekilince
- * (veya tutamaca tiklaninca) daralir/kapanir, asagi cekilince tekrar acilir.
+ * Ust bar: Aksa markasina uygun logo/ikon, moda gore degisen eylem butonlari
+ * (actions slot), artı acik/koyu tema anahtari. Alt kenardaki tutamactan
+ * yukari cekilince (veya tutamaca tiklaninca) daralir/kapanir, asagi
+ * cekilince tekrar acilir.
  */
-export default function TopBar({ mode, onModeChange, actions, theme, onToggleTheme }) {
+export default function TopBar({ actions, theme, onToggleTheme, excelFileName }) {
   const [collapsed, setCollapsed] = useState(false);
   const dragState = useRef(null); // { startY, moved }
 
@@ -62,25 +62,13 @@ export default function TopBar({ mode, onModeChange, actions, theme, onToggleThe
             <div className="sub">Sprint sunumu ve kapasite dashboard'unu üret · canlı önizle · markalı PPTX indir</div>
           </div>
         </div>
-        <div className="modesw">
-          <button
-            type="button"
-            className={`mbtn${mode === "cover" || mode === "sprint" ? " active" : ""}`}
-            onClick={() => onModeChange("cover")}
-          >
-            <IconPresentation className="navbar-icon" />
-            Sprint Sunumu
-          </button>
-          <button
-            type="button"
-            className={`mbtn${mode === "dash" ? " active" : ""}`}
-            onClick={() => onModeChange("dash")}
-          >
-            <IconGauge className="navbar-icon" />
-            Kapasite Dashboard
-          </button>
-        </div>
         <div className="spacer" />
+        {excelFileName && (
+          <span className="excel-file-chip" title={excelFileName}>
+            <span className="excel-file-chip-icon" aria-hidden="true">📄</span>
+            {excelFileName}
+          </span>
+        )}
         {actions}
         <button
           type="button"

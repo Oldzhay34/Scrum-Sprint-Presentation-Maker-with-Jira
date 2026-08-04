@@ -68,12 +68,16 @@
   .card li{position:relative;margin-bottom:5px;color:#374151;line-height:1.28}
   .card li:before{content:"•";position:absolute;left:-13px;color:#9AA3AF}
   .card li b{color:var(--ink)}
+  .card-edit{display:block;width:100%;height:calc(100% - 47px);margin:2px 0 0;padding:0 14px 0 44px;border:0;outline:none;background:transparent;resize:none;font-family:inherit;color:#374151;line-height:1.28;box-sizing:border-box}
+  .card-edit:focus{background:rgba(37,99,235,.05);box-shadow:inset 0 0 0 1px rgba(37,99,235,.35)}
   /* cover */
   .cov{position:absolute;inset:0;background-size:cover;background-position:center}
   .cov .wash{position:absolute;left:0;top:0;width:620px;height:720px;background:linear-gradient(90deg,rgba(255,255,255,.82),rgba(255,255,255,.3))}
   .cov .clogos{position:absolute;left:52px;top:40px;display:flex;align-items:flex-end;gap:16px}
   .cov .clogos img.a{height:26px} .cov .clogos img.b{height:38px}
   .cov .ctitle{position:absolute;left:52px;top:495px;font-size:44px;font-weight:700;color:var(--teal)}
+  .ctitle-edit{position:absolute;left:52px;top:495px;width:900px;font-size:44px;font-weight:700;color:var(--teal);border:0;outline:none;background:transparent;font-family:inherit;padding:0}
+  .ctitle-edit:focus{box-shadow:inset 0 0 0 2px rgba(37,99,235,.35);border-radius:6px}
   .cov .cline{position:absolute;left:56px;top:588px;width:250px;height:3px;background:var(--orange)}
   .cov .csub{position:absolute;left:52px;top:600px;font-size:20px;color:var(--ink)}
   .note{font-size:11.5px;color:var(--mut);margin-top:9px;text-align:center}

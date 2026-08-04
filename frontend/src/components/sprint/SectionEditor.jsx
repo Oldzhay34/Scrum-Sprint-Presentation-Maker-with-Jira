@@ -37,6 +37,7 @@ export default function SectionEditor({ sectionKey, def, text, onTextChange, cou
 
   return (
     <div className={`sec ${sectionKey}`} data-k={sectionKey}>
+      <img className="sec-watermark" src={def.icon} alt="" aria-hidden="true" />
       <div className="head">
         <img src={def.icon} alt="" />
         <span className="t">{def.title}</span>

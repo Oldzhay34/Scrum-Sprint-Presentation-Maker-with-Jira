@@ -82,9 +82,11 @@ export default function App() {
   // (Sprint veya Kapasite Dashboard), ayni dosya HER IKI sayfayi da besler -
   // standart "Kapasite Takip" dosyasi hem Is_Listesi/Parametreler hem de
   // Rapor/Kapasite sayfalarini bir arada icerir.
+  const [excelFileName, setExcelFileName] = useState(null);
   const handleExcelFile = (file) => {
     excel.loadFile(file);
     dashboard.loadFile(file);
+    setExcelFileName(file.name);
   };
 
   const handleFillSample = () => {
@@ -115,10 +117,9 @@ export default function App() {
   return (
     <>
       <TopBar
-        mode={mode}
-        onModeChange={setMode}
         theme={theme}
         onToggleTheme={toggleTheme}
+        excelFileName={excelFileName}
         actions={
           mode === "cover" || mode === "sprint" ? (
             <SprintTopActions
@@ -205,7 +206,15 @@ export default function App() {
           previewTab === "dashboard" ? (
             <DashboardSlideCanvas dd={activeDashData || {}} assets={assets} scale={scale} />
           ) : (
-            <SlideCanvas data={sprintData} tab={previewTab} assets={assets} scale={scale} />
+            <SlideCanvas
+              data={sprintData}
+              tab={previewTab}
+              assets={assets}
+              scale={scale}
+              editable
+              onEditTeam={sprintForm.setTeam}
+              onEditSection={sprintForm.setSectionText}
+            />
           )
         }
       />
