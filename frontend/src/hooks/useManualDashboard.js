@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { computeStatelessDashboard } from "../lib/apiClient";
 import { riskLevelToLabel } from "../lib/format";
 import { validateDateOrder } from "../lib/dateValidation";
+import { hasFteTracking } from "../lib/teamTypes";
 
 let clientIdSeq = 1;
 const nextClientId = () => clientIdSeq++;
@@ -28,7 +29,7 @@ const DEFAULT_STATUSES = [
  * doner. addedDate/closedDate girilirse Donem Kapanan/Yeni Eklenen/Net Degisim
  * backend tarafindan otomatik hesaplanir (elle girilmez).
  */
-export function useManualDashboard(team, setTeam, sprintNo, setSprintNo) {
+export function useManualDashboard(team, setTeam, sprintNo, setSprintNo, teamType) {
   const [period, setPeriod] = useState(defaultPeriod);
   const [previousSnapshotDate, setPreviousSnapshotDate] = useState("");
   const [maintenanceAllocationPercent, setMaintenanceAllocationPercent] = useState("0.2");
@@ -153,6 +154,7 @@ export function useManualDashboard(team, setTeam, sprintNo, setSprintNo) {
     statuses, addStatus, updateStatus, removeStatus,
     customKpis, addCustomKpi, updateCustomKpi, removeCustomKpi,
     dashData, loading, error, compute,
+    hasFte: hasFteTracking(teamType),
   };
 }
 

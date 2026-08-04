@@ -11,7 +11,7 @@ function NumberHint({ value }) {
   );
 }
 
-export default function DeltaForm({ dKapanan, setDKapanan, dEklenen, setDEklenen, dFte, setDFte, dNet, setDNet }) {
+export default function DeltaForm({ dKapanan, setDKapanan, dEklenen, setDEklenen, dFte, setDFte, dNet, setDNet, hasFte = true }) {
   return (
     <>
       <p className="panelttl">Son 2 Hafta</p>
@@ -31,13 +31,15 @@ export default function DeltaForm({ dKapanan, setDKapanan, dEklenen, setDEklenen
             <input value={dEklenen} onChange={(e) => setDEklenen(e.target.value)} placeholder="örn: 62" />
             <NumberHint value={dEklenen} />
           </div>
-          <div className="field">
-            <label>
-              Canlıya Alınan FTE <span className="opt">opsiyonel · RPA</span>
-            </label>
-            <input value={dFte} onChange={(e) => setDFte(e.target.value)} placeholder="örn: 0,05 — yoksa boş bırak" />
-            <NumberHint value={dFte} />
-          </div>
+          {hasFte && (
+            <div className="field">
+              <label>
+                Canlıya Alınan FTE <span className="opt">opsiyonel</span>
+              </label>
+              <input value={dFte} onChange={(e) => setDFte(e.target.value)} placeholder="örn: 0,05 — yoksa boş bırak" />
+              <NumberHint value={dFte} />
+            </div>
+          )}
           <div className="field">
             <label>
               Net İş Yükü Değişimi <span className="opt">opsiyonel · boşsa = Tamamlanan × −1</span>
@@ -48,7 +50,12 @@ export default function DeltaForm({ dKapanan, setDKapanan, dEklenen, setDEklenen
         </div>
         <div className="mhint">
           Kapanan ve Eklenen elle girilir (önceki dönem kıyası Excel'de tutulmaz). Tarih aralığı Rapor Tarihi'nden otomatik hesaplanır (son 14 gün).{" "}
-          <b>Canlıya Alınan FTE</b> yalnızca RPA'da; doldurursanız kart eklenir, boşsa hiç görünmez. <b>Net</b> boşsa toplam Tamamlanan'ın eksisi, doluysa girdiğiniz değer.
+          {hasFte && (
+            <>
+              <b>Canlıya Alınan FTE</b> doldurursanız kart eklenir, boşsa hiç görünmez.{" "}
+            </>
+          )}
+          <b>Net</b> boşsa toplam Tamamlanan'ın eksisi, doluysa girdiğiniz değer.
         </div>
       </div>
     </>

@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { parseDashboardExcel } from "../lib/excelParsers";
 import { num, autoRange, nfmt1 } from "../lib/format";
+import { hasFteTracking } from "../lib/teamTypes";
 
 const DEFAULT_META = { team: "", dateRange: "01 Haziran – 31 Aralık 2026", reportDate: "", reportObj: null };
 
@@ -9,7 +10,7 @@ const DEFAULT_META = { team: "", dateRange: "01 Haziran – 31 Aralık 2026", re
  * duzenledigi kisi/rol/tamamlanan + son 2 hafta delta alanlari) yonetir ve
  * dashSlideHTML'in JSX karsiligi icin gereken `dashData` nesnesini uretir.
  */
-export function useDashboardData(dTeam, setDTeam, dSprint, setDSprint) {
+export function useDashboardData(dTeam, setDTeam, dSprint, setDSprint, teamType) {
   const [loaded, setLoaded] = useState(false);
   const [persons, setPersons] = useState([]);
   const [kpis, setKpis] = useState(null);
@@ -109,5 +110,6 @@ export function useDashboardData(dTeam, setDTeam, dSprint, setDSprint) {
     dTeam, setDTeam, dSprint, setDSprint,
     dKapanan, setDKapanan, dEklenen, setDEklenen, dFte, setDFte, dNet, setDNet,
     loadFile, updatePerson, dashData,
+    hasFte: hasFteTracking(teamType),
   };
 }

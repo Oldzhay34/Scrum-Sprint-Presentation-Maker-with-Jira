@@ -1,5 +1,6 @@
 package com.aksa.capacityplanner.team.adapter.out.persistence;
 
+import com.aksa.capacityplanner.team.domain.TeamType;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -31,6 +32,10 @@ public class TeamJpaEntity {
 
     @Column(name = "default_target_work_days", precision = 6, scale = 2)
     private BigDecimal defaultTargetWorkDays;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "team_type", nullable = false)
+    private TeamType teamType;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

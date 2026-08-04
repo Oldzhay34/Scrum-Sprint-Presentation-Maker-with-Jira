@@ -34,6 +34,7 @@ function linesOf(text) {
 
 export function useSprintForm() {
   const [team, setTeam] = useState("Yapay Zeka Ekibi");
+  const [teamType, setTeamType] = useState("RPA");
   const [sprint, setSprint] = useState("7");
   const [range, setRange] = useState("10 Temmuz – 24 Temmuz");
   const [sections, setSections] = useState({ done: "", active: "", risk: "", pending: "" });
@@ -71,5 +72,5 @@ export function useSprintForm() {
 
   const clearSections = () => setSections({ done: "", active: "", risk: "", pending: "" });
 
-  return { team, setTeam, sprint, setSprint, range, setRange, sections, setSectionText, appendToSection, clearSections, data, counts, fillSample };
+  return { team, setTeam, teamType, setTeamType, sprint, setSprint, range, setRange, sections, setSectionText, appendToSection, clearSections, data, counts, fillSample };
 }

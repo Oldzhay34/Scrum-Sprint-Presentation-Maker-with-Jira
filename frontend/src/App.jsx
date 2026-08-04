@@ -31,6 +31,7 @@ import { useCoverImage } from "./hooks/useCoverImage";
 import { sectionDefs } from "./lib/geometry";
 import { buildFullDeck } from "./lib/fullDeckBuilder";
 import { ASSETS } from "./assets/pptxAssets";
+import { hasFteTracking } from "./lib/teamTypes";
 
 const SAMPLE_BAND_BARS = [
   { label: "HEDEFLER", segments: [{ value: "17", color: "green" }, { value: "33", color: "blue" }] },
@@ -82,8 +83,8 @@ export default function App() {
 
   // ---- Kapasite Dashboard (3. adim) durumu ----
   const [dashSource, setDashSource] = useState("excel");
-  const dashboard = useDashboardData(sprintForm.team, sprintForm.setTeam, sprintForm.sprint, sprintForm.setSprint);
-  const manual = useManualDashboard(sprintForm.team, sprintForm.setTeam, sprintForm.sprint, sprintForm.setSprint);
+  const dashboard = useDashboardData(sprintForm.team, sprintForm.setTeam, sprintForm.sprint, sprintForm.setSprint, sprintForm.teamType);
+  const manual = useManualDashboard(sprintForm.team, sprintForm.setTeam, sprintForm.sprint, sprintForm.setSprint, sprintForm.teamType);
   const activeDashData = dashSource === "manual" ? manual.dashData : dashboard.dashData;
 
   // Kapak + icerik + kapasite dashboard'u TEK pptx olarak indiren, sihirbazin
@@ -122,7 +123,10 @@ export default function App() {
   const handleFillSample = () => {
     if (!window.confirm("Tüm bölümler örnek verilerle doldurulacak ve mevcut içerik değişecek. Emin misiniz?")) return;
     sprintForm.fillSample();
-    band.setSample(SAMPLE_BAND_BARS);
+    const sampleBars = hasFteTracking(sprintForm.teamType)
+      ? SAMPLE_BAND_BARS
+      : SAMPLE_BAND_BARS.filter((b) => b.label !== "FTE");
+    band.setSample(sampleBars);
     setSampleFilled(true);
   };
 
@@ -178,6 +182,7 @@ export default function App() {
           {mode === "cover" && (
             <CoverPage
               team={sprintForm.team} setTeam={sprintForm.setTeam}
+              teamType={sprintForm.teamType} setTeamType={sprintForm.setTeamType}
               sprint={sprintForm.sprint} setSprint={sprintForm.setSprint}
               range={sprintForm.range} setRange={sprintForm.setRange}
               cover={cover}

@@ -172,16 +172,22 @@ export function parseDashboardExcel(arrayBuffer, fallbackTeamName) {
   const total = { toplam: g(rT, 1), doluluk: g(rDol, 1), durum: rDur ? String(rDur[1]) : "" };
 
   const kapMap = {};
+  const roleMap = {};
   if (wb.Sheets["Kapasite"]) {
     const K = XLSX.utils.sheet_to_json(wb.Sheets["Kapasite"], { header: 1, defval: null });
     const kh = (K[0] || []).map((x) => (x == null ? "" : String(x)));
     const nameCol = kh.findIndex((x) => x.includes("Kişi"));
     const kalanCol = kh.findIndex((x) => x.trim() === "Kalan İş Günü");
+    const roleCol = kh.findIndex((x) => x.trim() === "Rol");
     if (nameCol >= 0 && kalanCol >= 0) {
       for (let i = 1; i < K.length; i++) {
         const row = K[i];
         if (row && row[nameCol] != null && String(row[nameCol]).trim() !== "") {
-          kapMap[String(row[nameCol]).trim()] = Number(row[kalanCol]) || 0;
+          const name = String(row[nameCol]).trim();
+          kapMap[name] = Number(row[kalanCol]) || 0;
+          if (roleCol >= 0 && row[roleCol] != null && String(row[roleCol]).trim() !== "") {
+            roleMap[name] = String(row[roleCol]).trim();
+          }
         }
       }
     }
@@ -189,7 +195,7 @@ export function parseDashboardExcel(arrayBuffer, fallbackTeamName) {
 
   const persons = pcols.map((p) => ({
     name: p.name,
-    role: "",
+    role: roleMap[p.name] || "",
     initials: p.name.slice(0, 2).toUpperCase(),
     toplam: g(rT, p.c),
     tamamlanan: Math.round(g(rDone, p.c)),

@@ -4,13 +4,13 @@
  * ekstra kart olarak gosterilir - tamamen manuel/istemci tarafi bir parametredir.
  * Pressman - User Help Facilities: neden var oldugu ve nasil calistigi acikca anlatilir.
  */
-export default function CustomKpiEditor({ kpis, onAdd, onUpdate, onRemove }) {
+export default function CustomKpiEditor({ kpis, onAdd, onUpdate, onRemove, hasFte = true }) {
+  const example = hasFte ? `"FTE Hedef: 25.7", "Hedef Süreç Sayısı: 87"` : `"Hedef Süreç Sayısı: 48"`;
   return (
     <div className="bandpanel">
       <div className="bandtoggle" style={{ cursor: "default" }}>Ek göstergeler (opsiyonel)</div>
       <div className="bandsub">
-        Takıma özgü, otomatik hesaplanmayan hedef/sabit değerler (örn. RPA'da "FTE Hedef: 25.7",
-        "Hedef Süreç Sayısı: 87"). Dashboard'da ek kart olarak görünür.
+        Takıma özgü, otomatik hesaplanmayan hedef/sabit değerler (örn. {example}). Dashboard'da ek kart olarak görünür.
       </div>
       {kpis.map((k, i) => (
         <div className="bar" key={i}>

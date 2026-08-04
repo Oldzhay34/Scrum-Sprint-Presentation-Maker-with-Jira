@@ -59,7 +59,7 @@ export default function ManualDashboardForm({ m }) {
 
       <StatusEditor statuses={m.statuses} onAdd={m.addStatus} onUpdate={m.updateStatus} onRemove={m.removeStatus} />
 
-      <CustomKpiEditor kpis={m.customKpis} onAdd={m.addCustomKpi} onUpdate={m.updateCustomKpi} onRemove={m.removeCustomKpi} />
+      <CustomKpiEditor kpis={m.customKpis} onAdd={m.addCustomKpi} onUpdate={m.updateCustomKpi} onRemove={m.removeCustomKpi} hasFte={m.hasFte} />
 
       <p className="panelttl">Ekip üyeleri ve iş kalemleri</p>
       {m.members.length === 0 && <div className="mhint">Henüz üye eklenmedi. Aşağıdaki butonla başla.</div>}

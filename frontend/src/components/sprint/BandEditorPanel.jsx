@@ -13,7 +13,7 @@ const SEGCOL = { green: "8BC34A", blue: "456BBA", orange: "E67514", amber: "E8A6
  * yenilendi (koyu, parlayan, ikon rozetli) - islevsellik (bar/segment
  * ekle-sil-duzenle) aynen korunur.
  */
-export default function BandEditorPanel({ band }) {
+export default function BandEditorPanel({ band, hasFte = true }) {
   return (
     <div className="bandpanel bandpanel-hero">
       <div className="bandhero-glow" aria-hidden="true" />
@@ -31,7 +31,8 @@ export default function BandEditorPanel({ band }) {
             Hedefler bandı (slaytın üstünde, opsiyonel)
           </label>
           <div className="bandsub">
-            Etiketli çubuklar yan yana dizilir; segment genişlikleri değere göre orantılanır. RPA için ayrı bir FTE çubuğu ekleyebilirsiniz.
+            Etiketli çubuklar yan yana dizilir; segment genişlikleri değere göre orantılanır.
+            {hasFte && " RPA için ayrı bir FTE çubuğu ekleyebilirsiniz."}
           </div>
         </div>
       </div>
@@ -42,7 +43,7 @@ export default function BandEditorPanel({ band }) {
               <div className="barrow">
                 <input
                   className="barlabel"
-                  placeholder="Etiket (örn: RPA HEDEFLERİ, FTE)"
+                  placeholder={hasFte ? "Etiket (örn: RPA HEDEFLERİ, FTE)" : "Etiket (örn: HEDEFLER)"}
                   value={bar.label}
                   onChange={(e) => band.updateBarLabel(bi, e.target.value)}
                 />

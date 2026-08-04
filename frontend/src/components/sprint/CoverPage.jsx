@@ -3,27 +3,56 @@ import Button from "../shared/Button";
 import AlertModal from "../shared/AlertModal";
 import { IconUpload } from "../shared/icons";
 import { isValidNumberInput } from "../../lib/validation";
+import { TEAM_TYPES, teamTypeLabel } from "../../lib/teamTypes";
 
 /**
- * Sihirbazin 1. adimi: Kapak sayfasi parametreleri (ekip adi / sprint no /
- * tarih araligi - eskiden sabit ust cubuk olan MetaBar) + kapak gorseli.
- * Gorsel varsayilan olarak ASSETS.cover_bg gelir, kullanici degistirebilir
- * (bkz. useCoverImage).
+ * Sihirbazin 1. adimi: Kapak sayfasi parametreleri (ekip adi / takim tipi /
+ * sprint no / tarih araligi - eskiden sabit ust cubuk olan MetaBar) + kapak
+ * gorseli. Gorsel varsayilan olarak ASSETS.cover_bg gelir, kullanici
+ * degistirebilir (bkz. useCoverImage).
+ *
+ * Takım tipi (RPA / İş Zekası / Diğer) sihirbazin tum adimlarini besler -
+ * ornegin FTE'ye ozgu alanlar (Kapasite Dashboard'daki "Canlıya Alınan FTE",
+ * Hedefler bandindaki FTE cubugu ipucu) sadece RPA secildiginde gorunur.
  */
-export default function CoverPage({ team, setTeam, sprint, setSprint, range, setRange, cover }) {
+export default function CoverPage({ team, setTeam, teamType, setTeamType, sprint, setSprint, range, setRange, cover }) {
   const fileInputRef = useRef(null);
   const [sprintAlert, setSprintAlert] = useState(false);
+  // Ekip adi kullanici tarafindan elle degistirilmediyse, takim tipi secimiyle
+  // otomatik senkron kalir (secilen tipin varsayilan etiketi yazilir).
+  const [teamNameTouched, setTeamNameTouched] = useState(false);
 
   const handleSprintBlur = () => {
     if (!isValidNumberInput(sprint)) setSprintAlert(true);
   };
 
+  const handleTeamTypeChange = (value) => {
+    setTeamType(value);
+    if (!teamNameTouched) setTeam(teamTypeLabel(value));
+  };
+
   return (
     <section>
       <div className="meta" style={{ borderRadius: 12, border: "1px solid var(--line)" }}>
+        <div className="field">
+          <label>Takım tipi</label>
+          <select value={teamType} onChange={(e) => handleTeamTypeChange(e.target.value)}>
+            {TEAM_TYPES.map((t) => (
+              <option key={t.value} value={t.value}>
+                {t.label}
+              </option>
+            ))}
+          </select>
+        </div>
         <div className="field grow">
           <label>Ekip adı</label>
-          <input value={team} onChange={(e) => setTeam(e.target.value)} />
+          <input
+            value={team}
+            onChange={(e) => {
+              setTeamNameTouched(true);
+              setTeam(e.target.value);
+            }}
+          />
         </div>
         <div className="field">
           <label>Sprint no</label>

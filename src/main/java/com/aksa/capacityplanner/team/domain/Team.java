@@ -18,4 +18,6 @@ public class Team {
     private BigDecimal maintenanceAllocationPercent;
     /** 1 Haziran - 31 Aralik donemi icin varsayilan hedef is gunu (default 145). */
     private BigDecimal defaultTargetWorkDays;
+    /** Takimin tipi (orn. RPA, IS_ZEKASI) - FTE gibi takima ozgu ozelliklerin varligini belirler. */
+    private TeamType teamType;
 }

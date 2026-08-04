@@ -34,6 +34,7 @@ export default function DashboardPage({ source, onSourceChange, dashboard, manua
             dEklenen={dashboard.dEklenen} setDEklenen={dashboard.setDEklenen}
             dFte={dashboard.dFte} setDFte={dashboard.setDFte}
             dNet={dashboard.dNet} setDNet={dashboard.setDNet}
+            hasFte={dashboard.hasFte}
           />
         </>
       ) : (
