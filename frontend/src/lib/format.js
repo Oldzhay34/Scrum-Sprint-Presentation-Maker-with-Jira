@@ -100,6 +100,22 @@ export function sanitizeDecimalInput(value, allowNegative = false) {
   return v;
 }
 
+/**
+ * Bakim/SR orani gibi 0-1 arasi bir KESIR (yuzdelik dilim, orn. 0.2 = %20)
+ * bekleyen alanlar icin sanitizeDecimalInput'un uzerine 1'i (%100) gecemeyecek
+ * sekilde bir tavan ekler - yoksa kullanici yanlislikla "20" (yani %2000)
+ * gibi anlamsiz bir deger yazabiliyordu (sadece karakter filtrelemek yeterli
+ * degildi, "0.2" yerine "20" yazmak da sayisal olarak gecerli bir ondalik
+ * sayidir).
+ */
+export function sanitizeRatioInput(value) {
+  const cleaned = sanitizeDecimalInput(value);
+  if (cleaned === "" || cleaned === "." || cleaned === ",") return cleaned;
+  const n = parseFloat(cleaned.replace(",", "."));
+  if (isFinite(n) && n > 1) return "1";
+  return cleaned;
+}
+
 /** sanitizeDecimalInput'un ondalik ayiraci olmayan (tam sayi) hali. */
 export function sanitizeIntegerInput(value, allowNegative = false) {
   let v = String(value).replace(allowNegative ? /[^0-9\-]/g : /[^0-9]/g, "");

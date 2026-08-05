@@ -16,8 +16,10 @@ export function usePptxExport() {
     setError(null);
     try {
       await buildAndSave();
+      return true;
     } catch (err) {
       setError(err?.message || "PPTX üretilirken beklenmeyen bir hata oluştu.");
+      return false;
     } finally {
       setLoading(false);
     }

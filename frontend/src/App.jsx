@@ -3,11 +3,12 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import "./styles/app.css";
 import "./styles/theme.css";
 
-import { fetchCurrentUser, logout } from "./lib/apiClient";
+import { fetchCurrentUser, fetchUserProfile, logout } from "./lib/apiClient";
 import LoginPage from "./components/shared/LoginPage";
 import ProfilePage from "./components/shared/ProfilePage";
 import TopBar from "./components/shared/TopBar";
 import ZoomModal from "./components/shared/ZoomModal";
+import ExportPreviewModal from "./components/shared/ExportPreviewModal";
 import ErrorBanner from "./components/shared/ErrorBanner";
 import WizardSteps from "./components/shared/WizardSteps";
 import UnifiedPreviewPane from "./components/shared/UnifiedPreviewPane";
@@ -37,11 +38,14 @@ import { useCoverImage } from "./hooks/useCoverImage";
 import { sectionDefs } from "./lib/geometry";
 import { buildFullDeck } from "./lib/fullDeckBuilder";
 import { ASSETS } from "./assets/pptxAssets";
-import { hasFteTracking, resolveTeamTypeFromDepartment } from "./lib/teamTypes";
+import { resolveTeamTypeFromDepartment } from "./lib/teamTypes";
 
-const SAMPLE_BAND_BARS = [
-  { label: "HEDEFLER", segments: [{ value: "17", color: "green" }, { value: "33", color: "blue" }] },
-  { label: "FTE", segments: [{ value: "1.31", color: "green" }, { value: "24.39", color: "blue" }] },
+// ZoomModal ("⤢ Preview") ve ExportPreviewModal ("PPTX İndir" oncesi onizleme)
+// AYNI 3 sekmeyi kullanir - tek yerden tanimlanir.
+const PREVIEW_TABS = [
+  { key: "cover", label: "Kapak" },
+  { key: "content", label: "İçerik Slaytı" },
+  { key: "dashboard", label: "Kapasite Dashboard" },
 ];
 
 /**
@@ -64,6 +68,18 @@ export default function App() {
       .then(setPersonnel)
       .finally(() => setSessionChecked(true));
   }, []);
+
+  // /api/auth/me bilerek hafif (department icermez, bkz. apiClient.js) - takim
+  // bazli duzenleme yetkisi kontrolu (bkz. MainApp/currentUser) icin gereken
+  // department bilgisini, oturum kurulduktan sonra bir kere /profile'dan
+  // ayrica cekip personnel'e ekliyoruz. Basarisiz olursa sessizce yutulur -
+  // department yoksa MainApp zaten kisitlama uygulamiyor (fail-open).
+  useEffect(() => {
+    if (!personnel || personnel.department !== undefined) return;
+    fetchUserProfile()
+      .then((profile) => setPersonnel((prev) => (prev ? { ...prev, department: profile.department } : prev)))
+      .catch(() => {});
+  }, [personnel]);
 
   const handleLogout = () => {
     logout().finally(() => setPersonnel(null));
@@ -104,20 +120,25 @@ function MainApp({ theme, toggleTheme, personnel }) {
   // "mode/step" ayni degisken: hem ust nav hem sihirbaz adimi olarak kullanilir.
   const [mode, setMode] = useState("cover");
 
-  // Login yanitindaki (bkz. LoginPage.jsx/apiClient.fetchCurrentUser)
-  // department/roles alanlarindan kullanicinin takimini ve admin durumunu
-  // cozumler. Admin her takimi duzenleyebilir; digerleri SADECE kendi
-  // takimlarini (roller arasinda simdilik yalnizca PO ele aliniyor) - baska
-  // bir takim secilirse asagidaki canEdit false olur ve ilgili adimin
-  // parametre alani yerine ReadOnlyNotice gosterilir.
+  // Login yanitindaki (bkz. LoginPage.jsx/apiClient.fetchCurrentUser -
+  // su an {sicil, fullName, role, teamId} doner) "role" alanindan admin
+  // durumunu, "department"tan (ileride eklenecek AD/personel entegrasyonuyla
+  // gelecek - bkz. AuthUser.java) takimini cozumler. Admin her takimi
+  // duzenleyebilir; digerleri SADECE kendi takimlarini (roller arasinda
+  // simdilik yalnizca PO ele aliniyor) - baska bir takim secilirse asagidaki
+  // canEdit false olur ve ilgili adimin parametre alani yerine ReadOnlyNotice
+  // gosterilir. department henuz backend yanitinda yoksa (bkz. UserResponse.java)
+  // kisitlama uygulanmaz (fail-open) - kimin hangi takimda oldugu bilinmeden
+  // herkesi salt-okunura dusurmek yanlis olur.
   const currentUser = useMemo(() => {
     if (!personnel) return { teamType: null, admin: true, department: null };
-    const department = personnel.department || "";
-    const roles = personnel.roles || [];
+    const department = personnel.department;
+    const roles = personnel.roles ?? personnel.role ?? [];
     const admin = Array.isArray(roles)
       ? roles.includes("ADMIN")
       : String(roles || "").toUpperCase().includes("ADMIN");
-    return { teamType: resolveTeamTypeFromDepartment(department), admin, department };
+    const teamType = department ? resolveTeamTypeFromDepartment(department) : null;
+    return { teamType, admin, department: department ?? null };
   }, [personnel]);
 
   // ---- Kapak (1. adim) durumu ----
@@ -129,27 +150,13 @@ function MainApp({ theme, toggleTheme, personnel }) {
   const band = useBandEditor();
   const excel = useExcelSuggestions();
   const [editorKey, setEditorKey] = useState(null);
-  // "Örnek Doldur" ile gelen bolum metinleri (Gecen Sprint/Aktif/Riskler/Bekleyen)
-  // bir yer tutucudur: kullanici gercek veriye (Excel yukleyerek ya da elle
-  // yazarak) gectigi an otomatik temizlenir ki ornek metinlerle gercek icerik
-  // karismasin. Hedefler bandi buna dahil DEGIL - Excel bandi hic beslemiyor,
-  // bu yuzden excel yuklerken bandi temizlemenin kullaniciya hicbir faydasi
-  // olmaz, sadece uzerinde calistigi kurulumu sebepsiz siler.
-  const [sampleFilled, setSampleFilled] = useState(false);
-  const clearSampleIfNeeded = () => {
-    if (!sampleFilled) return;
-    sprintForm.clearSections();
-    setSampleFilled(false);
-  };
   const handleSectionTextChange = (key, text) => {
-    clearSampleIfNeeded();
     sprintForm.setSectionText(key, text);
   };
 
   // Excel'in "Rapor" sayfasi Hedefler bandini besleyecek gercek veriyi icerir
   // (FTE Gerçekleşen/Kalan, Canlı/Kalan Süreç Sayısı - bkz. excelParsers.js/
-  // parseBandTargets). Excel yuklendiginde bulunursa bant otomatik doldurulur,
-  // "Örnek Doldur"daki sabit sayilarin yerini gercek veri alir.
+  // parseBandTargets). Excel yuklendiginde bulunursa bant otomatik doldurulur.
   useEffect(() => {
     if (excel.bandTargets.length) band.setSample(excel.bandTargets);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -168,6 +175,10 @@ function MainApp({ theme, toggleTheme, personnel }) {
   // ---- Birlesik onizleme (kapak / icerik / kapasite dashboard) ----
   const [previewTab, setPreviewTab] = useState("cover");
   const [zoomOpen, setZoomOpen] = useState(false);
+  // "PPTX İndir"e basildiginda dosya HEMEN inmez - once bu onizleme popup'u
+  // acilir (tema secenegiyle), kullanici gozden gecirip asil indirmeyi
+  // popup icindeki butonla onaylar (bkz. ExportPreviewModal).
+  const [exportPreviewOpen, setExportPreviewOpen] = useState(false);
 
   // Sihirbaz adimi (mode) degistiginde onizleme sekmesi de otomatik esler -
   // "Kapak Sayfasi" adimina gecince onizleme de kapak gorselini (logo + ag deseni)
@@ -203,20 +214,9 @@ function MainApp({ theme, toggleTheme, personnel }) {
     if (range) sprintForm.setRange(range);
   };
   const handleExcelFile = (file) => {
-    clearSampleIfNeeded();
     excel.loadFile(file, sprintForm.team, applyExcelMeta);
     dashboard.loadFile(file, applyExcelMeta);
     setExcelFileName(file.name);
-  };
-
-  const handleFillSample = () => {
-    if (!window.confirm("Tüm bölümler örnek verilerle doldurulacak ve mevcut içerik değişecek. Emin misiniz?")) return;
-    sprintForm.fillSample();
-    const sampleBars = hasFteTracking(sprintForm.teamType)
-      ? SAMPLE_BAND_BARS
-      : SAMPLE_BAND_BARS.filter((b) => b.label !== "FTE");
-    band.setSample(sampleBars);
-    setSampleFilled(true);
   };
 
   const handleGenerateFullDeck = () =>
@@ -236,6 +236,16 @@ function MainApp({ theme, toggleTheme, personnel }) {
 
   const sprintData = { ...sprintForm.data, showBand: band.show, targets: band.bars };
 
+  // ZoomModal ve ExportPreviewModal'in ikisi de aktif sekmeye gore AYNI tuvali
+  // (dashboard veya kapak/icerik) cizer - tek yerden tanimlanip ikisine de
+  // gecirilir (bkz. asagidaki renderCanvas prop'lari).
+  const renderPreviewCanvas = (scale) =>
+    previewTab === "dashboard" ? (
+      <DashboardSlideCanvas dd={activeDashData || {}} assets={assets} scale={scale} />
+    ) : (
+      <SlideCanvas data={sprintData} tab={previewTab} assets={assets} scale={scale} />
+    );
+
   return (
     <>
       <TopBar
@@ -248,16 +258,13 @@ function MainApp({ theme, toggleTheme, personnel }) {
             <SprintTopActions
               onExcelFile={handleExcelFile}
               excelLoading={excel.loading}
-              onFillSample={handleFillSample}
-              onGenerate={handleGenerateFullDeck}
-              generating={fullExport.loading}
+              onGenerate={() => setExportPreviewOpen(true)}
             />
           ) : (
             <DashboardTopActions
               onExcelFile={handleExcelFile}
               excelLoading={dashboard.loading}
-              onGenerate={handleGenerateFullDeck}
-              generating={fullExport.loading}
+              onGenerate={() => setExportPreviewOpen(true)}
             />
           )
         }
@@ -330,25 +337,26 @@ function MainApp({ theme, toggleTheme, personnel }) {
       <ZoomModal
         open={zoomOpen}
         onClose={() => setZoomOpen(false)}
-        tabs={[
-          { key: "cover", label: "Kapak" },
-          { key: "content", label: "İçerik Slaytı" },
-          { key: "dashboard", label: "Kapasite Dashboard" },
-        ]}
+        tabs={PREVIEW_TABS}
         activeTab={previewTab}
         onTabChange={setPreviewTab}
-        renderCanvas={(scale) =>
-          previewTab === "dashboard" ? (
-            <DashboardSlideCanvas dd={activeDashData || {}} assets={assets} scale={scale} />
-          ) : (
-            <SlideCanvas
-              data={sprintData}
-              tab={previewTab}
-              assets={assets}
-              scale={scale}
-            />
-          )
-        }
+        renderCanvas={renderPreviewCanvas}
+      />
+
+      <ExportPreviewModal
+        open={exportPreviewOpen}
+        onClose={() => setExportPreviewOpen(false)}
+        tabs={PREVIEW_TABS}
+        activeTab={previewTab}
+        onTabChange={setPreviewTab}
+        renderCanvas={renderPreviewCanvas}
+        theme={theme}
+        onToggleTheme={toggleTheme}
+        downloading={fullExport.loading}
+        onConfirmDownload={async () => {
+          const ok = await handleGenerateFullDeck();
+          if (ok) setExportPreviewOpen(false);
+        }}
       />
 
       <AlertModal

@@ -1,7 +1,8 @@
 import { Fragment } from "react";
 import {
-  G, BAND, SEGCOL, bandBars, cardsTopFor, fitSectionItems, rowHeights, stretchRowHeights, parseRuns, num, sectionDefs,
+  G, BAND, SEGCOL, bandBars, cardsTopFor, fitContent, parseRuns, sectionDefs,
   extractPriority, extractComment, PRIORITY_COLORS, PRIORITY_ORDER, PRIORITY_UNSET_LABEL, PRIORITY_UNSET_COLOR, hasPriorityTags,
+  segmentWidths,
 } from "../../lib/geometry";
 
 const S = 96; // px per inch - orijinal ile birebir ayni olcek
@@ -50,6 +51,11 @@ function Card({ x, y, w, h, items, sec, fontSize }) {
           return (
             <li key={i} style={{ "--bullet-color": "#" + bulletColor }}>
               <span className="dot" />
+              {priority && (
+                <span className="priority-label" style={{ background: "#" + bulletColor }}>
+                  {priority}
+                </span>
+              )}
               <BulletText text={text} />
               {comment.trim() && <div className="item-comment">💬 {comment.trim()}</div>}
             </li>
@@ -69,22 +75,18 @@ function Band({ bars }) {
         const bx = BAND.X * S + i * (barW + gap);
         const labelW = Math.min(1.2, Math.max(0.55, (barW / S) * 0.32)) * S;
         const segs = bar.segments.filter((s) => s && String(s.value).trim() !== "");
-        const sum = segs.reduce((a, s) => a + Math.max(0.0001, num(s.value)), 0) || 1;
-        let cx = 0;
+        // charW/padding S (piksel) birimine gore, geometry.js'in varsayilan
+        // (inc bazli) degerlerinden turetildi - onizleme S=96px/inc kullanir.
+        const widths = segmentWidths(segs, barW - labelW - 4, 0.078 * S, 0.14 * S);
         return (
           <div className="pbar" key={i} style={{ left: bx, top: BAND.Y * S, width: barW, height: BAND.H * S }}>
             <div className="plabel" style={{ width: labelW }}>{(bar.label || "").toUpperCase()}</div>
             <div className="psegs">
-              {segs.map((s, si) => {
-                const w = Math.max(0.14 * S, (num(s.value) / sum) * (barW - labelW - 4));
-                const el = (
-                  <div key={si} className="pseg" style={{ width: w, background: "#" + (SEGCOL[s.color] || "456BBA") }}>
-                    {String(s.value)}
-                  </div>
-                );
-                cx += w;
-                return el;
-              })}
+              {segs.map((s, si) => (
+                <div key={si} className="pseg" style={{ width: widths[si], background: "#" + (SEGCOL[s.color] || "456BBA") }}>
+                  {String(s.value)}
+                </div>
+              ))}
             </div>
           </div>
         );
@@ -122,10 +124,9 @@ export default function SlideCanvas({ data, tab, assets, scale }) {
   } else {
     const bars = bandBars(data);
     const cardsTop = cardsTopFor(data);
-    const { fs: FS, sections } = fitSectionItems(data, cardsTop);
-    const natural = rowHeights(sections, FS);
-    const { topH, botH } = stretchRowHeights(natural.topH, natural.botH, cardsTop);
+    const { sections, fsByKey, topH, botH } = fitContent(data, cardsTop);
     const yBot = cardsTop + topH + G.GAP_Y;
+    const footerTeam = (data.teamName || "Ekip").trim();
     content = (
       <>
         <div className="s-header">{data.subtitle}</div>
@@ -135,12 +136,12 @@ export default function SlideCanvas({ data, tab, assets, scale }) {
         </div>
         <div className="s-rule" />
         <Band bars={bars} />
-        <Card x={G.X_L} y={cardsTop} w={G.COL_W} h={topH} items={sections.done} sec={SEC.done} fontSize={FS} />
-        <Card x={G.X_L} y={yBot} w={G.COL_W} h={botH} items={sections.risk} sec={SEC.risk} fontSize={FS} />
-        <Card x={G.X_R} y={cardsTop} w={G.COL_W} h={topH} items={sections.active} sec={SEC.active} fontSize={FS} />
-        <Card x={G.X_R} y={yBot} w={G.COL_W} h={botH} items={sections.pending} sec={SEC.pending} fontSize={FS} />
+        <Card x={G.X_L} y={cardsTop} w={G.COL_W} h={topH} items={sections.done} sec={SEC.done} fontSize={fsByKey.done} />
+        <Card x={G.X_L} y={yBot} w={G.COL_W} h={botH} items={sections.risk} sec={SEC.risk} fontSize={fsByKey.risk} />
+        <Card x={G.X_R} y={cardsTop} w={G.COL_W} h={topH} items={sections.active} sec={SEC.active} fontSize={fsByKey.active} />
+        <Card x={G.X_R} y={yBot} w={G.COL_W} h={botH} items={sections.pending} sec={SEC.pending} fontSize={fsByKey.pending} />
         <div className="s-footer">
-          Gizli &amp; Dahili Kullanım&nbsp;&nbsp;|&nbsp;&nbsp;Scrum Ekibi – Planlama Toplantısı
+          Gizli &amp; Dahili Kullanım&nbsp;&nbsp;|&nbsp;&nbsp;{footerTeam} – Planlama Toplantısı
           {hasPriorityTags(data) && <PriorityLegend />}
         </div>
       </>

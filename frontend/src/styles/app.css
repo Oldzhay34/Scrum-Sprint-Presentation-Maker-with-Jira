@@ -24,6 +24,9 @@
   .field input{border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:14px;font-family:inherit;min-width:150px}
   .field input:focus{outline:2px solid #BFDBE6;border-color:var(--teal2)}
   .field.grow input{min-width:230px}
+  .premium-select{appearance:none;-webkit-appearance:none;-moz-appearance:none;border:1px solid var(--line);border-radius:9px;padding:9px 36px 9px 14px;font-size:14px;font-weight:700;font-family:inherit;color:var(--teal);background-color:#fff;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%23164E63' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 7l5 5 5-5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;background-size:14px;cursor:pointer;min-width:200px;box-shadow:0 1px 2px rgba(15,23,32,.04);transition:border-color .15s,box-shadow .15s}
+  .premium-select:hover{border-color:var(--teal2)}
+  .premium-select:focus{outline:none;border-color:var(--teal2);box-shadow:0 0 0 3px rgba(22,78,99,.14)}
   .excelinfo{font-size:12.5px;color:var(--teal2);align-self:flex-end;padding-bottom:8px}
   main{display:grid;grid-template-columns:minmax(360px,1fr) minmax(520px,1.15fr);gap:20px;padding:20px 22px;align-items:start}
   @media(max-width:1000px){main{grid-template-columns:1fr}}
@@ -71,6 +74,7 @@
   .card li{position:relative;margin-bottom:5px;color:#374151;line-height:1.28}
   .card li .dot{position:absolute;left:-15px;top:0.5em;width:8px;height:8px;margin-top:-4px;border-radius:50%;background:var(--bullet-color, #1F2937)}
   .card li b{color:var(--ink)}
+  .priority-label{display:inline-block;margin-right:5px;padding:0 5px;border-radius:4px;font-size:.72em;font-weight:700;color:#fff;letter-spacing:.2px;vertical-align:1px;white-space:nowrap}
   .item-comment{margin:2px 0 0;padding:3px 8px;font-size:.86em;font-style:italic;color:#0D9488;background:linear-gradient(90deg,rgba(13,148,136,.10),rgba(13,148,136,.03));border-left:2px solid #0D9488;border-radius:0 6px 6px 0;line-height:1.25}
   /* cover */
   .cov{position:absolute;inset:0;background-size:cover;background-position:center}
@@ -99,11 +103,12 @@
   .seg .delseg{border:0;background:transparent;color:#9AA3AF;cursor:pointer;font-size:14px;line-height:1}
   .addseg,.addbar{border:1px dashed var(--teal2);background:#EFF6F8;color:var(--teal2);border-radius:999px;padding:4px 11px;font-size:12px;font-weight:600;cursor:pointer}
   .addbar{margin-top:2px}
+  .addseg:disabled,.addbar:disabled{opacity:.5;cursor:not-allowed;border-style:solid}
   /* preview band */
   .pbar{position:absolute;display:flex;align-items:stretch;border-radius:3px;overflow:hidden}
   .plabel{background:var(--teal);color:#fff;font-weight:700;font-size:9px;display:flex;align-items:center;justify-content:center;text-align:center;padding:0 3px;line-height:1.05}
   .psegs{display:flex;flex:1;min-width:0}
-  .pseg{color:#fff;font-weight:700;display:flex;align-items:center;justify-content:center;font-size:13px;min-width:0;overflow:hidden}
+  .pseg{color:#fff;font-weight:700;display:flex;align-items:center;justify-content:center;font-size:13px;min-width:0;overflow:hidden;white-space:nowrap}
   .modal{position:fixed;inset:0;background:rgba(15,23,32,.55);display:flex;align-items:center;justify-content:center;z-index:50;padding:24px}
   .modal .box{background:#fff;border-radius:14px;width:min(900px,94vw);max-height:92vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.3)}
   .modal .mhead{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--line)}
@@ -120,6 +125,9 @@
   .zoomstage{position:relative;width:auto;height:100%;max-width:100%;aspect-ratio:16/9;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:#fff}
   .zoomcanvas{position:absolute;top:0;left:0;width:1280px;height:720px;transform-origin:top left}
   .zoombar{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex:none}
+  .export-preview-theme{border-color:var(--line)!important;background:#F8FAFB!important;color:var(--teal)!important}
+  .export-preview-theme:hover{background:#EFF6F8!important}
+  .export-preview-footer{flex:none;display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:10px;padding-top:12px;border-top:1px solid var(--line)}
   .stage .zoomtrig{margin-left:auto}
   /* mode switch */
   .modesw{display:flex;gap:4px;background:rgba(255,255,255,.12);padding:4px;border-radius:10px}

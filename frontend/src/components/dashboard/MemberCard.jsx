@@ -1,4 +1,4 @@
-import { sanitizeDecimalInput, sanitizeIntegerInput } from "../../lib/format";
+import { sanitizeDecimalInput, sanitizeIntegerInput, sanitizeRatioInput } from "../../lib/format";
 
 /**
  * Tek bir ekip uyesi karti: kisi bilgileri + o kisiye ait is kalemleri.
@@ -59,7 +59,7 @@ export default function MemberCard({ member, statuses, items, onUpdateMember, on
           title="Boş bırakılırsa takım seviyesindeki genel bakım/SR oranı kullanılır (örn: 0.2 = %20)"
           inputMode="decimal"
           value={member.maintenanceAllocationPercent || ""}
-          onChange={(e) => onUpdateMember({ maintenanceAllocationPercent: sanitizeDecimalInput(e.target.value) })}
+          onChange={(e) => onUpdateMember({ maintenanceAllocationPercent: sanitizeRatioInput(e.target.value) })}
         />
         <button type="button" className="delbar" onClick={onRemoveMember}>
           Kişiyi sil

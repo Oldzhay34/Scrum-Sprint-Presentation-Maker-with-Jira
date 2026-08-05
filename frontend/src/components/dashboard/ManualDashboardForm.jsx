@@ -4,7 +4,7 @@ import AlertModal from "../shared/AlertModal";
 import StatusEditor from "./StatusEditor";
 import CustomKpiEditor from "./CustomKpiEditor";
 import MemberCard from "./MemberCard";
-import { sanitizeDecimalInput, sanitizeIntegerInput } from "../../lib/format";
+import { sanitizeIntegerInput, sanitizeRatioInput } from "../../lib/format";
 
 /**
  * Kapasite Dashboard'un "Manuel Gir" modu: Excel gerekmeden, ekip uyesi ve is
@@ -43,7 +43,7 @@ export default function ManualDashboardForm({ m }) {
             <label>
               Bakım/SR oranı <span className="opt">örn: 0.2 = %20</span>
             </label>
-            <input inputMode="decimal" value={m.maintenanceAllocationPercent} onChange={(e) => m.setMaintenanceAllocationPercent(sanitizeDecimalInput(e.target.value))} placeholder="0.2" />
+            <input inputMode="decimal" value={m.maintenanceAllocationPercent} onChange={(e) => m.setMaintenanceAllocationPercent(sanitizeRatioInput(e.target.value))} placeholder="0.2" />
           </div>
           <div className="field">
             <label>
