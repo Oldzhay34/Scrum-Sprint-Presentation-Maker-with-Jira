@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
-import { SECTION_KEYS } from "../lib/geometry";
+import { useEffect, useMemo, useState } from "react";
+import { SECTION_KEYS, linesOf } from "../lib/geometry";
+import { teamTypeLabel } from "../lib/teamTypes";
 
 const SAMPLE = {
   done: [
@@ -28,16 +29,20 @@ const SAMPLE = {
   ],
 };
 
-function linesOf(text) {
-  return text.split("\n").map((s) => s.trim()).filter(Boolean);
-}
-
 export function useSprintForm() {
-  const [team, setTeam] = useState("Yapay Zeka Ekibi");
   const [teamType, setTeamType] = useState("RPA");
+  const [team, setTeam] = useState(() => teamTypeLabel("RPA"));
   const [sprint, setSprint] = useState("7");
   const [range, setRange] = useState("10 Temmuz – 24 Temmuz");
   const [sections, setSections] = useState({ done: "", active: "", risk: "", pending: "" });
+
+  // Ekip adi artik ayrica elle girilmiyor - kullanici sadece Takım Tipi'ni
+  // secer (bkz. CoverPage), goruntulenen isim secilen tipin etiketinden
+  // otomatik turer. Excel yuklendiginde de sadece teamType degisir (bkz.
+  // App.jsx/applyExcelMeta) - bu effect onu da otomatik yakalar.
+  useEffect(() => {
+    setTeam(teamTypeLabel(teamType));
+  }, [teamType]);
 
   const setSectionText = (key, text) => setSections((prev) => ({ ...prev, [key]: text }));
   const appendToSection = (key, line) =>

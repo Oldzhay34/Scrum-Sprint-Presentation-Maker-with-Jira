@@ -45,6 +45,54 @@ export function logoPositions({ rightEdge, top, height, gap = 0.0833 }) {
 
 export const SECTION_KEYS = ["done", "active", "risk", "pending"];
 
+/**
+ * Bir metni satirlara ayirir (bos satirlar atilir). SectionEditor ve
+ * useSprintForm ayni fonksiyonu kullanir. Sadece maddenin ANA metni trim
+ * edilir - yorum kismina dokunulmaz, yoksa kullanici yorum kutusuna yazarken
+ * her tuş vurusunda (state round-trip'inde) satirin sonundaki bosluk
+ * karakteri aninda silinip bosluk hic yazilamiyormus gibi gorunuyordu.
+ */
+export function linesOf(text) {
+  return String(text || "")
+    .split("\n")
+    .map((line) => {
+      const { text: base, comment } = extractComment(line);
+      const trimmedBase = base.trim();
+      if (!trimmedBase) return "";
+      return comment !== "" ? trimmedBase + COMMENT_SEP + comment : trimmedBase;
+    })
+    .filter(Boolean);
+}
+
+// Bir maddeye (satira) yorum eklemek icin, gorunmez bir kontrol karakteriyle
+// (kullanicinin klavyeden asla yazamayacagi) metnin sonuna eklenir - boylece
+// mevcut string tabanli bolum modeli (useSprintForm.sections) degismeden,
+// SectionEditor/SlideCanvas/sprintDeckBuilder ayni satirdan hem metni hem
+// yorumu cikarabilir. Sadece Iş Zekası ekibine ozel "yorum ekle" ozelligi icin.
+const COMMENT_SEP = "";
+
+/** Bir maddenin (ham satirin) metnini ve varsa yorumunu ayirir. */
+export function extractComment(t) {
+  const str = String(t);
+  const idx = str.indexOf(COMMENT_SEP);
+  if (idx === -1) return { text: str, comment: "" };
+  return { text: str.slice(0, idx), comment: str.slice(idx + 1) };
+}
+
+/**
+ * Bir maddenin metnini (yorumu koruyarak) veya yorumunu (metni koruyarak)
+ * gunceller. Yorum burada TRIM EDILMEZ - kullanici hala yaziyorken (orn. iki
+ * kelime arasina bosluk koyarken) trim, her tus vurusunda son karakteri
+ * (bosluk) silip bosluk yazilamiyormus hissi yaratirdi. Baştaki/sondaki
+ * fazladan bosluklar sadece goruntulenirken (SlideCanvas/sprintDeckBuilder)
+ * temizlenir.
+ */
+export function withComment(text, comment) {
+  const base = String(text || "");
+  const c = String(comment || "");
+  return c !== "" ? base + COMMENT_SEP + c : base;
+}
+
 export function sectionDefs(assets) {
   return {
     done: { title: "Geçen Sprint'te Yapılanlar", icon: assets.icon_check, accent: "16A34A" },
@@ -58,15 +106,30 @@ const textW = G.COL_W - G.ACC_ZONE - G.PAD_R - 0.16;
 export const cplAt = (f) => Math.floor(textW / (f * 0.0086));
 export const lhAt = (f) => f * 0.0178 + 0.02;
 
+function stripMarkup(t) {
+  return String(t).replace(/\*\*/g, "").replace(/##(.+?)##/g, "");
+}
+
 export function plainLen(t) {
-  return String(t).replace(/\*\*/g, "").replace(/##(.+?)##/g, "").length;
+  const { text } = extractComment(t);
+  return stripMarkup(text).length;
+}
+
+/** Bir maddenin (yorum dahil) kac satir yer kaplayacagini tahmin eder - bkz. bulletsBlockH. */
+export function itemLineCount(t, cpl) {
+  const { text, comment } = extractComment(t);
+  let L = Math.max(1, Math.ceil((stripMarkup(text).length || 1) / cpl));
+  if (comment) {
+    L += Math.max(1, Math.ceil((comment.length || 1) / cpl));
+  }
+  return L;
 }
 
 export function bulletsBlockH(items, f) {
   const cpl = cplAt(f), lh = lhAt(f), gap = gapAt(f);
   let h = 0;
   items.forEach((t, i) => {
-    const L = Math.max(1, Math.ceil((plainLen(t) || 1) / cpl));
+    const L = itemLineCount(t, cpl);
     h += L * lh + (i < items.length - 1 ? gap : 0);
   });
   return h;

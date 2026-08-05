@@ -1,6 +1,6 @@
 import {
   G, SEGCOL, BAND, bandBars, fitSectionItems, rowHeights, stretchRowHeights, parseRuns, num, sectionDefs, gapAt, extractPriority,
-  PRIORITY_COLORS, PRIORITY_ORDER, PRIORITY_UNSET_LABEL, PRIORITY_UNSET_COLOR, hasPriorityTags, logoPositions,
+  extractComment, PRIORITY_COLORS, PRIORITY_ORDER, PRIORITY_UNSET_LABEL, PRIORITY_UNSET_COLOR, hasPriorityTags, logoPositions,
 } from "./geometry";
 
 /** Kapak slaydini verilen pptx'e ekler - buildFullDeck tarafindan kullanilir. */
@@ -83,7 +83,9 @@ export function addContentSlide(pptx, data, assets) {
     if (items.length) {
       const runs = items
         .map((t, i) => {
-          const { priority, text } = extractPriority(t);
+          const { text: withoutComment, comment: rawComment } = extractComment(t);
+          const comment = rawComment.trim();
+          const { priority, text } = extractPriority(withoutComment);
           const bulletColor = priority ? PRIORITY_COLORS[priority] : PRIORITY_UNSET_COLOR;
           const para = parseRuns(text).map((r) => ({ text: r.text, options: { bold: r.bold, color: r.bold ? INK : "374151" } }));
           para[0].options = Object.assign({}, para[0].options, {
@@ -93,7 +95,25 @@ export function addContentSlide(pptx, data, assets) {
             paraSpaceAfter: gapAt(fs2) * 72,
             breakLine: true,
           });
-          para[para.length - 1].options = Object.assign({}, para[para.length - 1].options, { breakLine: i < items.length - 1 });
+          const isLastItem = i === items.length - 1;
+          if (comment) {
+            // Maddeye ozel yorum (Iş Zekası): ana metnin hemen altina, italik +
+            // farkli renkte "premium" bir alt satir olarak eklenir - bkz.
+            // SlideCanvas.jsx'teki .item-comment ile onizlemede ayni gorsel dil.
+            para[para.length - 1].options = Object.assign({}, para[para.length - 1].options, { breakLine: true });
+            para.push({
+              text: "   💬  " + comment,
+              options: {
+                italic: true,
+                color: "0D9488",
+                fontSize: fs2 * 0.84,
+                breakLine: !isLastItem,
+                paraSpaceAfter: gapAt(fs2) * 72,
+              },
+            });
+          } else {
+            para[para.length - 1].options = Object.assign({}, para[para.length - 1].options, { breakLine: !isLastItem });
+          }
           return para;
         })
         .flat();

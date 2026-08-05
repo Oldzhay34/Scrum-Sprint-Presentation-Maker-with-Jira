@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import "./styles/app.css";
 import "./styles/theme.css";
 
@@ -10,6 +10,7 @@ import WizardSteps from "./components/shared/WizardSteps";
 import UnifiedPreviewPane from "./components/shared/UnifiedPreviewPane";
 import Button from "./components/shared/Button";
 import AlertModal from "./components/shared/AlertModal";
+import ReadOnlyNotice from "./components/shared/ReadOnlyNotice";
 
 import SprintPage from "./components/sprint/SprintPage";
 import SprintTopActions from "./components/sprint/SprintTopActions";
@@ -33,7 +34,7 @@ import { useCoverImage } from "./hooks/useCoverImage";
 import { sectionDefs } from "./lib/geometry";
 import { buildFullDeck } from "./lib/fullDeckBuilder";
 import { ASSETS } from "./assets/pptxAssets";
-import { hasFteTracking } from "./lib/teamTypes";
+import { hasFteTracking, resolveTeamTypeFromDepartment } from "./lib/teamTypes";
 
 const SAMPLE_BAND_BARS = [
   { label: "HEDEFLER", segments: [{ value: "17", color: "green" }, { value: "33", color: "blue" }] },
@@ -64,11 +65,29 @@ function MainApp({ theme, toggleTheme, personnel }) {
   // "mode/step" ayni degisken: hem ust nav hem sihirbaz adimi olarak kullanilir.
   const [mode, setMode] = useState("cover");
 
+  // Login yanitindaki (bkz. LoginPage.jsx/apiClient.login) department/roles
+  // alanlarindan kullanicinin takimini ve admin durumunu cozumler. personnel
+  // yoksa (SKIP_LOGIN gecici atlamasi) kisitlama uygulanmaz - gercek login
+  // devreye girince otomatik calismaya baslar. Admin her takimi duzenleyebilir;
+  // digerleri SADECE kendi takimlarini (roller arasinda simdilik yalnizca PO
+  // ele aliniyor) - baska bir takim secilirse asagidaki canEdit false olur ve
+  // ilgili adimin parametre alani yerine ReadOnlyNotice gosterilir.
+  const currentUser = useMemo(() => {
+    if (!personnel) return { teamType: null, admin: true, department: null };
+    const department = personnel.department || "";
+    const roles = personnel.roles || [];
+    const admin = Array.isArray(roles)
+      ? roles.includes("ADMIN")
+      : String(roles || "").toUpperCase().includes("ADMIN");
+    return { teamType: resolveTeamTypeFromDepartment(department), admin, department };
+  }, [personnel]);
+
   // ---- Kapak (1. adim) durumu ----
   const cover = useCoverImage(ASSETS.cover_bg);
 
   // ---- Sprint (2. adim) durumu ----
   const sprintForm = useSprintForm();
+  const canEdit = currentUser.admin || currentUser.teamType == null || currentUser.teamType === sprintForm.teamType;
   const band = useBandEditor();
   const excel = useExcelSuggestions();
   const [editorKey, setEditorKey] = useState(null);
@@ -118,21 +137,9 @@ function MainApp({ theme, toggleTheme, personnel }) {
   const MODE_TO_PREVIEW_TAB = { cover: "cover", sprint: "content", dash: "dashboard" };
   const [wizardAlert, setWizardAlert] = useState(null);
   const changeMode = (newMode) => {
-    if (mode === "cover" && newMode !== "cover") {
-      const teamMissing = !sprintForm.team.trim();
-      const sprintMissing = !sprintForm.sprint.trim();
-      if (teamMissing && sprintMissing) {
-        setWizardAlert("Ekip adı ve Sprint No boş bırakılamaz.");
-        return;
-      }
-      if (teamMissing) {
-        setWizardAlert("Ekip adı boş bırakılamaz.");
-        return;
-      }
-      if (sprintMissing) {
-        setWizardAlert("Sprint No boş bırakılamaz.");
-        return;
-      }
+    if (mode === "cover" && newMode !== "cover" && canEdit && !sprintForm.sprint.trim()) {
+      setWizardAlert("Sprint No boş bırakılamaz.");
+      return;
     }
     setMode(newMode);
     setPreviewTab(MODE_TO_PREVIEW_TAB[newMode]);
@@ -148,10 +155,19 @@ function MainApp({ theme, toggleTheme, personnel }) {
   // standart "Kapasite Takip" dosyasi hem Is_Listesi/Parametreler hem de
   // Rapor/Kapasite sayfalarini bir arada icerir.
   const [excelFileName, setExcelFileName] = useState(null);
+  // Excel'in "Parametreler" sayfasindan (Takım Adı/FTE izleri, Rapor Tarihi,
+  // Sprint No) okunan takim tipi/sprint no/tarih araligi, sihirbazdaki ilgili
+  // alanlari otomatik gunceller - kullanicinin ayni bilgiyi iki kez (bir Excel'e
+  // bir de "Ekip adı"/"Sprint no" alanlarina) girmesine gerek kalmaz.
+  const applyExcelMeta = ({ teamType, sprintNo, range } = {}) => {
+    if (teamType) sprintForm.setTeamType(teamType);
+    if (sprintNo) sprintForm.setSprint(sprintNo);
+    if (range) sprintForm.setRange(range);
+  };
   const handleExcelFile = (file) => {
     clearSampleIfNeeded();
-    excel.loadFile(file, sprintForm.team);
-    dashboard.loadFile(file);
+    excel.loadFile(file, sprintForm.team, applyExcelMeta);
+    dashboard.loadFile(file, applyExcelMeta);
     setExcelFileName(file.name);
   };
 
@@ -217,24 +233,32 @@ function MainApp({ theme, toggleTheme, personnel }) {
         <div className="wizard-col">
           {mode === "cover" && (
             <CoverPage
-              team={sprintForm.team} setTeam={sprintForm.setTeam}
               teamType={sprintForm.teamType} setTeamType={sprintForm.setTeamType}
               sprint={sprintForm.sprint} setSprint={sprintForm.setSprint}
               range={sprintForm.range} setRange={sprintForm.setRange}
               cover={cover}
+              canEdit={canEdit}
             />
           )}
           {mode === "sprint" && (
-            <SprintPage
-              form={{ ...sprintForm, setSectionText: handleSectionTextChange }}
-              band={band}
-              excel={excel}
-              assets={assets}
-              onExpandSection={setEditorKey}
-            />
+            canEdit ? (
+              <SprintPage
+                form={{ ...sprintForm, setSectionText: handleSectionTextChange }}
+                band={band}
+                excel={excel}
+                assets={assets}
+                onExpandSection={setEditorKey}
+              />
+            ) : (
+              <ReadOnlyNotice teamType={sprintForm.teamType} />
+            )
           )}
           {mode === "dash" && (
-            <DashboardPage source={dashSource} onSourceChange={setDashSource} dashboard={dashboard} manual={manual} />
+            canEdit ? (
+              <DashboardPage source={dashSource} onSourceChange={setDashSource} dashboard={dashboard} manual={manual} />
+            ) : (
+              <ReadOnlyNotice teamType={sprintForm.teamType} />
+            )
           )}
           <div className="wizard-nav">
             <Button variant="soft" disabled={mode === "cover"} onClick={() => changeMode(mode === "dash" ? "sprint" : "cover")}>
@@ -284,9 +308,6 @@ function MainApp({ theme, toggleTheme, personnel }) {
               tab={previewTab}
               assets={assets}
               scale={scale}
-              editable
-              onEditTeam={sprintForm.setTeam}
-              onEditSection={sprintForm.setSectionText}
             />
           )
         }

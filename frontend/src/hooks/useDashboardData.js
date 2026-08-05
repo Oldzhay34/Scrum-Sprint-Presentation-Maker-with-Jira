@@ -28,7 +28,7 @@ export function useDashboardData(dTeam, setDTeam, dSprint, setDSprint, teamType)
   const [error, setError] = useState(null);
   const BASE_INFO = "Excel yükleyin — Kapasite Takip dosyasındaki Rapor sayfası okunur. Sprint modundan farklı olarak burada tüm sayılar Excel'den gelir.";
 
-  const loadFile = (file) => {
+  const loadFile = (file, onParsed) => {
     setLoading(true);
     setError(null);
     const reader = new FileReader();
@@ -44,6 +44,7 @@ export function useDashboardData(dTeam, setDTeam, dSprint, setDSprint, teamType)
         // guncellensin - "sadece bossa doldur" mantigi, alan zaten dolu
         // (varsayilan) oldugu icin hicbir zaman tetiklenmiyordu.
         setDTeam(parsed.meta.team);
+        onParsed?.({ teamType: parsed.teamType, sprintNo: parsed.sprintNo, range: parsed.range });
       } catch (err) {
         setError('Excel okunamadı: ' + (err?.message || "bilinmeyen hata") + ' — dosyanın "Rapor" sayfasını içerdiğinden emin olun.');
       } finally {

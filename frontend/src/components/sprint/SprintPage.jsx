@@ -35,6 +35,7 @@ export default function SprintPage({ form, band, excel, assets, onExpandSection 
             excel.removeSuggestion(key, text);
           }}
           onExpand={() => onExpandSection(key)}
+          teamType={form.teamType}
         />
       ))}
     </section>

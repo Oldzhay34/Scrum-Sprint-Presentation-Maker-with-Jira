@@ -16,3 +16,17 @@ export function hasFteTracking(teamType) {
 export function teamTypeLabel(teamType) {
   return TEAM_TYPES.find((t) => t.value === teamType)?.label ?? "";
 }
+
+/**
+ * Personel departman adindan (login yanitindaki "department" - HR sistemindeki
+ * Departman_Adi) takim tipini cozumler. Backend'deki TeamType.fromDepartmentName
+ * ile AYNI basit "isim icinde arama" mantigi (excelParsers.js/detectTeamType'la
+ * da tutarli) - departman adi degisikliklerine/varyasyonlarina karsi dayanikli,
+ * kod degisikligi gerektirmez. Eslesme yoksa "GENEL" doner.
+ */
+export function resolveTeamTypeFromDepartment(department) {
+  const d = String(department || "").toLocaleLowerCase("tr");
+  if (d.includes("zeka")) return "IS_ZEKASI";
+  if (d.includes("rpa")) return "RPA";
+  return "GENEL";
+}

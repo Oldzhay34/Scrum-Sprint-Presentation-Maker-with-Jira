@@ -13,18 +13,19 @@ export function useExcelSuggestions() {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const loadFile = (file, teamName) => {
+  const loadFile = (file, teamName, onParsed) => {
     setLoading(true);
     setError(null);
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
-        const { suggestions: parsed, itemCount, reportDateHint, bandTargets: bars } = parseSprintExcel(e.target.result, teamName);
+        const { suggestions: parsed, itemCount, reportDateHint, bandTargets: bars, teamType, sprintNo, range } = parseSprintExcel(e.target.result, teamName);
         setSuggestions(parsed);
         setBandTargets(bars);
         const parts = [itemCount + " iş kalemi"];
         if (reportDateHint) parts.push("Rapor tarihi: " + reportDateHint);
         setInfo("Excel okundu — " + parts.join(" · ") + ". Öneriler bölümlerin altında.");
+        onParsed?.({ teamType, sprintNo, range });
       } catch (err) {
         setError("Excel okunamadı: " + (err?.message || "bilinmeyen hata") + " — dosyanın \"İş_Listesi\" sayfasını içerdiğinden emin olun.");
       } finally {
