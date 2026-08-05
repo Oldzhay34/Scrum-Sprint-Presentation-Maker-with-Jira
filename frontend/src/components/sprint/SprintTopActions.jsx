@@ -8,11 +8,23 @@ import { IconUpload, IconSparkles, IconDownload, IconSave } from "../shared/icon
  * "Kaydet" (onSave), duzenleme yetkisi olmayan kullanicilar icin gizlenir
  * (App.jsx'te canEdit false ise onSave={null} geciliyor).
  */
-export default function SprintTopActions({ onExcelFile, excelLoading, onFillSample, onGenerate, generating, onSave, saving }) {
+export default function SprintTopActions({
+  onExcelFile, excelLoading, onFillSample, onGenerate, generating, onSave, saving, pptxTheme, onPptxThemeChange,
+}) {
   const fileInputRef = useRef(null);
 
   return (
-    <span style={{ display: "flex", gap: 10 }}>
+    <span style={{ display: "flex", gap: 10, alignItems: "center" }}>
+      {onPptxThemeChange && (
+        <span className="pptx-theme-switch" title="PPTX çıktısının teması">
+          <button type="button" className={pptxTheme !== "dark" ? "active" : ""} onClick={() => onPptxThemeChange("light")}>
+            Açık
+          </button>
+          <button type="button" className={pptxTheme === "dark" ? "active" : ""} onClick={() => onPptxThemeChange("dark")}>
+            Koyu
+          </button>
+        </span>
+      )}
       <input
         ref={fileInputRef}
         type="file"

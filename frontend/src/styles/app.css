@@ -15,6 +15,9 @@
   .btn.primary:hover{background:#cf6810}
   .btn.ghost{background:rgba(255,255,255,.12);color:#fff}
   .btn.ghost:hover{background:rgba(255,255,255,.22)}
+  .pptx-theme-switch{display:flex;gap:2px;background:rgba(255,255,255,.12);border-radius:8px;padding:3px}
+  .pptx-theme-switch button{border:0;background:transparent;color:#BFDBE6;font-size:12px;font-weight:600;padding:5px 10px;border-radius:6px;cursor:pointer}
+  .pptx-theme-switch button.active{background:#fff;color:var(--teal)}
   .btn.soft{background:#fff;color:var(--teal);border:1px solid var(--line)}
   .btn.soft:hover{background:#F8FAFB}
   .btn:disabled{opacity:.5;cursor:not-allowed}
