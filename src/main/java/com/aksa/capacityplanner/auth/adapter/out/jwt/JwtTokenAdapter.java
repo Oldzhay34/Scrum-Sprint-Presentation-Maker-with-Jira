@@ -4,7 +4,11 @@ import com.aksa.capacityplanner.auth.application.port.out.TokenGeneratePort;
 import com.aksa.capacityplanner.auth.domain.model.Personnel;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.oauth2.jose.jws.SignatureAlgorithm;
-import org.springframework.security.oauth2.jwt.*;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.JwtClaimsSet;
+import org.springframework.security.oauth2.jwt.JwtEncoder;
+import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
+import org.springframework.security.oauth2.jwt.JwsHeader;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
@@ -26,16 +30,14 @@ public class JwtTokenAdapter implements TokenGeneratePort {
         Instant expiresAt = issuedAt.plus(TOKEN_DURATION);
 
         JwtClaimsSet claims = JwtClaimsSet.builder()
-                .issuer("personnel-auth-service")
+                .issuer("capacity-planner")
                 .issuedAt(issuedAt)
                 .expiresAt(expiresAt)
                 .subject(personnel.username())
 
-                .claim("personnelId", personnel.id())
                 .claim("company", trim(personnel.company()))
                 .claim("department", trim(personnel.department()))
                 .claim("title", trim(personnel.title()))
-
                 .claim(
                         "ExtensionAttribute4",
                         trim(personnel.extensionAttribute4())
@@ -48,7 +50,6 @@ public class JwtTokenAdapter implements TokenGeneratePort {
                         "ExtensionAttribute8",
                         trim(personnel.extensionAttribute8())
                 )
-
                 .claim("roles", personnel.roles())
                 .build();
 
