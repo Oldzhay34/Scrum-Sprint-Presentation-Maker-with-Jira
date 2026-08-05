@@ -30,3 +30,11 @@ export function resolveTeamTypeFromDepartment(department) {
   if (d.includes("rpa")) return "RPA";
   return "GENEL";
 }
+
+/** Login yanitindaki personnel.roles (dizi ya da string) icinde ADMIN var mi kontrol eder. */
+export function resolveIsAdmin(personnel) {
+  const roles = personnel?.roles || [];
+  return Array.isArray(roles)
+    ? roles.includes("ADMIN")
+    : String(roles || "").toUpperCase().includes("ADMIN");
+}

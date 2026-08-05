@@ -1,12 +1,14 @@
 import { useRef } from "react";
 import Button from "../shared/Button";
-import { IconUpload, IconSparkles, IconDownload } from "../shared/icons";
+import { IconUpload, IconSparkles, IconDownload, IconSave } from "../shared/icons";
 
 /**
  * Sprint modu ust bar eylemleri. Pressman - Command/Menu Labeling: tum
  * etiketler eylem bildiren fiil yapisinda ("Excel Yükle", "Örnek Doldur", "PPTX İndir").
+ * "Kaydet" (onSave), duzenleme yetkisi olmayan kullanicilar icin gizlenir
+ * (App.jsx'te canEdit false ise onSave={null} geciliyor).
  */
-export default function SprintTopActions({ onExcelFile, excelLoading, onFillSample, onGenerate, generating }) {
+export default function SprintTopActions({ onExcelFile, excelLoading, onFillSample, onGenerate, generating, onSave, saving }) {
   const fileInputRef = useRef(null);
 
   return (
@@ -29,6 +31,12 @@ export default function SprintTopActions({ onExcelFile, excelLoading, onFillSamp
         <IconSparkles className="navbar-icon" />
         Örnek Doldur
       </Button>
+      {onSave && (
+        <Button variant="ghost" loading={saving} loadingLabel="Kaydediliyor…" onClick={onSave}>
+          <IconSave className="navbar-icon" />
+          Kaydet
+        </Button>
+      )}
       <Button variant="primary" loading={generating} loadingLabel="Hazırlanıyor…" onClick={onGenerate}>
         <IconDownload className="navbar-icon" />
         PPTX İndir
