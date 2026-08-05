@@ -1,7 +1,7 @@
 package com.aksa.capacityplanner.auth.infrastructure.security;
 
-import com.aksa.capacityplanner.application.port.out.PersonnelQueryPort;
-import com.aksa.capacityplanner.domain.model.Personnel;
+import com.aksa.capacityplanner.auth.application.port.out.PersonnelQueryPort;
+import com.aksa.capacityplanner.auth.domain.model.Personnel;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.*;
