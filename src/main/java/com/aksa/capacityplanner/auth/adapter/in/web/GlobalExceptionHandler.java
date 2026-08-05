@@ -1,6 +1,6 @@
 package com.aksa.capacityplanner.auth.adapter.in.web;
 
-import com.example.auth.application.service.InvalidCredentialsException;
+import com.aksa.capacityplanner.auth.application.exception.InvalidCredentialsException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
