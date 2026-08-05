@@ -1506,35 +1506,54 @@ header.topbar .btn:hover {
 .admin-team-panel-title {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin: 4px 8px 16px;
-  font-size: 14px;
+  gap: 10px;
+  margin: 4px 8px 18px;
+  font-size: 15px;
   font-weight: 800;
   color: var(--ink);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.admin-team-panel-title svg {
+  padding: 5px;
+  box-sizing: content-box;
+  border-radius: 50%;
+  color: #fff;
+  background: linear-gradient(135deg, var(--aksa-blue), var(--aksa-blue-light));
+  box-shadow: 0 0 12px rgba(74, 159, 224, 0.45);
 }
 .admin-team-list {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 10px;
 }
 .admin-team-item {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
+  align-items: center;
+  gap: 10px;
   padding: 10px 12px;
   border-radius: 12px;
-  border: 1px solid transparent;
-  background: transparent;
+  border: 1px solid var(--line);
+  background: var(--card-bg, rgba(255, 255, 255, 0.55));
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
   cursor: pointer;
   text-align: left;
+  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
 }
 .admin-team-item:hover {
   background: rgba(13, 94, 168, 0.08);
+  border-color: color-mix(in srgb, var(--team-accent, #0d5ea8) 40%, var(--line));
+  transform: translateX(2px);
+  box-shadow: 0 4px 12px rgba(13, 94, 168, 0.12);
 }
 .admin-team-item.active {
   background: rgba(13, 94, 168, 0.12);
   border-color: rgba(13, 94, 168, 0.25);
+  box-shadow: 0 0 0 1px var(--team-accent, transparent) inset, 0 4px 14px rgba(13, 94, 168, 0.16);
+}
+.theme-dark .admin-team-item {
+  background: rgba(255, 255, 255, 0.03);
+  box-shadow: none;
 }
 .theme-dark .admin-team-item:hover {
   background: rgba(255, 255, 255, 0.06);
@@ -1543,16 +1562,52 @@ header.topbar .btn:hover {
   background: rgba(74, 159, 224, 0.16);
   border-color: rgba(74, 159, 224, 0.35);
 }
+.admin-team-item-av {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+  transition: box-shadow 0.15s ease;
+}
+.admin-team-item:hover .admin-team-item-av,
+.admin-team-item.active .admin-team-item-av {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--team-accent, #0d5ea8) 35%, transparent), 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+.admin-team-item-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
 .admin-team-item-name {
   font-size: 13.5px;
   font-weight: 700;
   color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .admin-team-item-type {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--mut);
+  align-self: flex-start;
+  margin-top: 1px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 700;
   letter-spacing: 0.02em;
+  color: color-mix(in srgb, var(--team-accent, var(--mut)) 75%, var(--ink) 25%);
+  background: color-mix(in srgb, var(--team-accent, transparent) 14%, transparent);
+}
+.theme-dark .admin-team-item-type {
+  color: color-mix(in srgb, var(--team-accent, var(--mut)) 70%, white 30%);
+  background: color-mix(in srgb, var(--team-accent, transparent) 22%, transparent);
 }
 .admin-presentation-panel {
   padding: 26px 30px;
@@ -1605,6 +1660,24 @@ header.topbar .btn:hover {
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
   box-shadow: var(--glass-shadow);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+.presentation-row:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(13, 94, 168, 0.16);
+  border-color: rgba(74, 159, 224, 0.35);
+}
+.presentation-row-icon {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  background: linear-gradient(135deg, var(--aksa-blue), var(--aksa-blue-light));
+  box-shadow: 0 0 12px rgba(74, 159, 224, 0.5);
 }
 .presentation-row-main {
   display: flex;

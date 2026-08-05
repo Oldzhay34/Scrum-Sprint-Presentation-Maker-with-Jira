@@ -59,6 +59,9 @@ export default function PresentationListPanel({ teamId, teamName, canManage, sho
       <div className="presentation-list">
         {presentations.map((p) => (
           <div className="presentation-row" key={p.id}>
+            <span className="presentation-row-icon">
+              <IconPresentation style={{ width: 18, height: 18 }} />
+            </span>
             <div className="presentation-row-main">
               <span className="presentation-row-sprint">Sprint {p.sprintNo}</span>
               <span className="presentation-row-meta">{p.dateRange || "—"}</span>

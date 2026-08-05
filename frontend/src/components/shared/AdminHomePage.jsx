@@ -3,6 +3,8 @@ import TopBar from "./TopBar";
 import PresentationListPanel from "./PresentationListPanel";
 import { IconUsers } from "./icons";
 import { fetchTeams } from "../../lib/apiClient";
+import { DAV_COLORS } from "../../lib/format";
+import { teamTypeLabel } from "../../lib/teamTypes";
 
 /**
  * Admin login sonrasi dustugu yonetim ekrani (/admin) - solda takim secimi,
@@ -40,15 +42,21 @@ export default function AdminHomePage({ personnel, theme, onToggleTheme }) {
           {loading && <div className="presentation-list-empty">Yükleniyor…</div>}
           {error && <div className="login-error" style={{ margin: "0 0 12px" }}>{error}</div>}
           <div className="admin-team-list">
-            {teams.map((t) => (
+            {teams.map((t, i) => (
               <button
                 type="button"
                 key={t.id}
                 className={`admin-team-item${t.id === selectedTeamId ? " active" : ""}`}
+                style={{ "--team-accent": "#" + DAV_COLORS[i % DAV_COLORS.length] }}
                 onClick={() => setSelectedTeamId(t.id)}
               >
-                <span className="admin-team-item-name">{t.name}</span>
-                <span className="admin-team-item-type">{t.teamType}</span>
+                <span className="admin-team-item-av" style={{ background: "#" + DAV_COLORS[i % DAV_COLORS.length] }}>
+                  {(t.name || "?").slice(0, 2).toUpperCase()}
+                </span>
+                <span className="admin-team-item-text">
+                  <span className="admin-team-item-name">{t.name}</span>
+                  <span className="admin-team-item-type">{teamTypeLabel(t.teamType)}</span>
+                </span>
               </button>
             ))}
             {!loading && teams.length === 0 && !error && (
