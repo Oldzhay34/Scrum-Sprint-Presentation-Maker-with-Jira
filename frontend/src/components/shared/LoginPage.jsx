@@ -9,10 +9,10 @@ import { ASSETS } from "../../assets/pptxAssets";
 // planda zipliyan (DVD ekran koruyucusu gibi) dekoratif rozetler olarak
 // tekrar kullanilir.
 const FLOAT_ICONS = [
-  { icon: "icon_check", accent: "16a34a", size: 64 },
-  { icon: "icon_rocket", accent: "2563eb", size: 78 },
-  { icon: "icon_warn", accent: "e0761f", size: 70 },
-  { icon: "icon_clock", accent: "7c3aed", size: 60 },
+  { icon: "icon_check", accent: "16a34a", size: 80 },
+  { icon: "icon_rocket", accent: "2563eb", size: 96 },
+  { icon: "icon_warn", accent: "e0761f", size: 86 },
+  { icon: "icon_clock", accent: "7c3aed", size: 74 },
 ];
 
 /**
@@ -55,7 +55,7 @@ function useBouncingIcons(items) {
         else if (b.x >= maxX) { b.x = maxX; b.vx = -Math.abs(b.vx); }
         if (b.y <= 0) { b.y = 0; b.vy = Math.abs(b.vy); }
         else if (b.y >= maxY) { b.y = maxY; b.vy = -Math.abs(b.vy); }
-        b.el.style.transform = `translate(${b.x}px, ${b.y}px) rotate(${(b.x + b.y) * 0.06}deg)`;
+        b.el.style.transform = `translate(${b.x}px, ${b.y}px)`;
       }
       raf = requestAnimationFrame(tick);
     };
@@ -105,20 +105,24 @@ export default function LoginPage({ onLogin, theme, onToggleTheme }) {
       <div className="login-glow-orb login-glow-orb-c" aria-hidden="true" />
       <div className="login-glow-orb login-glow-orb-d" aria-hidden="true" />
       {FLOAT_ICONS.map((f, i) => (
-        <img
+        <div
           key={f.icon}
           ref={(el) => (iconRefs.current[i] = el)}
-          className="login-float-icon"
-          src={ASSETS[f.icon]}
-          alt=""
-          aria-hidden="true"
-          style={{
-            width: f.size,
-            height: f.size,
-            background: `linear-gradient(135deg, #${f.accent}, #${f.accent}cc)`,
-            boxShadow: `0 0 22px #${f.accent}80`,
-          }}
-        />
+          className="login-float-wrap"
+          style={{ width: f.size, height: f.size }}
+        >
+          <img
+            className="login-float-icon"
+            src={ASSETS[f.icon]}
+            alt=""
+            aria-hidden="true"
+            style={{
+              background: `radial-gradient(circle at 30% 28%, #ffffffb0, transparent 42%), linear-gradient(135deg, #${f.accent}, #${f.accent}90)`,
+              border: "2px solid rgba(255,255,255,0.55)",
+              boxShadow: `0 0 30px #${f.accent}b0, 0 0 12px #${f.accent}`,
+            }}
+          />
+        </div>
       ))}
       <button
         type="button"

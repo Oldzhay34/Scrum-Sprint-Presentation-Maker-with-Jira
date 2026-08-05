@@ -1121,20 +1121,31 @@ header.topbar .btn:hover {
    rozet icinde, gercek fizikle (bkz. LoginPage.jsx useBouncingIcons) ekranda
    zipliyip kenarlara carpar. Konum JS tarafindan transform ile yazilir,
    burada sadece gorunum + baslangic konumu (0,0'dan JS devralir) tanimlanir. */
-.login-float-icon {
+.login-float-wrap {
   position: absolute;
   top: 0;
   left: 0;
-  border-radius: 50%;
-  padding: 14px;
-  box-sizing: border-box;
   z-index: 0;
   pointer-events: none;
   will-change: transform;
 }
+.login-float-icon {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  padding: 16px;
+  box-sizing: border-box;
+  animation: login-icon-spin 3.2s linear infinite;
+}
+@keyframes login-icon-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
 
 @media (prefers-reduced-motion: reduce) {
-  .login-glow-orb {
+  .login-glow-orb,
+  .login-float-icon {
     animation: none !important;
   }
 }
