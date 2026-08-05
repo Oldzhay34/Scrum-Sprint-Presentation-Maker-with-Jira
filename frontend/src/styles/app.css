@@ -15,9 +15,6 @@
   .btn.primary:hover{background:#cf6810}
   .btn.ghost{background:rgba(255,255,255,.12);color:#fff}
   .btn.ghost:hover{background:rgba(255,255,255,.22)}
-  .pptx-theme-switch{display:flex;gap:2px;background:rgba(255,255,255,.12);border-radius:8px;padding:3px}
-  .pptx-theme-switch button{border:0;background:transparent;color:#BFDBE6;font-size:12px;font-weight:600;padding:5px 10px;border-radius:6px;cursor:pointer}
-  .pptx-theme-switch button.active{background:#fff;color:var(--teal)}
   .btn.soft{background:#fff;color:var(--teal);border:1px solid var(--line)}
   .btn.soft:hover{background:#F8FAFB}
   .btn:disabled{opacity:.5;cursor:not-allowed}
@@ -104,6 +101,7 @@
   .seg select{border:0;font-size:12px;font-family:inherit;cursor:pointer;background:transparent}
   .seg .dot{width:12px;height:12px;border-radius:3px;flex:none}
   .seg .delseg{border:0;background:transparent;color:#9AA3AF;cursor:pointer;font-size:14px;line-height:1}
+  .mitem-input{border:1px solid var(--line);border-radius:7px;padding:6px 9px;font-size:13px;font-family:inherit;background:#fff;color:var(--ink)}
   .addseg,.addbar{border:1px dashed var(--teal2);background:#EFF6F8;color:var(--teal2);border-radius:999px;padding:4px 11px;font-size:12px;font-weight:600;cursor:pointer}
   .addbar{margin-top:2px}
   .addseg:disabled,.addbar:disabled{opacity:.5;cursor:not-allowed;border-style:solid}

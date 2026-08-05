@@ -110,12 +110,18 @@ export function addContentSlide(pptx, data, assets, theme = "light") {
             // (asagida) best-effort olarak ayrica denenmeye devam eder.
             mainRuns.unshift({ text: priority.toUpperCase() + "  ", options: { bold: true, color: bulletColor } });
           }
+          // NOT: burada breakLine SET EDILMEZ - mainRuns[0] madde metninin
+          // sadece ILK run'i olabilir (orn. "metin " + "**Departman**" gibi
+          // ic ice bold varsa). breakLine, madde SONUNDAKI run'a (asagida,
+          // yorum/isLastItem mantigiyla) ait bir ozellik - buraya konursa
+          // bold departman/etiket parcasi, ait oldugu satirdan kopup bir
+          // ALT SATIRA duserdi (bkz. kullanici bildirimi: "bold yazılar
+          // aşağı satıra kayıyor").
           mainRuns[0].options = Object.assign({}, mainRuns[0].options, {
             // "25CF" (●) - kucuk "•" isaretinden daha buyuk/net, oncelik rengini
             // daha belirgin gosterir (bkz. app.css .card li .dot ile onizlemede ayni fikir).
             bullet: { code: "25CF", indent: 14, color: bulletColor },
             paraSpaceAfter: gapAt(fs2) * 72,
-            breakLine: true,
           });
           const isLastItem = i === items.length - 1;
           if (comment) {

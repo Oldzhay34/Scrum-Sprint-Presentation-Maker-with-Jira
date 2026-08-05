@@ -17,6 +17,59 @@ function csrfHeaders() {
   return token ? { "X-CSRF-Token": token } : {};
 }
 
+// access_token'in omru kisa (backend JwtProperties.accessTokenTtlMinutes=15) -
+// refresh_token cookie'si (7 gun) hala gecerliyken kullanici 15 dakikadan
+// uzun surdugu her oturumda sessizce "401"lere dusuyordu (bkz. kullanici
+// bildirimi: Profil sayfasinda "Profil bilgileri alınamadı (HTTP 401)" ve
+// konsolda tekrarlanan /api/auth/profile 401'leri) - backend'te calisan bir
+// POST /api/auth/refresh ucu vardi ama frontend hicbir yerde cagirmiyordu.
+// Asagidaki sarmalayici, authFetch ile atilan HER istekte 401 aldiginda
+// BIR KEZ refresh dener, basariliysa istegi TEKRAR eder; refresh de
+// basarisizsa (refresh_token da suresi dolmus/gecersiz) orijinal 401 yaniti
+// aynen doner - cagiran taraf (App.jsx) bunu normal login-gerekli 401'i gibi
+// isler. Ayni anda birden fazla istek 401 alirsa (orn. sayfa acilirken
+// paralel /me + /profile) tek bir refresh cagrisinda birlesir (refreshPromise).
+let refreshPromise = null;
+
+function isAuthEndpoint(path) {
+  return path.startsWith("/api/auth/login") || path.startsWith("/api/auth/refresh");
+}
+
+async function tryRefreshSession() {
+  if (!refreshPromise) {
+    refreshPromise = fetch(`${API_BASE_URL}/api/auth/refresh`, {
+      method: "POST",
+      credentials: "include",
+      headers: csrfHeaders(),
+    })
+      .then((r) => r.ok)
+      .catch(() => false)
+      .finally(() => {
+        refreshPromise = null;
+      });
+  }
+  return refreshPromise;
+}
+
+/**
+ * fetch() sarmalayici: 401 aldiginda (login/refresh'in kendisi haric) bir kez
+ * refresh dener ve basariliysa istegi tekrar eder. `path`, API_BASE_URL'e
+ * gore GORECELI olmali (orn. "/api/auth/profile") - isAuthEndpoint kontrolu
+ * icin. Mutasyon istekleri (POST/PUT/DELETE) icin `buildInit` bir fonksiyon
+ * olarak verilir ki tekrar denemede X-CSRF-Token TAZE cookie degerinden
+ * yeniden okunsun (refresh, XSRF-TOKEN cookie'sini rotate edebilir).
+ */
+async function authFetch(path, buildInit) {
+  let response = await fetch(`${API_BASE_URL}${path}`, buildInit());
+  if (response.status === 401 && !isAuthEndpoint(path)) {
+    const refreshed = await tryRefreshSession();
+    if (refreshed) {
+      response = await fetch(`${API_BASE_URL}${path}`, buildInit());
+    }
+  }
+  return response;
+}
+
 async function parseErrorBody(response, fallbackMessage) {
   let body = null;
   try {
@@ -58,7 +111,7 @@ export async function login(sicil, password) {
  * fırlatmaz - bu durum LoginPage'e düşmek için normal bir akış).
  */
 export async function fetchCurrentUser() {
-  const response = await fetch(`${API_BASE_URL}/api/auth/me`, { credentials: "include" });
+  const response = await authFetch("/api/auth/me", () => ({ credentials: "include" }));
   if (!response.ok) return null;
   return response.json();
 }
@@ -71,7 +124,7 @@ export async function fetchCurrentUser() {
  * istege bagli cekilir.
  */
 export async function fetchUserProfile() {
-  const response = await fetch(`${API_BASE_URL}/api/auth/profile`, { credentials: "include" });
+  const response = await authFetch("/api/auth/profile", () => ({ credentials: "include" }));
   if (!response.ok) {
     await parseErrorBody(response, "Profil bilgileri alınamadı (HTTP " + response.status + ")");
   }
@@ -96,12 +149,12 @@ export async function logout() {
 export async function computeStatelessDashboard(request) {
   let response;
   try {
-    response = await fetch(`${API_BASE_URL}/api/capacity-dashboard/compute`, {
+    response = await authFetch("/api/capacity-dashboard/compute", () => ({
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json", ...csrfHeaders() },
       body: JSON.stringify(request),
-    });
+    }));
   } catch (networkErr) {
     throw { message: "Backend'e ulaşılamadı. Sunucunun çalıştığından ve " + API_BASE_URL + " adresinden erişilebilir olduğundan emin olun." };
   }
@@ -127,11 +180,11 @@ export async function computeStatelessDashboard(request) {
 async function requestJson(path, options = {}) {
   let response;
   try {
-    response = await fetch(`${API_BASE_URL}${path}`, {
+    response = await authFetch(path, () => ({
       credentials: "include",
       headers: { "Content-Type": "application/json", ...csrfHeaders(), ...(options.headers || {}) },
       ...options,
-    });
+    }));
   } catch (networkErr) {
     throw { message: "Backend'e ulaşılamadı. Sunucunun çalıştığından ve " + API_BASE_URL + " adresinden erişilebilir olduğundan emin olun." };
   }
@@ -190,12 +243,12 @@ export async function uploadCoverImage(file) {
   const form = new FormData();
   form.append("file", file);
 
-  const response = await fetch(`${API_BASE_URL}/api/assets/cover-image`, {
+  const response = await authFetch("/api/assets/cover-image", () => ({
     method: "POST",
     credentials: "include",
     headers: csrfHeaders(),
     body: form,
-  });
+  }));
 
   if (!response.ok) {
     let body = null;

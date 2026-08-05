@@ -7,7 +7,7 @@ import { sanitizeDecimalInput, sanitizeIntegerInput, sanitizeRatioInput } from "
  */
 export default function MemberCard({ member, statuses, items, onUpdateMember, onRemoveMember, onAddItem, onUpdateItem, onRemoveItem }) {
   return (
-    <div className="bar" style={{ background: "#fff" }}>
+    <div className="bar">
       <div className="barrow" style={{ flexWrap: "wrap" }}>
         <input
           className="barlabel"
@@ -72,20 +72,22 @@ export default function MemberCard({ member, statuses, items, onUpdateMember, on
       {items.map((item) => (
         <div className="segrow" key={item.clientId} style={{ marginBottom: 6 }}>
           <input
-            style={{ flex: "1 1 180px", border: "1px solid var(--line)", borderRadius: 7, padding: "6px 9px", fontSize: 13 }}
+            className="mitem-input"
+            style={{ flex: "1 1 180px" }}
             placeholder="İş adı"
             value={item.title}
             onChange={(e) => onUpdateItem(item.clientId, { title: e.target.value })}
           />
           <input
-            style={{ width: 90, border: "1px solid var(--line)", borderRadius: 7, padding: "6px 9px", fontSize: 13 }}
+            className="mitem-input"
+            style={{ width: 90 }}
             placeholder="Efor (AG)"
             inputMode="decimal"
             value={item.plannedEffortDays}
             onChange={(e) => onUpdateItem(item.clientId, { plannedEffortDays: sanitizeDecimalInput(e.target.value) })}
           />
           <select
-            style={{ border: "1px solid var(--line)", borderRadius: 7, padding: "6px 9px", fontSize: 13 }}
+            className="mitem-input"
             value={item.statusCode}
             onChange={(e) => onUpdateItem(item.clientId, { statusCode: e.target.value })}
           >
@@ -98,14 +100,16 @@ export default function MemberCard({ member, statuses, items, onUpdateMember, on
           <input
             type="date"
             title="Eklenme tarihi (opsiyonel — Yeni Eklenen Efor hesaplaması için)"
-            style={{ border: "1px solid var(--line)", borderRadius: 7, padding: "6px 9px", fontSize: 12 }}
+            className="mitem-input"
+            style={{ fontSize: 12 }}
             value={item.addedDate}
             onChange={(e) => onUpdateItem(item.clientId, { addedDate: e.target.value })}
           />
           <input
             type="date"
             title="Kapanma tarihi (opsiyonel — Dönem Kapanan Efor hesaplaması için)"
-            style={{ border: "1px solid var(--line)", borderRadius: 7, padding: "6px 9px", fontSize: 12 }}
+            className="mitem-input"
+            style={{ fontSize: 12 }}
             value={item.closedDate}
             onChange={(e) => onUpdateItem(item.clientId, { closedDate: e.target.value })}
           />

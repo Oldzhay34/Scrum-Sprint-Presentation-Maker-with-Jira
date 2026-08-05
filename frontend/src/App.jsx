@@ -375,8 +375,6 @@ function MainApp({ theme, toggleTheme, personnel, presentationId, newForTeamId }
               generating={fullExport.loading}
               onSave={canEdit ? handleSave : null}
               saving={saveStatus.loading}
-              pptxTheme={pptxTheme}
-              onPptxThemeChange={setPptxTheme}
             />
           ) : (
             <DashboardTopActions
@@ -386,8 +384,6 @@ function MainApp({ theme, toggleTheme, personnel, presentationId, newForTeamId }
               generating={fullExport.loading}
               onSave={canEdit ? handleSave : null}
               saving={saveStatus.loading}
-              pptxTheme={pptxTheme}
-              onPptxThemeChange={setPptxTheme}
             />
           )
         }
@@ -491,8 +487,8 @@ function MainApp({ theme, toggleTheme, personnel, presentationId, newForTeamId }
         activeTab={previewTab}
         onTabChange={setPreviewTab}
         renderCanvas={renderPreviewCanvas}
-        theme={theme}
-        onToggleTheme={toggleTheme}
+        previewTheme={pptxTheme}
+        onPreviewThemeChange={setPptxTheme}
         downloading={fullExport.loading}
         onConfirmDownload={async () => {
           const ok = await handleGenerateFullDeck();
