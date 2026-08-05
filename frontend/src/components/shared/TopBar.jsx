@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { IconLayers, IconSun, IconMoon } from "./icons";
+import { IconSun, IconMoon } from "./icons";
+import { ASSETS } from "../../assets/pptxAssets";
 
 const DRAG_THRESHOLD = 6; // px - bunun altindaki hareket "tiklama" sayilir
 const COLLAPSE_THRESHOLD = 14; // px - yukari/asagi bu kadar cekilince acilir/kapanir
@@ -51,11 +52,15 @@ export default function TopBar({ actions, theme, onToggleTheme, excelFileName, p
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <div
             style={{
-              width: 40, height: 40, borderRadius: 10, flex: "none",
-              background: "rgba(255,255,255,.14)", display: "flex", alignItems: "center", justifyContent: "center",
+              width: 104, height: 40, borderRadius: 10, flex: "none",
+              background: "rgba(255,255,255,.14)", overflow: "hidden",
             }}
           >
-            <IconLayers style={{ width: 22, height: 22, color: "#fff" }} />
+            <img
+              src={ASSETS.logo_b}
+              alt="Aksa"
+              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+            />
           </div>
           <div>
             <h1>Sprint &amp; Dashboard Üretici</h1>
