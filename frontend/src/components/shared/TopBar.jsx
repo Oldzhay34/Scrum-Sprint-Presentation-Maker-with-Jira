@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { IconSun, IconMoon } from "./icons";
 import { ASSETS } from "../../assets/pptxAssets";
 
@@ -9,11 +10,13 @@ const COLLAPSE_THRESHOLD = 14; // px - yukari/asagi bu kadar cekilince acilir/ka
  * Ust bar: Aksa markasina uygun logo/ikon, moda gore degisen eylem butonlari
  * (actions slot), artı acik/koyu tema anahtari. Alt kenardaki tutamactan
  * yukari cekilince (veya tutamaca tiklaninca) daralir/kapanir, asagi
- * cekilince tekrar acilir.
+ * cekilince tekrar acilir. Profil rozeti metin tasimaz, tiklaninca dogrudan
+ * /profile sayfasina gotururu (orada kullanici bilgileri ve cikis yap yer alir).
  */
 export default function TopBar({ actions, theme, onToggleTheme, excelFileName, personnel }) {
   const [collapsed, setCollapsed] = useState(false);
   const dragState = useRef(null); // { startY, moved }
+  const navigate = useNavigate();
 
   useEffect(() => {
     const onMove = (e) => {
@@ -76,16 +79,15 @@ export default function TopBar({ actions, theme, onToggleTheme, excelFileName, p
         )}
         {actions}
         {personnel && (
-          <span
-            className="personnel-chip"
-            title={[personnel.company, personnel.department, personnel.ExtensionAttribute4].filter(Boolean).join(" · ")}
+          <button
+            type="button"
+            className="personnel-avatar-btn"
+            title="Profilim"
+            aria-label="Profilim"
+            onClick={() => navigate("/profile")}
           >
-            <span className="personnel-chip-avatar" aria-hidden="true">👤</span>
-            <span className="personnel-chip-text">
-              <strong>{personnel.title || personnel.ExtensionAttribute4 || "Kullanıcı"}</strong>
-              {personnel.department && <span className="personnel-chip-sub">{personnel.department}</span>}
-            </span>
-          </span>
+            👤
+          </button>
         )}
         <button
           type="button"

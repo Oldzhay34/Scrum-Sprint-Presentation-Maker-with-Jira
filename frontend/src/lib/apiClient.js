@@ -1,17 +1,43 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
 
 /**
- * Giris (sicil/sifre) endpoint'ini cagirir. API imzasi (yol/alan adlari) baska
- * bir gelistirici tarafindan tasarlaniyor - burada varsayilan olarak
- * POST /api/auth/login {sicil, password} ve yanitta company/department/title/
- * ExtensionAttribute4/6/8 alanlari beklenir (paylasilan ornek alan adlariyla
- * birebir). Gercek yol/alanlar netlesince sadece bu fonksiyonu guncellemek yeterli.
+ * Auth cookie'leri (access_token/refresh_token) httpOnly oldugu icin JS'ten
+ * okunamaz - backend'in Set-Cookie ile yazdigi cookie'ler "credentials: include"
+ * ile otomatik gonderilir/alinir. XSRF-TOKEN cookie'si ise bilerek httpOnly
+ * DEGIL: CSRF korumasi icin degerini okuyup X-CSRF-Token header'ina yansitiyoruz
+ * (double-submit deseni, bkz. backend CsrfCookieFilter).
+ */
+function readCookie(name) {
+  const match = document.cookie.match(new RegExp("(?:^|; )" + name + "=([^;]*)"));
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
+function csrfHeaders() {
+  const token = readCookie("XSRF-TOKEN");
+  return token ? { "X-CSRF-Token": token } : {};
+}
+
+async function parseErrorBody(response, fallbackMessage) {
+  let body = null;
+  try {
+    body = await response.json();
+  } catch {
+    // gövde JSON değilse yut
+  }
+  throw body || { status: response.status, message: fallbackMessage };
+}
+
+/**
+ * Giris (sicil/sifre) endpoint'ini cagirir. Basarili girişte backend
+ * access_token/refresh_token/XSRF-TOKEN cookie'lerini Set-Cookie ile yazar,
+ * govdede {sicil, fullName, role, teamId} doner.
  */
 export async function login(sicil, password) {
   let response;
   try {
     response = await fetch(`${API_BASE_URL}/api/auth/login`, {
       method: "POST",
+      credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ sicil, password }),
     });
@@ -20,16 +46,44 @@ export async function login(sicil, password) {
   }
 
   if (!response.ok) {
-    let body = null;
-    try {
-      body = await response.json();
-    } catch {
-      // gövde JSON değilse yut
-    }
-    throw body || { status: response.status, message: response.status === 401 ? "Sicil no veya şifre hatalı." : "Sunucu hatası (HTTP " + response.status + ")" };
+    await parseErrorBody(response, response.status === 401 ? "Sicil no veya şifre hatalı." : "Sunucu hatası (HTTP " + response.status + ")");
   }
 
   return response.json();
+}
+
+/**
+ * Sayfa yenilendiğinde mevcut oturumu (access_token cookie geçerliyse)
+ * geri kurmak için kullanılır. Oturum yoksa/geçersizse null döner (hata
+ * fırlatmaz - bu durum LoginPage'e düşmek için normal bir akış).
+ */
+export async function fetchCurrentUser() {
+  const response = await fetch(`${API_BASE_URL}/api/auth/me`, { credentials: "include" });
+  if (!response.ok) return null;
+  return response.json();
+}
+
+/**
+ * Profil sayfasindaki "Profil Bilgileri" butonu tiklandiginda cagirilir.
+ * AD/personel servisiyle birebir ayni alan adlarini (company/department/
+ * title/ExtensionAttribute4/6/8) tasiyan, salt-okunur genisletilmis bilgiyi
+ * doner - /api/auth/me'nin hafif govdesinden farkli olarak burada tek seferlik,
+ * istege bagli cekilir.
+ */
+export async function fetchUserProfile() {
+  const response = await fetch(`${API_BASE_URL}/api/auth/profile`, { credentials: "include" });
+  if (!response.ok) {
+    await parseErrorBody(response, "Profil bilgileri alınamadı (HTTP " + response.status + ")");
+  }
+  return response.json();
+}
+
+export async function logout() {
+  await fetch(`${API_BASE_URL}/api/auth/logout`, {
+    method: "POST",
+    credentials: "include",
+    headers: csrfHeaders(),
+  });
 }
 
 /**
@@ -44,7 +98,8 @@ export async function computeStatelessDashboard(request) {
   try {
     response = await fetch(`${API_BASE_URL}/api/capacity-dashboard/compute`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      headers: { "Content-Type": "application/json", ...csrfHeaders() },
       body: JSON.stringify(request),
     });
   } catch (networkErr) {
@@ -76,6 +131,8 @@ export async function uploadCoverImage(file) {
 
   const response = await fetch(`${API_BASE_URL}/api/assets/cover-image`, {
     method: "POST",
+    credentials: "include",
+    headers: csrfHeaders(),
     body: form,
   });
 
