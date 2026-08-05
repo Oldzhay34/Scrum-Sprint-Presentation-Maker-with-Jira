@@ -18,9 +18,13 @@ import java.util.stream.Stream;
  * adaptoru konulmasi yeterli - cagiran kod (AuthService) degismez.
  *
  * Mock kimlik bilgileri:
- *  - admin / admin123  (ADMIN, teamId yok)
+ *  - admin / admin123  (ADMIN, teamId yok, tum takimlari duzenleyebilir)
  *  - 10001 / po123     (PO, teamId=1, department="RPA Ekibi")
  *  - 10002 / po123     (PO, teamId=2, department="İş Zekası Ekibi")
+ *
+ * department degerleri bilerek "rpa"/"zeka" iceriyor - frontend'deki
+ * resolveTeamTypeFromDepartment ve backend'deki TeamType.fromDepartmentName
+ * ile ayni "isim icinde arama" mantigina gore takim tipini dogru cozumlesin.
  */
 @Component
 public class MockUserRepositoryAdapter implements UserRepositoryPort {

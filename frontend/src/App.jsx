@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import "./styles/app.css";
 import "./styles/theme.css";
 
-import { fetchCurrentUser, fetchUserProfile, logout } from "./lib/apiClient";
+import { fetchCurrentUser, fetchUserProfile, fetchPresentation, logout, savePresentation } from "./lib/apiClient";
 import LoginPage from "./components/shared/LoginPage";
 import ProfilePage from "./components/shared/ProfilePage";
+import AdminHomePage from "./components/shared/AdminHomePage";
+import PresentationsPage from "./components/shared/PresentationsPage";
 import TopBar from "./components/shared/TopBar";
 import ZoomModal from "./components/shared/ZoomModal";
 import ExportPreviewModal from "./components/shared/ExportPreviewModal";
@@ -38,7 +40,7 @@ import { useCoverImage } from "./hooks/useCoverImage";
 import { sectionDefs } from "./lib/geometry";
 import { buildFullDeck } from "./lib/fullDeckBuilder";
 import { ASSETS } from "./assets/pptxAssets";
-import { resolveTeamTypeFromDepartment } from "./lib/teamTypes";
+import { hasFteTracking, resolveIsAdmin, resolveTeamTypeFromDepartment } from "./lib/teamTypes";
 
 // ZoomModal ("⤢ Preview") ve ExportPreviewModal ("PPTX İndir" oncesi onizleme)
 // AYNI 3 sekmeyi kullanir - tek yerden tanimlanir.
@@ -87,6 +89,8 @@ export default function App() {
 
   if (!sessionChecked) return null;
 
+  const isAdmin = resolveIsAdmin(personnel);
+
   return (
     <BrowserRouter>
       <Routes>
@@ -101,12 +105,42 @@ export default function App() {
           }
         />
         <Route
-          path="/"
+          path="/admin"
+          element={
+            personnel && isAdmin ? (
+              <AdminHomePage personnel={personnel} theme={theme} onToggleTheme={toggleTheme} />
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
+        />
+        <Route
+          path="/presentations"
           element={
             personnel ? (
-              <MainApp theme={theme} toggleTheme={toggleTheme} personnel={personnel} />
+              <PresentationsPage personnel={personnel} theme={theme} onToggleTheme={toggleTheme} />
             ) : (
+              <Navigate to="/" replace />
+            )
+          }
+        />
+        <Route
+          path="/editor/new"
+          element={personnel ? <EditorForNew theme={theme} toggleTheme={toggleTheme} personnel={personnel} /> : <Navigate to="/" replace />}
+        />
+        <Route
+          path="/editor/:id"
+          element={personnel ? <EditorForExisting theme={theme} toggleTheme={toggleTheme} personnel={personnel} /> : <Navigate to="/" replace />}
+        />
+        <Route
+          path="/"
+          element={
+            !personnel ? (
               <LoginPage onLogin={setPersonnel} theme={theme} onToggleTheme={toggleTheme} />
+            ) : isAdmin ? (
+              <Navigate to="/admin" replace />
+            ) : (
+              <MainApp theme={theme} toggleTheme={toggleTheme} personnel={personnel} />
             )
           }
         />
@@ -116,9 +150,26 @@ export default function App() {
   );
 }
 
-function MainApp({ theme, toggleTheme, personnel }) {
+/** `/editor/:id` - var olan bir sunumu yukleyip duzenlemeye acar. */
+function EditorForExisting({ theme, toggleTheme, personnel }) {
+  const { id } = useParams();
+  return <MainApp theme={theme} toggleTheme={toggleTheme} personnel={personnel} presentationId={Number(id)} />;
+}
+
+/** `/editor/new?teamId=X` - admin'in "Yeni Sunum" ile actigi bos sihirbaz. */
+function EditorForNew({ theme, toggleTheme, personnel }) {
+  const [params] = useSearchParams();
+  const teamId = params.get("teamId");
+  return <MainApp theme={theme} toggleTheme={toggleTheme} personnel={personnel} newForTeamId={teamId ? Number(teamId) : null} />;
+}
+
+function MainApp({ theme, toggleTheme, personnel, presentationId, newForTeamId }) {
   // "mode/step" ayni degisken: hem ust nav hem sihirbaz adimi olarak kullanilir.
   const [mode, setMode] = useState("cover");
+  const navigate = useNavigate();
+  // PPTX ciktisinin acik/koyu temasi - varsayilan olarak uygulama temasiyla
+  // baslar, ama kullanici site uzerinden bagimsiz secebilir (yonetici istegi).
+  const [pptxTheme, setPptxTheme] = useState(theme);
 
   // Login yanitindaki (bkz. LoginPage.jsx/apiClient.fetchCurrentUser -
   // su an {sicil, fullName, role, teamId} doner) "role" alanindan admin
@@ -132,13 +183,8 @@ function MainApp({ theme, toggleTheme, personnel }) {
   // herkesi salt-okunura dusurmek yanlis olur.
   const currentUser = useMemo(() => {
     if (!personnel) return { teamType: null, admin: true, department: null };
-    const department = personnel.department;
-    const roles = personnel.roles ?? personnel.role ?? [];
-    const admin = Array.isArray(roles)
-      ? roles.includes("ADMIN")
-      : String(roles || "").toUpperCase().includes("ADMIN");
-    const teamType = department ? resolveTeamTypeFromDepartment(department) : null;
-    return { teamType, admin, department: department ?? null };
+    const department = personnel.department || "";
+    return { teamType: resolveTeamTypeFromDepartment(department), admin: resolveIsAdmin(personnel), department };
   }, [personnel]);
 
   // ---- Kapak (1. adim) durumu ----
@@ -166,7 +212,74 @@ function MainApp({ theme, toggleTheme, personnel }) {
   const [dashSource, setDashSource] = useState("excel");
   const dashboard = useDashboardData(sprintForm.team, sprintForm.setTeam, sprintForm.sprint, sprintForm.setSprint, sprintForm.teamType);
   const manual = useManualDashboard(sprintForm.team, sprintForm.setTeam, sprintForm.sprint, sprintForm.setSprint, sprintForm.teamType);
-  const activeDashData = dashSource === "manual" ? manual.dashData : dashboard.dashData;
+  // loadedDashData: /editor/:id ile acilan kayitli bir sunumun son kaydedilen
+  // dashboard KPI'lari - kullanici bu oturumda Excel yuklemedigi/manuel
+  // girmedigi surece onizleme/export bunu kullanir (asagidaki hidrasyon
+  // effect'i doldurur). Yeni Excel yuklenir yuklenmez dashboard.dashData
+  // devreye girip bunun onune gecer.
+  const [loadedDashData, setLoadedDashData] = useState(null);
+  const activeDashData = dashSource === "manual" ? manual.dashData : (dashboard.dashData || loadedDashData);
+
+  // ---- Kayitli sunum yukleme (/editor/:id) + kaydetme hedefi ----
+  // Ham state'i birebir yansitan "content" sekli (bkz. plan dokumani) hem
+  // hidrasyonda hem kaydetmede kullanilir - simetrik olmasi, kaydet->yukle
+  // dongusunun kayipsiz calismasini saglar.
+  const [presentationMeta, setPresentationMeta] = useState(null);
+  const [loadError, setLoadError] = useState(null);
+  const [saveStatus, setSaveStatus] = useState({ loading: false, error: null });
+  const saveTeamId = presentationMeta?.teamId ?? newForTeamId ?? personnel?.teamId ?? null;
+
+  useEffect(() => {
+    if (!presentationId) return;
+    setLoadError(null);
+    fetchPresentation(presentationId)
+      .then((p) => {
+        const c = p.content || {};
+        if (c.teamType) sprintForm.setTeamType(c.teamType);
+        if (c.sprint) sprintForm.setSprint(c.sprint);
+        if (c.range) sprintForm.setRange(c.range);
+        if (c.sections) {
+          Object.entries(c.sections).forEach(([key, text]) => sprintForm.setSectionText(key, text || ""));
+        }
+        if (c.band?.bars?.length) band.setSample(c.band.bars);
+        if (c.band && c.band.show === false) band.toggleShow(false);
+        if (c.dashSource) setDashSource(c.dashSource);
+        if (c.dashData) setLoadedDashData(c.dashData);
+        setPresentationMeta({ id: p.id, teamId: p.teamId, sprintNo: p.sprintNo, currentVersion: p.currentVersion });
+      })
+      .catch((err) => setLoadError(err?.message || "Sunum yüklenemedi."));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [presentationId]);
+
+  const handleSave = async () => {
+    if (!saveTeamId) {
+      setWizardAlert("Kaydetmek için bir takım belirlenemedi.");
+      return;
+    }
+    if (!sprintForm.sprint.trim()) {
+      setWizardAlert("Kaydetmek için Sprint No boş bırakılamaz.");
+      return;
+    }
+    setSaveStatus({ loading: true, error: null });
+    try {
+      const content = {
+        teamType: sprintForm.teamType,
+        sprint: sprintForm.sprint,
+        range: sprintForm.range,
+        sections: sprintForm.sections,
+        band: { show: band.show, bars: band.bars },
+        dashSource,
+        dashData: activeDashData,
+      };
+      const saved = await savePresentation({
+        teamId: saveTeamId, sprintNo: sprintForm.sprint, dateRange: sprintForm.range, content,
+      });
+      setPresentationMeta({ id: saved.id, teamId: saved.teamId, sprintNo: saved.sprintNo, currentVersion: saved.currentVersion });
+      setSaveStatus({ loading: false, error: null });
+    } catch (err) {
+      setSaveStatus({ loading: false, error: err?.message || "Kaydedilemedi." });
+    }
+  };
 
   // Kapak + icerik + kapasite dashboard'u TEK pptx olarak indiren, sihirbazin
   // her adimindan erisilebilen ortak export (bkz. buildFullDeck).
@@ -229,7 +342,7 @@ function MainApp({ theme, toggleTheme, personnel }) {
         );
       }
       const data = { ...sprintForm.data, showBand: band.show, targets: band.bars };
-      const pptx = buildFullDeck(data, activeDashData, assets);
+      const pptx = buildFullDeck(data, activeDashData, assets, pptxTheme);
       const sp = (sprintForm.sprint.trim() || "X").replace(/[^\w]/g, "");
       await pptx.writeFile({ fileName: `Sprint_Kapasite_${sp}.pptx` });
     });
@@ -259,18 +372,46 @@ function MainApp({ theme, toggleTheme, personnel }) {
               onExcelFile={handleExcelFile}
               excelLoading={excel.loading}
               onGenerate={() => setExportPreviewOpen(true)}
+              generating={fullExport.loading}
+              onSave={canEdit ? handleSave : null}
+              saving={saveStatus.loading}
+              pptxTheme={pptxTheme}
+              onPptxThemeChange={setPptxTheme}
             />
           ) : (
             <DashboardTopActions
               onExcelFile={handleExcelFile}
               excelLoading={dashboard.loading}
               onGenerate={() => setExportPreviewOpen(true)}
+              generating={fullExport.loading}
+              onSave={canEdit ? handleSave : null}
+              saving={saveStatus.loading}
+              pptxTheme={pptxTheme}
+              onPptxThemeChange={setPptxTheme}
             />
           )
         }
       />
 
-      <ErrorBanner error={fullExport.error} onDismiss={() => fullExport.setError(null)} />
+      {(presentationId || newForTeamId) && (
+        <button type="button" className="btn soft" style={{ margin: "12px 22px 0" }} onClick={() => navigate(-1)}>
+          ← Geri
+        </button>
+      )}
+
+      <ErrorBanner
+        error={fullExport.error || loadError || saveStatus.error}
+        onDismiss={() => {
+          fullExport.setError(null);
+          setLoadError(null);
+          setSaveStatus((s) => ({ ...s, error: null }));
+        }}
+      />
+      {presentationMeta && !saveStatus.error && (
+        <div style={{ margin: "0 22px 10px", fontSize: 12.5, color: "var(--mut)" }}>
+          ✓ Kaydedildi (v{presentationMeta.currentVersion})
+        </div>
+      )}
 
       <WizardSteps step={mode} onStepChange={changeMode} />
 

@@ -19,14 +19,22 @@ export function addCoverSlide(pptx, data, assets) {
   return s1;
 }
 
+// Onizlemedeki koyu tema paleti (bkz. theme.css .theme-dark .slidecanvas.tab-content)
+// ile birebir ayni degerler - "PPTX koyu temada da onizlemeyle eslessin" istegi.
+const CONTENT_PALETTE = {
+  light: { PAGE_BG: "FFFFFF", CARD_BG: "FFFFFF", HEADER: "164E63", CARD_LINE: "E5E7EB", TXT_BOLD: "1F2937", TXT_NORMAL: "374151" },
+  dark: { PAGE_BG: "131C27", CARD_BG: "1C2733", HEADER: "4A9FE0", CARD_LINE: "3A4756", TXT_BOLD: "E7EDF5", TXT_NORMAL: "B7C4D3" },
+};
+
 /** Icerik slaydini verilen pptx'e ekler - buildFullDeck tarafindan kullanilir. */
-export function addContentSlide(pptx, data, assets) {
-  const TEAL = "164E63", ORANGE = "E67514", INK = "1F2937", LINE = "E5E7EB";
+export function addContentSlide(pptx, data, assets, theme = "light") {
+  const P = CONTENT_PALETTE[theme] || CONTENT_PALETTE.light;
+  const TEAL = "164E63", ORANGE = "E67514";
   const SEC = sectionDefs(assets);
 
   const s2 = pptx.addSlide();
-  s2.background = { color: "FFFFFF" };
-  s2.addText(data.subtitle, { x: 0.4, y: 0.24, w: 9.8, h: 0.6, fontFace: "Calibri", fontSize: 25, bold: true, color: TEAL, margin: 0, valign: "middle" });
+  s2.background = { color: P.PAGE_BG };
+  s2.addText(data.subtitle, { x: 0.4, y: 0.24, w: 9.8, h: 0.6, fontFace: "Calibri", fontSize: 25, bold: true, color: P.HEADER, margin: 0, valign: "middle" });
   // Onizlemedeki .s-logos (right:24px, top:14px, flex row, img height:34px) ile
   // birebir ayni konumlandirma - bkz. geometry.js/logoPositions.
   const contentLogos = logoPositions({ rightEdge: 13.195, top: 0.147, height: 0.357, gap: 0.084 });
@@ -81,7 +89,7 @@ export function addContentSlide(pptx, data, assets) {
   const { sections, fsByKey, topH, botH } = fitContent(data, CARDS_TOP);
 
   function drawCard(x, y, items, sec, fs2, h) {
-    s2.addShape(pptx.ShapeType.roundRect, { x, y, w: G.COL_W, h, rectRadius: 0.06, fill: { color: "FFFFFF" }, line: { color: LINE, width: 1 }, shadow: { type: "outer", color: "9CA3AF", blur: 6, offset: 2, angle: 90, opacity: 0.28 } });
+    s2.addShape(pptx.ShapeType.roundRect, { x, y, w: G.COL_W, h, rectRadius: 0.06, fill: { color: P.CARD_BG }, line: { color: P.CARD_LINE, width: 1 }, shadow: { type: "outer", color: "9CA3AF", blur: 6, offset: 2, angle: 90, opacity: 0.28 } });
     s2.addShape(pptx.ShapeType.roundRect, { x: x + 0.07, y: y + 0.12, w: 0.075, h: h - 0.24, rectRadius: 0.04, fill: { color: sec.accent }, line: { type: "none" } });
     s2.addImage({ data: sec.icon, x: x + G.ACC_ZONE, y: y + G.PAD_T + 0.02, w: G.ICON, h: G.ICON });
     s2.addText(sec.title, { x: x + G.ACC_ZONE + G.ICON + 0.12, y: y + G.PAD_T, w: G.COL_W - G.ACC_ZONE - G.ICON - 0.3, h: G.TITLE_H - 0.06, fontFace: "Calibri", fontSize: 14.5, bold: true, color: sec.accent, valign: "middle", margin: 0 });
@@ -92,7 +100,7 @@ export function addContentSlide(pptx, data, assets) {
           const comment = rawComment.trim();
           const { priority, text } = extractPriority(withoutComment);
           const bulletColor = priority ? PRIORITY_COLORS[priority] : PRIORITY_UNSET_COLOR;
-          const mainRuns = parseRuns(text).map((r) => ({ text: r.text, options: { bold: r.bold, color: r.bold ? INK : "374151" } }));
+          const mainRuns = parseRuns(text).map((r) => ({ text: r.text, options: { bold: r.bold, color: r.bold ? P.TXT_BOLD : P.TXT_NORMAL } }));
           if (priority) {
             // Onceki surumde oncelik SADECE maddenin basindaki isaretin (bullet)
             // rengiyle gosteriliyordu - pptxgenjs/PowerPoint'te ozel bullet rengi
@@ -133,7 +141,7 @@ export function addContentSlide(pptx, data, assets) {
         .flat();
       s2.addText(runs, {
         x: x + G.ACC_ZONE, y: y + G.PAD_T + G.TITLE_H, w: G.COL_W - G.ACC_ZONE - G.PAD_R, h: h - G.PAD_T - G.TITLE_H - G.PAD_B + 0.05,
-        fontFace: "Calibri", fontSize: fs2, color: "374151", valign: "top", margin: 0, lineSpacingMultiple: 1.0,
+        fontFace: "Calibri", fontSize: fs2, color: P.TXT_NORMAL, valign: "top", margin: 0, lineSpacingMultiple: 1.0,
         // Onizlemedeki (geometry.js/fitContent) font hesabi bir TAHMIN (karakter/
         // satir yaklasimidir) - gercek PowerPoint metin sarma davranisiyla birebir
         // eslesmeyebilir. fit:"shrink", PowerPoint'in kendi autofit motorunu devreye

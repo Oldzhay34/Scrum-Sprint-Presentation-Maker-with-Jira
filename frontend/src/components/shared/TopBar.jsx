@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { IconSun, IconMoon } from "./icons";
+import { IconSun, IconMoon, IconPresentation } from "./icons";
 import { ASSETS } from "../../assets/pptxAssets";
+import { resolveIsAdmin } from "../../lib/teamTypes";
 
 const DRAG_THRESHOLD = 6; // px - bunun altindaki hareket "tiklama" sayilir
 const COLLAPSE_THRESHOLD = 14; // px - yukari/asagi bu kadar cekilince acilir/kapanir
@@ -78,6 +79,12 @@ export default function TopBar({ actions, theme, onToggleTheme, excelFileName, p
           </span>
         )}
         {actions}
+        {personnel && !resolveIsAdmin(personnel) && (
+          <button type="button" className="btn ghost" onClick={() => navigate("/presentations")}>
+            <IconPresentation className="navbar-icon" />
+            Sunumlarım
+          </button>
+        )}
         {personnel && (
           <button
             type="button"

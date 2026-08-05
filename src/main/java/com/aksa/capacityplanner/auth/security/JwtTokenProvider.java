@@ -26,6 +26,7 @@ public class JwtTokenProvider {
     private static final String CLAIM_ROLE = "role";
     private static final String CLAIM_TEAM_ID = "teamId";
     private static final String CLAIM_FULL_NAME = "fullName";
+    private static final String CLAIM_DEPARTMENT = "department";
 
     private final SecretKey key;
     private final JwtProperties properties;
@@ -41,6 +42,7 @@ public class JwtTokenProvider {
                 .subject(user.getSicil())
                 .claim(CLAIM_ROLE, user.getRole().name())
                 .claim(CLAIM_FULL_NAME, user.getFullName())
+                .claim(CLAIM_DEPARTMENT, user.getDepartment())
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(now.plusSeconds(properties.getAccessTokenTtlMinutes() * 60)));
         if (user.getTeamId() != null) {
@@ -59,14 +61,15 @@ public class JwtTokenProvider {
             String sicil = claims.getSubject();
             Role role = Role.valueOf(claims.get(CLAIM_ROLE, String.class));
             String fullName = claims.get(CLAIM_FULL_NAME, String.class);
+            String department = claims.get(CLAIM_DEPARTMENT, String.class);
             Number teamIdNumber = claims.get(CLAIM_TEAM_ID, Number.class);
             Long teamId = teamIdNumber != null ? teamIdNumber.longValue() : null;
-            return Optional.of(new AccessTokenClaims(sicil, fullName, role, teamId));
+            return Optional.of(new AccessTokenClaims(sicil, fullName, role, teamId, department));
         } catch (JwtException | IllegalArgumentException e) {
             return Optional.empty();
         }
     }
 
-    public record AccessTokenClaims(String sicil, String fullName, Role role, Long teamId) {
+    public record AccessTokenClaims(String sicil, String fullName, Role role, Long teamId, String department) {
     }
 }

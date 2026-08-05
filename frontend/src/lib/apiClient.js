@@ -120,6 +120,67 @@ export async function computeStatelessDashboard(request) {
 }
 
 /**
+ * Auth/CSRF header'larini ekleyip JSON gövdeli bir istek atan ortak yardimci -
+ * team/presentation endpoint'lerinin hepsi ayni desende (credentials+CSRF+hata
+ * normalize etme) oldugu icin tekrarlanmiyor.
+ */
+async function requestJson(path, options = {}) {
+  let response;
+  try {
+    response = await fetch(`${API_BASE_URL}${path}`, {
+      credentials: "include",
+      headers: { "Content-Type": "application/json", ...csrfHeaders(), ...(options.headers || {}) },
+      ...options,
+    });
+  } catch (networkErr) {
+    throw { message: "Backend'e ulaşılamadı. Sunucunun çalıştığından ve " + API_BASE_URL + " adresinden erişilebilir olduğundan emin olun." };
+  }
+
+  if (!response.ok) {
+    await parseErrorBody(response, "Sunucu hatası (HTTP " + response.status + ")");
+  }
+  if (response.status === 204) return null;
+  return response.json();
+}
+
+/** Takım seçici (admin split-screen sol panel) için mevcut takımları döner. */
+export async function fetchTeams() {
+  return requestJson("/api/teams");
+}
+
+/** Bir takıma ait kayıtlı sprint sunumlarının özet listesini döner. */
+export async function fetchPresentations(teamId) {
+  return requestJson(`/api/presentations?teamId=${teamId}`);
+}
+
+/** Tek bir sunumun tam içeriğini (editörü hidratlamak için) döner. */
+export async function fetchPresentation(id) {
+  return requestJson(`/api/presentations/${id}`);
+}
+
+/**
+ * Sunumu kaydeder - yoksa oluşturur (version=1), varsa yeni bir versiyon
+ * olarak günceller (bkz. backend PresentationService.upsert). Yetkisiz
+ * takıma yazma denemesi 403 fırlatır (backend PresentationFacade).
+ */
+export async function savePresentation({ teamId, sprintNo, dateRange, content }) {
+  return requestJson("/api/presentations", {
+    method: "PUT",
+    body: JSON.stringify({ teamId, sprintNo, dateRange, content }),
+  });
+}
+
+/** Bir sunumun versiyon (audit log) geçmişini döner. */
+export async function fetchPresentationVersions(id) {
+  return requestJson(`/api/presentations/${id}/versions`);
+}
+
+/** Belirtilen versiyonu YENİ bir versiyon olarak head'e geri kopyalar (geçmiş silinmez). */
+export async function rollbackPresentation(id, version) {
+  return requestJson(`/api/presentations/${id}/versions/${version}/rollback`, { method: "POST" });
+}
+
+/**
  * Kapak gorseli MinIO'ya yuklenir ve erisim URL'i geri doner. Tek kullanimlik
  * bir ozellik oldugu icin bu istek best-effort'tur - cagiran taraf (useCoverImage)
  * hata durumunda kullaniciyi engellemez, gorseli zaten kendi tarafinda (base64)

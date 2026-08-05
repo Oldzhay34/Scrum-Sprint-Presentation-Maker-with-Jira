@@ -67,7 +67,7 @@ public class AuthController {
         if (authentication == null || !(authentication.getDetails() instanceof JwtTokenProvider.AccessTokenClaims claims)) {
             return ResponseEntity.status(401).build();
         }
-        return ResponseEntity.ok(new UserResponse(claims.sicil(), claims.fullName(), claims.role(), claims.teamId()));
+        return ResponseEntity.ok(UserResponse.from(claims));
     }
 
     @GetMapping("/profile")

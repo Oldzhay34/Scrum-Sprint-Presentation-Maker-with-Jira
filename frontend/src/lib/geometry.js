@@ -115,19 +115,35 @@ const textW = G.COL_W - G.ACC_ZONE - G.PAD_R - 0.16;
 export const cplAt = (f) => Math.floor(textW / (f * 0.0086));
 export const lhAt = (f) => f * 0.0178 + 0.02;
 
-function stripMarkup(t) {
-  return String(t).replace(/\*\*/g, "").replace(/##(.+?)##/g, "");
+function stripPriorityTag(t) {
+  return String(t).replace(/##(.+?)##/g, "");
+}
+
+// Kalin ("**metin**") karakterler tarayicida (canvas measureText ile Segoe UI
+// 700 vs 400 icin olculdu, ~%7) ve PPTX ciktisinda (Calibri Bold, pptxgenjs
+// autoFit kullanmiyor) normalden daha genis yer kaplar. Bu agirlik
+// uygulanmazsa itemLineCount kalin metinlerde gercekte kirilacak satir
+// sayisini az tahmin eder, kart yuksekligi (cardH) buna gore az hesaplanir
+// ve son satir(lar) sabit yukseklikli karttan tasip alt karti kaydiriyormus
+// gibi gorunurdu (PPTX'te ise gercekten tasar, autoFit yok).
+const BOLD_WIDTH_FACTOR = 1.08;
+
+function weightedLen(t) {
+  return parseRuns(stripPriorityTag(t)).reduce(
+    (sum, run) => sum + run.text.length * (run.bold ? BOLD_WIDTH_FACTOR : 1),
+    0
+  );
 }
 
 export function plainLen(t) {
   const { text } = extractComment(t);
-  return stripMarkup(text).length;
+  return weightedLen(text);
 }
 
 /** Bir maddenin (yorum dahil) kac satir yer kaplayacagini tahmin eder - bkz. bulletsBlockH. */
 export function itemLineCount(t, cpl) {
   const { text, comment } = extractComment(t);
-  let L = Math.max(1, Math.ceil((stripMarkup(text).length || 1) / cpl));
+  let L = Math.max(1, Math.ceil((weightedLen(text) || 1) / cpl));
   if (comment) {
     L += Math.max(1, Math.ceil((comment.length || 1) / cpl));
   }

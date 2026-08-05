@@ -6,6 +6,11 @@
 export const TEAM_TYPES = [
   { value: "RPA", label: "RPA Ekibi", hasFte: true },
   { value: "IS_ZEKASI", label: "İş Zekası Ekibi", hasFte: false },
+  { value: "URUN_GELISTIRME", label: "Ürün Geliştirme Ekibi", hasFte: false },
+  { value: "YAPAY_ZEKA", label: "Yapay Zeka Ekibi", hasFte: false },
+  { value: "DIJITAL_UYGULAMALAR", label: "Dijital Uygulamalar Ekibi", hasFte: false },
+  { value: "KONUM_TABANLI_URUN_GELISTIRME", label: "Konum Tabanlı Ürün Geliştirme Ekibi", hasFte: false },
+  { value: "DSYS", label: "Doküman ve Süreç Yönetim Sistemi Ekibi", hasFte: false },
   { value: "GENEL", label: "Diğer / Genel", hasFte: false },
 ];
 
@@ -26,7 +31,20 @@ export function teamTypeLabel(teamType) {
  */
 export function resolveTeamTypeFromDepartment(department) {
   const d = String(department || "").toLocaleLowerCase("tr");
-  if (d.includes("zeka")) return "IS_ZEKASI";
   if (d.includes("rpa")) return "RPA";
+  if (d.includes("yapay")) return "YAPAY_ZEKA";
+  if (d.includes("zeka")) return "IS_ZEKASI";
+  if (d.includes("konum")) return "KONUM_TABANLI_URUN_GELISTIRME";
+  if (d.includes("ürün") || d.includes("urun")) return "URUN_GELISTIRME";
+  if (d.includes("dijital")) return "DIJITAL_UYGULAMALAR";
+  if (d.includes("doküman") || d.includes("dokuman") || d.includes("süreç yönetim") || d.includes("dsys")) return "DSYS";
   return "GENEL";
+}
+
+/** Login yanitindaki personnel.roles (dizi ya da string) icinde ADMIN var mi kontrol eder. */
+export function resolveIsAdmin(personnel) {
+  const roles = personnel?.roles || [];
+  return Array.isArray(roles)
+    ? roles.includes("ADMIN")
+    : String(roles || "").toUpperCase().includes("ADMIN");
 }
