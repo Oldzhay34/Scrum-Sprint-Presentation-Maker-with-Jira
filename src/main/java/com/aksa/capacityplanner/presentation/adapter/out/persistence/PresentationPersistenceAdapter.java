@@ -11,9 +11,12 @@ import java.util.Optional;
 public class PresentationPersistenceAdapter implements PresentationRepositoryPort {
 
     private final SprintPresentationJpaRepository jpaRepository;
+    private final SprintPresentationReadOnlyJpaRepository readOnlyJpaRepository;
 
-    public PresentationPersistenceAdapter(SprintPresentationJpaRepository jpaRepository) {
+    public PresentationPersistenceAdapter(SprintPresentationJpaRepository jpaRepository,
+                                           SprintPresentationReadOnlyJpaRepository readOnlyJpaRepository) {
         this.jpaRepository = jpaRepository;
+        this.readOnlyJpaRepository = readOnlyJpaRepository;
     }
 
     @Override
@@ -38,6 +41,22 @@ public class PresentationPersistenceAdapter implements PresentationRepositoryPor
     @Override
     public List<SprintPresentation> findByTeamId(Long teamId) {
         return jpaRepository.findByTeamId(teamId).stream().map(this::toDomain).toList();
+    }
+
+    @Override
+    public Optional<SprintPresentation> findByIdReadOnly(Long id) {
+        return readOnlyJpaRepository.findById(id).map(this::toDomain);
+    }
+
+    @Override
+    public List<SprintPresentation> findByTeamIdReadOnly(Long teamId) {
+        return readOnlyJpaRepository.findByTeamId(teamId).stream().map(this::toDomain).toList();
+    }
+
+    private SprintPresentation toDomain(SprintPresentationReadOnlyJpaEntity entity) {
+        return new SprintPresentation(entity.getId(), entity.getTeamId(), entity.getSprintNo(), entity.getDateRange(),
+                entity.getContent(), entity.getCurrentVersion(), entity.getUpdatedBy(),
+                entity.getCreatedAt(), entity.getUpdatedAt());
     }
 
     private SprintPresentationJpaEntity toEntity(SprintPresentation presentation) {

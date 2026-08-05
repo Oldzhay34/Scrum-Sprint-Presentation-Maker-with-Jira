@@ -37,6 +37,17 @@ public class PresentationService implements PresentationUseCase {
     }
 
     @Override
+    public List<SprintPresentation> listByTeamReadOnly(Long teamId) {
+        return presentationRepository.findByTeamIdReadOnly(teamId);
+    }
+
+    @Override
+    public SprintPresentation getByIdReadOnly(Long id) {
+        return presentationRepository.findByIdReadOnly(id)
+                .orElseThrow(() -> new NotFoundException("Sunum bulunamadi: id=" + id));
+    }
+
+    @Override
     @Transactional
     public SprintPresentation upsert(Long teamId, String sprintNo, String dateRange, Map<String, Object> content, String updatedBySicil) {
         SprintPresentation presentation = presentationRepository.findByTeamIdAndSprintNo(teamId, sprintNo)
