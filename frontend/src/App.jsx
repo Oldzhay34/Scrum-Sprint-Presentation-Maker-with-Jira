@@ -1,8 +1,11 @@
 import { useEffect, useState } from "react";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import "./styles/app.css";
 import "./styles/theme.css";
 
+import { fetchCurrentUser, logout } from "./lib/apiClient";
 import LoginPage from "./components/shared/LoginPage";
+import ProfilePage from "./components/shared/ProfilePage";
 import TopBar from "./components/shared/TopBar";
 import ZoomModal from "./components/shared/ZoomModal";
 import ErrorBanner from "./components/shared/ErrorBanner";
@@ -40,24 +43,60 @@ const SAMPLE_BAND_BARS = [
   { label: "FTE", segments: [{ value: "1.31", color: "green" }, { value: "24.39", color: "blue" }] },
 ];
 
-// GECICI: backend /api/auth/login hazir olana kadar login ekrani atlaniyor.
-// Endpoint hazir olunca bu satiri (ve asagidaki "|| SKIP_LOGIN" kosulunu) kaldir.
-const SKIP_LOGIN = true;
-
 /**
  * Giris durumunu yonetir - girmeden once sadece LoginPage, girince ana
  * uygulama (MainApp) render edilir. Iki farkli bilesen olarak ayrildi ki
  * hook sayisi/sirasi render'lar arasinda tutarli kalsin (Rules of Hooks) -
  * ayni bilesen icinde erken "return" ile kalan hook'lari atlamak gecersizdi.
+ *
+ * Sayfa yenilendiginde acilista /api/auth/me ile mevcut oturum (access_token
+ * cookie'si hala gecerliyse) geri kurulur - kullanici her yenilemede tekrar
+ * login olmak zorunda kalmaz.
  */
 export default function App() {
   const [personnel, setPersonnel] = useState(null);
+  const [sessionChecked, setSessionChecked] = useState(false);
   const { theme, toggleTheme } = useTheme();
 
-  if (!personnel && !SKIP_LOGIN) {
-    return <LoginPage onLogin={setPersonnel} theme={theme} onToggleTheme={toggleTheme} />;
-  }
-  return <MainApp theme={theme} toggleTheme={toggleTheme} personnel={personnel} />;
+  useEffect(() => {
+    fetchCurrentUser()
+      .then(setPersonnel)
+      .finally(() => setSessionChecked(true));
+  }, []);
+
+  const handleLogout = () => {
+    logout().finally(() => setPersonnel(null));
+  };
+
+  if (!sessionChecked) return null;
+
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route
+          path="/profile"
+          element={
+            personnel ? (
+              <ProfilePage personnel={personnel} theme={theme} onToggleTheme={toggleTheme} onLogout={handleLogout} />
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
+        />
+        <Route
+          path="/"
+          element={
+            personnel ? (
+              <MainApp theme={theme} toggleTheme={toggleTheme} personnel={personnel} />
+            ) : (
+              <LoginPage onLogin={setPersonnel} theme={theme} onToggleTheme={toggleTheme} />
+            )
+          }
+        />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </BrowserRouter>
+  );
 }
 
 function MainApp({ theme, toggleTheme, personnel }) {

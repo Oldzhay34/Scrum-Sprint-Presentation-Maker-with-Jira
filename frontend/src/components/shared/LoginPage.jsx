@@ -5,10 +5,9 @@ import { login } from "../../lib/apiClient";
 
 /**
  * Giris ekrani - sicil/sifre girilip backend'in /api/auth/login endpoint'ine
- * gonderilir (bkz. apiClient.login). API imzasini baska bir gelistirici
- * tasarliyor; yanitta company/department/title/ExtensionAttribute4/6/8
- * alanlari beklenir ve oldugu gibi onLogin(personnel) ile yukari tasinir.
- * Endpoint henuz hazir degilse istek hata verir, kullaniciya gosterilir.
+ * gonderilir (bkz. apiClient.login). Basarili girişte backend {sicil,
+ * fullName, role, teamId} doner ve auth cookie'lerini (httpOnly) Set-Cookie
+ * ile yazar; bu govde oldugu gibi onLogin(personnel) ile yukari tasinir.
  */
 export default function LoginPage({ onLogin, theme, onToggleTheme }) {
   const [sicil, setSicil] = useState("");

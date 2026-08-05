@@ -73,3 +73,23 @@ export function IconMoon(props) {
     </svg>
   );
 }
+
+export function IconIdCard(props) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
+      <rect x="2.5" y="5" width="19" height="14" rx="2.2" stroke="currentColor" strokeWidth="1.7" />
+      <circle cx="8.2" cy="11" r="2" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M5 15.5c.6-1.4 1.8-2.1 3.2-2.1s2.6.7 3.2 2.1" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M14.5 9.5h5M14.5 13h5M14.5 16h3.2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+export function IconLogout(props) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M16 17l5-5-5-5M21 12H9" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}

@@ -1079,6 +1079,7 @@ header.topbar .btn:hover {
   position: absolute;
   top: 20px;
   right: 20px;
+  z-index: 1;
   background: rgba(13, 94, 168, 0.12);
   border: 1px solid var(--glass-border);
   color: var(--aksa-blue);
@@ -1148,48 +1149,255 @@ header.topbar .btn:hover {
 }
 
 /* ---------------------------------------------------------------------- */
-/* Giris sonrasi personel bilgisi rozeti - ust bar, tema anahtarinin        */
-/* hemen solunda. Backend'den gelen unvan/departman gosterilir.            */
+/* Giris sonrasi profil rozeti - ust bar, tema anahtarinin hemen solunda.  */
+/* Metin tasimaz; tiklaninca /profile sayfasina gotururu.                 */
 /* ---------------------------------------------------------------------- */
-.personnel-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 5px 13px 5px 6px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  max-width: 200px;
-}
-.personnel-chip-avatar {
+.personnel-avatar-btn {
   flex: none;
-  width: 24px;
-  height: 24px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.22);
   background: linear-gradient(135deg, var(--aksa-green), var(--aksa-green-dark));
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 13px;
+  font-size: 16px;
+  cursor: pointer;
 }
-.personnel-chip-text {
+.personnel-avatar-btn:hover {
+  filter: brightness(1.08);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.14);
+}
+
+/* ---------------------------------------------------------------------- */
+/* Profil sayfasi (/profile) - avatar rozetine tiklaninca acilan, ayri     */
+/* route'ta yasayan premium sayfa. Sadece goruntuleme - hicbir alan        */
+/* duzenlenemez.                                                          */
+/* ---------------------------------------------------------------------- */
+.profile-page {
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
-  gap: 1px;
-  min-width: 0;
-  line-height: 1.15;
+  align-items: center;
+  justify-content: center;
+  gap: 22px;
+  padding: 24px;
+  background: var(--page-gradient);
+  position: relative;
+  overflow: hidden;
 }
-.personnel-chip-text strong {
-  font-size: 12px;
+.profile-page-bg {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  z-index: 0;
+  pointer-events: none;
+}
+.profile-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(70px);
+  opacity: 0.55;
+  will-change: transform;
+}
+.profile-blob-blue {
+  width: 480px;
+  height: 480px;
+  top: -140px;
+  left: -120px;
+  background: radial-gradient(circle at 30% 30%, var(--aksa-blue-light), var(--aksa-blue) 70%);
+  animation: profile-drift-a 22s ease-in-out infinite;
+}
+.profile-blob-green {
+  width: 420px;
+  height: 420px;
+  bottom: -160px;
+  right: -100px;
+  background: radial-gradient(circle at 40% 40%, var(--aksa-green), var(--aksa-green-dark) 70%);
+  animation: profile-drift-b 26s ease-in-out infinite;
+}
+.profile-blob-light {
+  width: 340px;
+  height: 340px;
+  top: 40%;
+  left: 55%;
+  background: radial-gradient(circle at 50% 50%, var(--aksa-blue-light), transparent 70%);
+  opacity: 0.35;
+  animation: profile-drift-c 30s ease-in-out infinite;
+}
+.theme-dark .profile-blob {
+  opacity: 0.4;
+}
+@keyframes profile-drift-a {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(60px, 40px) scale(1.08); }
+  66% { transform: translate(20px, 80px) scale(0.96); }
+}
+@keyframes profile-drift-b {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(-50px, -30px) scale(1.1); }
+  66% { transform: translate(-20px, -70px) scale(0.94); }
+}
+@keyframes profile-drift-c {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); }
+  50% { transform: translate(-50%, -50%) translate(-60px, 40px) scale(1.15); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .profile-blob {
+    animation: none;
+  }
+}
+.profile-back {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  z-index: 1;
+  background: var(--glass-bg);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--glass-border);
+  color: var(--ink);
+  border-radius: 999px;
+  padding: 9px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.profile-back:hover {
+  background: rgba(13, 94, 168, 0.12);
+}
+.profile-card {
+  width: min(460px, 100%);
+  position: relative;
+  z-index: 1;
+  background: var(--glass-bg);
+  backdrop-filter: blur(24px) saturate(150%);
+  -webkit-backdrop-filter: blur(24px) saturate(150%);
+  border: 1px solid var(--glass-border);
+  border-radius: 24px;
+  padding: 40px 34px 34px;
+  box-shadow: 0 28px 70px rgba(11, 31, 51, 0.28);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  animation: aksa-pop-in 0.3s cubic-bezier(0.2, 0.9, 0.3, 1.3);
+}
+.profile-avatar {
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30px;
+  font-weight: 700;
   color: #fff;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  background: linear-gradient(135deg, var(--aksa-blue), var(--aksa-green));
+  box-shadow: 0 0 0 6px rgba(74, 159, 224, 0.14), 0 12px 30px rgba(13, 94, 168, 0.35);
 }
-.personnel-chip-sub {
-  font-size: 10.5px;
-  color: rgba(255, 255, 255, 0.65);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.profile-name {
+  margin: 4px 0 0;
+  font-size: 21px;
+  font-weight: 800;
+  color: var(--ink);
+  text-align: center;
+}
+.profile-role-badge {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--aksa-blue);
+  background: rgba(13, 94, 168, 0.10);
+  border: 1px solid rgba(13, 94, 168, 0.18);
+  border-radius: 999px;
+  padding: 4px 14px;
+}
+.theme-dark .profile-role-badge {
+  color: var(--aksa-blue-light);
+  background: rgba(74, 159, 224, 0.14);
+  border-color: rgba(74, 159, 224, 0.3);
+}
+.profile-action-btn {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 11px 14px;
+  font-size: 13.5px;
+  margin-top: 20px;
+}
+.btn.profile-logout-btn {
+  /* .btn'in genel "background 0.15s ease" transition'ini burada iptal
+     ediyoruz - aksi halde tema degisince arka plan beyazdan koyuya 150ms
+     boyunca gorunur sekilde "solarak" geciyor ve kullaniciya an be an
+     yanlis (beyaz) renkte kalmis gibi goruntu veriyordu. */
+  transition: transform 0.15s ease, box-shadow 0.2s ease;
+  color: #b91c1c;
+  background: #fff;
+  border-color: rgba(185, 28, 28, 0.28);
+}
+.btn.profile-logout-btn:hover {
+  background: rgba(185, 28, 28, 0.08);
+}
+.theme-dark .btn.profile-logout-btn {
+  color: #fca5a5;
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(252, 165, 165, 0.28);
+}
+.theme-dark .btn.profile-logout-btn:hover {
+  background: rgba(252, 165, 165, 0.1);
+}
+.profile-details {
+  width: 100%;
+  margin-top: 18px;
+  border-top: 1px solid var(--line);
+  padding-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  animation: aksa-pop-in 0.22s ease;
+}
+.profile-detail-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: rgba(13, 94, 168, 0.04);
+}
+.theme-dark .profile-detail-row {
+  background: rgba(255, 255, 255, 0.04);
+}
+.profile-detail-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--mut);
+  flex: none;
+}
+.profile-detail-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+.profile-brand {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--mut);
+  opacity: 0.8;
+}
+.profile-loading {
+  font-size: 13px;
+  color: var(--mut);
+  padding: 6px 0;
 }
