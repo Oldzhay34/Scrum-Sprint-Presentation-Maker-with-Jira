@@ -42,7 +42,7 @@ const SAMPLE_BAND_BARS = [
 
 // GECICI: backend /api/auth/login hazir olana kadar login ekrani atlaniyor.
 // Endpoint hazir olunca bu satiri (ve asagidaki "|| SKIP_LOGIN" kosulunu) kaldir.
-const SKIP_LOGIN = true;
+const SKIP_LOGIN = false;
 
 /**
  * Giris durumunu yonetir - girmeden once sadece LoginPage, girince ana
