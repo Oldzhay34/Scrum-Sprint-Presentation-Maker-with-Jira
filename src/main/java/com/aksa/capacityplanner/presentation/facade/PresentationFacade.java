@@ -26,11 +26,11 @@ public class PresentationFacade {
     }
 
     public List<SprintPresentation> listByTeam(Long teamId) {
-        return presentationUseCase.listByTeam(teamId);
+        return presentationUseCase.listByTeamReadOnly(teamId);
     }
 
     public SprintPresentation getById(Long id) {
-        return presentationUseCase.getById(id);
+        return presentationUseCase.getByIdReadOnly(id);
     }
 
     public SprintPresentation upsert(Long teamId, String sprintNo, String dateRange, Map<String, Object> content,

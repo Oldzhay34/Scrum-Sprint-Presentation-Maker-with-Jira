@@ -12,6 +12,11 @@ import java.util.Locale;
 public enum TeamType {
     RPA(true),
     IS_ZEKASI(false),
+    URUN_GELISTIRME(false),
+    YAPAY_ZEKA(false),
+    DIJITAL_UYGULAMALAR(false),
+    KONUM_TABANLI_URUN_GELISTIRME(false),
+    DSYS(false),
     GENEL(false);
 
     private final boolean fteTrackingEnabled;
@@ -37,11 +42,26 @@ public enum TeamType {
             return GENEL;
         }
         String d = department.toLowerCase(Locale.forLanguageTag("tr"));
+        if (d.contains("rpa")) {
+            return RPA;
+        }
+        if (d.contains("yapay")) {
+            return YAPAY_ZEKA;
+        }
         if (d.contains("zeka")) {
             return IS_ZEKASI;
         }
-        if (d.contains("rpa")) {
-            return RPA;
+        if (d.contains("konum")) {
+            return KONUM_TABANLI_URUN_GELISTIRME;
+        }
+        if (d.contains("ürün") || d.contains("urun")) {
+            return URUN_GELISTIRME;
+        }
+        if (d.contains("dijital")) {
+            return DIJITAL_UYGULAMALAR;
+        }
+        if (d.contains("doküman") || d.contains("dokuman") || d.contains("dsys")) {
+            return DSYS;
         }
         return GENEL;
     }

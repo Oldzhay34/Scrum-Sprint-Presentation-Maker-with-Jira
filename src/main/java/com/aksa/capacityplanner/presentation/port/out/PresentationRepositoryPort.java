@@ -13,4 +13,10 @@ public interface PresentationRepositoryPort {
     Optional<SprintPresentation> findByTeamIdAndSprintNo(Long teamId, String sprintNo);
 
     List<SprintPresentation> findByTeamId(Long teamId);
+
+    /** sprint_presentations_readonly view'i uzerinden okur (bkz. V5) - salt-okunur goruntuleme yollari icin. */
+    Optional<SprintPresentation> findByIdReadOnly(Long id);
+
+    /** sprint_presentations_readonly view'i uzerinden okur (bkz. V5) - salt-okunur goruntuleme yollari icin. */
+    List<SprintPresentation> findByTeamIdReadOnly(Long teamId);
 }

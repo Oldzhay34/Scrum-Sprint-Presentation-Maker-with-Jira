@@ -23,6 +23,10 @@ export const STATUS_MAP_BY_TEAM = {
   "RPA Ekibi": RPA_STATUS_MAP,
   "İş Zekası Ekibi": DEFAULT_STATUS_MAP,
   "Ürün Geliştirme Ekibi": DEFAULT_STATUS_MAP,
+  "Yapay Zeka Ekibi": DEFAULT_STATUS_MAP,
+  "Dijital Uygulamalar Ekibi": DEFAULT_STATUS_MAP,
+  "Konum Tabanlı Ürün Geliştirme Ekibi": DEFAULT_STATUS_MAP,
+  "Doküman ve Süreç Yönetim Sistemi Ekibi": DEFAULT_STATUS_MAP,
 };
 
 /** Geriye uyumluluk icin: eskiden tek/global harita olarak disari aciliyordu. */
@@ -66,8 +70,13 @@ function detectTeamType(wb) {
     // ile yanlis kucultulur (orn. "İş" -> "i̇ş", "ş zekas" ile eslesmez) - bu yuzden
     // Turkce locale ile kucultulur.
     const name = String(p["B11"].w || p["B11"].v || "").trim().toLocaleLowerCase("tr");
-    if (name.includes("zeka")) return "IS_ZEKASI";
     if (name.includes("rpa")) return "RPA";
+    if (name.includes("yapay")) return "YAPAY_ZEKA";
+    if (name.includes("zeka")) return "IS_ZEKASI";
+    if (name.includes("konum")) return "KONUM_TABANLI_URUN_GELISTIRME";
+    if (name.includes("ürün") || name.includes("urun")) return "URUN_GELISTIRME";
+    if (name.includes("dijital")) return "DIJITAL_UYGULAMALAR";
+    if (name.includes("doküman") || name.includes("dokuman") || name.includes("dsys")) return "DSYS";
   }
   if (wb.Sheets["İş_Listesi"]) {
     const rows = XLSX.utils.sheet_to_json(wb.Sheets["İş_Listesi"], { defval: "" });

@@ -151,6 +151,9 @@ function MainApp({ theme, toggleTheme, personnel, presentationId, newForTeamId }
   // "mode/step" ayni degisken: hem ust nav hem sihirbaz adimi olarak kullanilir.
   const [mode, setMode] = useState("cover");
   const navigate = useNavigate();
+  // PPTX ciktisinin acik/koyu temasi - varsayilan olarak uygulama temasiyla
+  // baslar, ama kullanici site uzerinden bagimsiz secebilir (yonetici istegi).
+  const [pptxTheme, setPptxTheme] = useState(theme);
 
   // Login yanitindaki (bkz. LoginPage.jsx/apiClient.fetchCurrentUser)
   // department/roles alanlarindan kullanicinin takimini ve admin durumunu
@@ -340,7 +343,7 @@ function MainApp({ theme, toggleTheme, personnel, presentationId, newForTeamId }
         );
       }
       const data = { ...sprintForm.data, showBand: band.show, targets: band.bars };
-      const pptx = buildFullDeck(data, activeDashData, assets);
+      const pptx = buildFullDeck(data, activeDashData, assets, pptxTheme);
       const sp = (sprintForm.sprint.trim() || "X").replace(/[^\w]/g, "");
       await pptx.writeFile({ fileName: `Sprint_Kapasite_${sp}.pptx` });
     });
@@ -364,6 +367,8 @@ function MainApp({ theme, toggleTheme, personnel, presentationId, newForTeamId }
               generating={fullExport.loading}
               onSave={canEdit ? handleSave : null}
               saving={saveStatus.loading}
+              pptxTheme={pptxTheme}
+              onPptxThemeChange={setPptxTheme}
             />
           ) : (
             <DashboardTopActions
@@ -373,6 +378,8 @@ function MainApp({ theme, toggleTheme, personnel, presentationId, newForTeamId }
               generating={fullExport.loading}
               onSave={canEdit ? handleSave : null}
               saving={saveStatus.loading}
+              pptxTheme={pptxTheme}
+              onPptxThemeChange={setPptxTheme}
             />
           )
         }
