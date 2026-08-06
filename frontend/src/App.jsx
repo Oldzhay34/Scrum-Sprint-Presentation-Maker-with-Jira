@@ -7,6 +7,7 @@ import { fetchCurrentUser, fetchUserProfile, fetchPresentation, logout, savePres
 import LoginPage from "./components/shared/LoginPage";
 import ProfilePage from "./components/shared/ProfilePage";
 import AdminHomePage from "./components/shared/AdminHomePage";
+import MonitoringPage from "./components/shared/MonitoringPage";
 import PresentationsPage from "./components/shared/PresentationsPage";
 import TopBar from "./components/shared/TopBar";
 import ZoomModal from "./components/shared/ZoomModal";
@@ -109,6 +110,16 @@ export default function App() {
           element={
             personnel && isAdmin ? (
               <AdminHomePage personnel={personnel} theme={theme} onToggleTheme={toggleTheme} />
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
+        />
+        <Route
+          path="/admin/monitoring"
+          element={
+            personnel && isAdmin ? (
+              <MonitoringPage personnel={personnel} theme={theme} onToggleTheme={toggleTheme} />
             ) : (
               <Navigate to="/" replace />
             )

@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import TopBar from "./TopBar";
 import PresentationListPanel from "./PresentationListPanel";
-import { IconUsers } from "./icons";
+import Button from "./Button";
+import { IconUsers, IconActivity } from "./icons";
 import { fetchTeams } from "../../lib/apiClient";
 
 /**
@@ -11,6 +13,7 @@ import { fetchTeams } from "../../lib/apiClient";
  * "Duzenle" tiklaninca ayni sihirbaz ekrani /editor/:id ile acilir).
  */
 export default function AdminHomePage({ personnel, theme, onToggleTheme }) {
+  const navigate = useNavigate();
   const [teams, setTeams] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -30,7 +33,17 @@ export default function AdminHomePage({ personnel, theme, onToggleTheme }) {
 
   return (
     <>
-      <TopBar theme={theme} onToggleTheme={onToggleTheme} personnel={personnel} />
+      <TopBar
+        theme={theme}
+        onToggleTheme={onToggleTheme}
+        personnel={personnel}
+        actions={
+          <Button variant="ghost" onClick={() => navigate("/admin/monitoring")}>
+            <IconActivity className="navbar-icon" />
+            İzleme
+          </Button>
+        }
+      />
       <main className="admin-split">
         <aside className="admin-team-panel">
           <h2 className="admin-team-panel-title">

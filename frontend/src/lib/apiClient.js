@@ -233,6 +233,26 @@ export async function rollbackPresentation(id, version) {
   return requestJson(`/api/presentations/${id}/versions/${version}/rollback`, { method: "POST" });
 }
 
+/** Monitoring sayfasi ust bilgi seridi (bugunku islem sayisi, aktif kullanici vb.) - admin-only. */
+export async function fetchAuditSummary() {
+  return requestJson("/api/monitoring/summary");
+}
+
+/** Filtre dropdown'lari icin kullanicilar/eylem turleri/takimlar - admin-only. */
+export async function fetchAuditFilterOptions() {
+  return requestJson("/api/monitoring/filters");
+}
+
+/** Sayfalanmis aktivite log listesi - filters: {actorSicil, actionCode, entityType, teamId, success, from, to, page, size}. */
+export async function fetchAuditLogs(filters = {}) {
+  const params = new URLSearchParams();
+  Object.entries(filters).forEach(([key, value]) => {
+    if (value !== null && value !== undefined && value !== "") params.set(key, value);
+  });
+  const qs = params.toString();
+  return requestJson(`/api/monitoring/audit-logs${qs ? `?${qs}` : ""}`);
+}
+
 /**
  * Kapak gorseli MinIO'ya yuklenir ve erisim URL'i geri doner. Tek kullanimlik
  * bir ozellik oldugu icin bu istek best-effort'tur - cagiran taraf (useCoverImage)
