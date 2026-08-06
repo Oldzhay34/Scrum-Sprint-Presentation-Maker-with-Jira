@@ -93,6 +93,26 @@ export function IconEdit(props) {
   );
 }
 
+export function IconCalendar(props) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
+      <rect x="3.5" y="5" width="17" height="15.5" rx="2.4" stroke="currentColor" strokeWidth="1.7" />
+      <path d="M3.5 9.5h17M8 3v3.6M16 3v3.6" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      <circle cx="8.2" cy="13.4" r="1.05" fill="currentColor" />
+      <circle cx="12" cy="13.4" r="1.05" fill="currentColor" />
+      <circle cx="8.2" cy="16.9" r="1.05" fill="currentColor" />
+    </svg>
+  );
+}
+
+export function IconHash(props) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
+      <path d="M9 3.5 7 20.5M17 3.5l-2 17M4 9h16M3 15h16" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 export function IconUsers(props) {
   return (
     <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>

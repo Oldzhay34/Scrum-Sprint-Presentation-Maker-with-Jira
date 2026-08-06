@@ -415,12 +415,6 @@ function MainApp({ theme, toggleTheme, personnel, presentationId, newForTeamId }
         }
       />
 
-      {(presentationId || newForTeamId) && (
-        <button type="button" className="btn soft" style={{ margin: "12px 22px 0" }} onClick={() => navigate(-1)}>
-          ← Geri
-        </button>
-      )}
-
       <ErrorBanner
         error={fullExport.error || loadError || saveStatus.error}
         onDismiss={() => {
@@ -435,7 +429,7 @@ function MainApp({ theme, toggleTheme, personnel, presentationId, newForTeamId }
         </div>
       )}
 
-      <WizardSteps step={mode} onStepChange={changeMode} />
+      <WizardSteps step={mode} onStepChange={changeMode} onBack={(presentationId || newForTeamId) ? () => navigate(-1) : null} />
 
       <main>
         <div className="wizard-col">
