@@ -3,9 +3,10 @@ spring:
     name: capacity-planner
 
   datasource:
-    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:capacity_planner}
-    username: ${DB_USERNAME:capacity_planner}
+    url: jdbc:sqlserver://${DB_HOST:localhost}:${DB_PORT:1433};databaseName=${DB_NAME:capacity_planner};encrypt=${DB_ENCRYPT:true};trustServerCertificate=${DB_TRUST_SERVER_CERTIFICATE:true}
+    username: ${DB_USERNAME:sa}
     password: ${DB_PASSWORD:capacity_planner}
+    driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
 
   jpa:
     hibernate:

@@ -139,7 +139,9 @@ class CapacityCalculationServiceTest {
 
         assertThat(dashboard.getPeriodClosedEffort()).isEqualByComparingTo("8");
         assertThat(dashboard.getNewlyAddedEffort()).isEqualByComparingTo("6");
-        assertThat(dashboard.getNetChange()).isEqualByComparingTo("-2");
+        // Net Is Yuku Degisimi = Kapanan - Eklenen (bkz. CapacityCalculationService -
+        // bu yonde duzeltildi, frontend/useDashboardData.js de ayni formulu kullanir).
+        assertThat(dashboard.getNetChange()).isEqualByComparingTo("2");
     }
 
     private TeamMember member(Long id, LocalDate startDate) {

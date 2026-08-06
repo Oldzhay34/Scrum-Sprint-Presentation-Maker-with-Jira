@@ -1,5 +1,8 @@
 import { IconGauge } from "../shared/icons";
 import { sanitizeDecimalInput } from "../../lib/format";
+import AlertModal from "../shared/AlertModal";
+import BandSelectionModal from "./BandSelectionModal";
+import { MAX_BAND_BARS } from "../../hooks/useBandEditor";
 
 const COLOR_OPTS = [
   ["green", "Yeşil"], ["blue", "Mavi"], ["orange", "Turuncu"], ["amber", "Sarı"],
@@ -88,11 +91,19 @@ export default function BandEditorPanel({ band, hasFte = true }) {
               </div>
             </div>
           ))}
-          <button type="button" className="addbar" onClick={band.addBar}>
+          <button
+            type="button"
+            className="addbar"
+            onClick={band.addBar}
+            disabled={band.bars.length >= MAX_BAND_BARS}
+            title={band.bars.length >= MAX_BAND_BARS ? `En fazla ${MAX_BAND_BARS} hedef barı ekleyebilirsiniz` : undefined}
+          >
             + Bar ekle
           </button>
         </div>
       )}
+      <AlertModal open={!!band.error} title="Hedef barı eklenemedi" message={band.error} onClose={band.clearError} />
+      <BandSelectionModal candidates={band.pendingChoices} onConfirm={band.confirmChoices} onCancel={band.cancelChoices} />
     </div>
   );
 }

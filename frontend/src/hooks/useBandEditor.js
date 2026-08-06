@@ -1,5 +1,12 @@
 import { useState } from "react";
 
+// Hedefler bandinda gosterilebilecek azami cubuk sayisi - slaytta cok fazla
+// cubuk okunabilirligi bozar. Excel/Jira kaynagindan bu sayidan fazla cubuk
+// gelirse (bkz. setSample), kullanicidan hangilerini tutacagini secmesi
+// istenir (bkz. pendingChoices/BandSelectionModal); manuel eklemede de bu
+// sayiya ulasilinca "+ Bar ekle" engellenir (bkz. addBar/error).
+export const MAX_BAND_BARS = 3;
+
 function newBar() {
   return { label: "", segments: [{ value: "", color: "green" }, { value: "", color: "blue" }] };
 }
@@ -7,13 +14,24 @@ function newBar() {
 export function useBandEditor() {
   const [show, setShow] = useState(false);
   const [bars, setBars] = useState([]);
+  const [error, setError] = useState(null);
+  // Excel/Jira kaynagi MAX_BAND_BARS'tan fazla cubuk getirdiginde, dogrudan
+  // uygulamak yerine burada bekletilir - BandSelectionModal kullaniciya
+  // secim yaptirip confirmChoices ile asil bars'a yazar.
+  const [pendingChoices, setPendingChoices] = useState(null);
 
   const toggleShow = (checked) => {
     setShow(checked);
     if (checked && bars.length === 0) setBars([newBar()]);
   };
 
-  const addBar = () => setBars((prev) => [...prev, newBar()]);
+  const addBar = () => {
+    if (bars.length >= MAX_BAND_BARS) {
+      setError(`Daha fazla hedef barı ekleyemezsiniz. En fazla ${MAX_BAND_BARS} hedef barı ekleyebilirsiniz.`);
+      return;
+    }
+    setBars((prev) => [...prev, newBar()]);
+  };
   const removeBar = (index) => setBars((prev) => prev.filter((_, i) => i !== index));
   const updateBarLabel = (index, label) =>
     setBars((prev) => prev.map((b, i) => (i === index ? { ...b, label } : b)));
@@ -35,10 +53,26 @@ export function useBandEditor() {
       )
     );
 
+  /** Excel/Jira'dan gelen hazir cubuklari uygular - limit asiliyorsa once secim istenir. */
   const setSample = (sampleBars) => {
+    if (sampleBars.length > MAX_BAND_BARS) {
+      setPendingChoices(sampleBars);
+      return;
+    }
     setShow(true);
     setBars(sampleBars);
   };
 
-  return { show, bars, toggleShow, addBar, removeBar, updateBarLabel, addSegment, removeSegment, updateSegment, setSample };
+  const confirmChoices = (selectedBars) => {
+    setShow(true);
+    setBars(selectedBars);
+    setPendingChoices(null);
+  };
+  const cancelChoices = () => setPendingChoices(null);
+  const clearError = () => setError(null);
+
+  return {
+    show, bars, toggleShow, addBar, removeBar, updateBarLabel, addSegment, removeSegment, updateSegment, setSample,
+    error, clearError, pendingChoices, confirmChoices, cancelChoices,
+  };
 }

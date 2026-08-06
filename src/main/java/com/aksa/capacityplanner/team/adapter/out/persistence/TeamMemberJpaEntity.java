@@ -49,7 +49,9 @@ public class TeamMemberJpaEntity {
     private boolean targetWorkDaysOverridden;
 
     // columnDefinition kasten belirtilmiyor: Hibernate her dialect icin uygun JSON
-    // tipini kendisi secer (Postgres -> jsonb, H2 -> json), boylece testlerde H2 ile de calisir.
+    // tipini kendisi secer (SQL Server -> nvarchar(max) + JSON serileştirme,
+    // H2 -> json), boylece testlerde H2 ile de calisir. Migration'da (bkz.
+    // V1__init.sql) bu kolon nvarchar(max) olarak olusturulur.
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "custom_field_values")
     private Map<String, String> customFieldValues = new HashMap<>();

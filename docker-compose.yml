@@ -1,18 +1,20 @@
 services:
-  postgres:
-    image: postgres:16-alpine
-    container_name: capacity-planner-postgres
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: capacity-planner-mssql
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${DB_NAME:-capacity_planner}
-      POSTGRES_USER: ${DB_USERNAME:-capacity_planner}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-capacity_planner}
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: ${DB_PASSWORD:-CapacityPlanner!2024}
+      MSSQL_PID: Developer
     ports:
-      - "${DB_PORT:-5432}:5432"
+      - "${DB_PORT:-1433}:1433"
     volumes:
-      - capacity-planner-postgres-data:/var/lib/postgresql/data
+      - capacity-planner-mssql-data:/var/opt/mssql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-capacity_planner} -d ${DB_NAME:-capacity_planner}"]
+      # SQL Server 2022 imaji mssql-tools18 kullanir (eskisi mssql-tools); -C
+      # sunucu sertifikasini dogrulamadan guvenir (yerel/dev icin yeterli).
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -Q 'SELECT 1' || /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -Q 'SELECT 1'"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -45,17 +47,10 @@ services:
       timeout: 5s
       retries: 10
 
-  pgadmin:
-    image: dpage/pgadmin4:latest
-    container_name: capacity-planner-pgadmin
-    restart: unless-stopped
-    environment:
-      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@aksa.local}
-      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
-    ports:
-      - "${PGADMIN_PORT:-5050}:80"
-    depends_on:
-      - postgres
+  # pgadmin kaldirildi (Postgres'e ozgu bir yonetim araciydi). MSSQL icin
+  # container'lastirilmis basit bir GUI karsiligi yok - yerelde Azure Data
+  # Studio veya SSMS ile localhost:${DB_PORT:-1433} (sa / MSSQL_SA_PASSWORD)
+  # uzerinden baglanilabilir.
 
   minio:
     image: minio/minio:latest
@@ -77,5 +72,5 @@ services:
       retries: 10
 
 volumes:
-  capacity-planner-postgres-data:
+  capacity-planner-mssql-data:
   capacity-planner-minio-data:

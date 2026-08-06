@@ -263,6 +263,113 @@
   box-shadow: 0 0 8px rgba(0, 0, 0, 0.4);
 }
 
+/* ---------------------------------------------------------------------- */
+/* PPTX İndir onizleme popup'u (ExportPreviewModal) - slayt tuvalinin       */
+/* acik/koyu gorunumu burada SAYFA GENELINDEKI temadan (html.theme-dark)   */
+/* TAMAMEN bagimsiz olmali; kullanici bu popup icindeki toggle ile PPTX     */
+/* ciktisinin rengini seciyor. Yukaridaki ".theme-dark .slidecanvas..."    */
+/* kurallari SADECE ata zincirinde html.theme-dark oldugunda tetiklenir -  */
+/* sayfa genelinde koyu tema acikken popup'ta "acik" secilse bile o        */
+/* kurallar html uzerinden zaten eslesiyor ve yerel secimi etkisiz          */
+/* birakiyordu (bkz. kullanici bildirimi: "üstüne basıldığı zaman           */
+/* göstermiyor"). Asagidaki ".zoomstagewrap.preview-dark/.preview-light"    */
+/* kurallari DAHA YUKSEK ozgunlukte (4 sinif vs 3) oldugu icin, html'in     */
+/* kendi durumundan BAGIMSIZ olarak KAZANIR - popup'taki toggle boylece     */
+/* gercekten calisir hale gelir. */
+.zoomstagewrap.preview-dark .slidecanvas.tab-content,
+.zoomstagewrap.preview-dark .slidecanvas.tab-dashboard {
+  --ink: #E7EDF5;
+  --mut: #9CB0C6;
+  --line: rgba(255, 255, 255, 0.14);
+  --card: #1c2733;
+  --bg: #131c27;
+}
+.zoomstagewrap.preview-light .slidecanvas.tab-content,
+.zoomstagewrap.preview-light .slidecanvas.tab-dashboard {
+  --ink: #1F2937;
+  --mut: #6B7280;
+  --line: #E5E7EB;
+  --card: #FFFFFF;
+  --bg: #F1F5F7;
+}
+.zoomstagewrap.preview-dark .slidecanvas.tab-content .card {
+  background: var(--card);
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.35);
+}
+.zoomstagewrap.preview-light .slidecanvas.tab-content .card {
+  background: var(--card);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+.zoomstagewrap.preview-dark .slidecanvas.tab-content .card li {
+  color: var(--ink);
+}
+.zoomstagewrap.preview-dark .slidecanvas.tab-content .card li:before {
+  color: var(--mut);
+}
+.zoomstagewrap.preview-dark .slidecanvas.tab-content .s-header {
+  color: var(--aksa-blue-light);
+}
+.zoomstagewrap.preview-light .slidecanvas.tab-content .s-header {
+  color: var(--teal);
+}
+.zoomstagewrap.preview-dark .slidecanvas.tab-content .card .chd .ct {
+  text-shadow: 0 0 10px color-mix(in srgb, currentColor 65%, transparent);
+}
+.zoomstagewrap.preview-light .slidecanvas.tab-content .card .chd .ct {
+  text-shadow: none;
+}
+.zoomstagewrap.preview-dark .slidecanvas.tab-dashboard .ddelta .dc.hl {
+  background: rgba(220, 38, 38, 0.16);
+  border-color: rgba(252, 165, 165, 0.4);
+}
+.zoomstagewrap.preview-dark .slidecanvas.tab-dashboard .ddelta .dc.hl .l {
+  color: #fca5a5;
+}
+.zoomstagewrap.preview-dark .slidecanvas.tab-dashboard .dttl {
+  color: var(--aksa-blue-light);
+}
+.zoomstagewrap.preview-light .slidecanvas.tab-dashboard .dttl {
+  color: var(--teal);
+}
+.zoomstagewrap.preview-dark .slidecanvas.tab-content::before {
+  color: rgba(0, 0, 0, 0.28);
+}
+.zoomstagewrap.preview-light .slidecanvas.tab-content::before {
+  color: rgba(0, 0, 0, 0.055);
+}
+.zoomstagewrap.preview-dark .slidecanvas.tab-content .card-watermark {
+  opacity: 0.14;
+}
+.zoomstagewrap.preview-light .slidecanvas.tab-content .card-watermark {
+  opacity: 0.09;
+}
+.zoomstagewrap.preview-dark .slidecanvas.tab-dashboard .dcard,
+.zoomstagewrap.preview-dark .slidecanvas.tab-dashboard .ddelta .dc {
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.3);
+}
+.zoomstagewrap.preview-light .slidecanvas.tab-dashboard .dcard,
+.zoomstagewrap.preview-light .slidecanvas.tab-dashboard .ddelta .dc {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+.zoomstagewrap.preview-dark .slidecanvas.tab-dashboard .dol .dbar i {
+  box-shadow: 0 0 8px color-mix(in srgb, var(--fill-accent, transparent) 70%, transparent);
+}
+.zoomstagewrap.preview-light .slidecanvas.tab-dashboard .dol .dbar i {
+  box-shadow: 0 0 8px color-mix(in srgb, var(--fill-accent, transparent) 60%, transparent);
+}
+.zoomstagewrap.preview-dark .slidecanvas.tab-dashboard .pill {
+  box-shadow: 0 0 8px color-mix(in srgb, var(--pill-accent, transparent) 45%, transparent);
+}
+.zoomstagewrap.preview-light .slidecanvas.tab-dashboard .pill {
+  box-shadow: 0 0 6px color-mix(in srgb, var(--pill-accent, transparent) 35%, transparent);
+}
+.zoomstagewrap.preview-dark .slidecanvas.tab-dashboard .dtr .kisi .av {
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.4);
+}
+.zoomstagewrap.preview-light .slidecanvas.tab-dashboard .dtr .kisi .av {
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.2);
+}
+
 .theme-dark .field input,
 .theme-dark .sec textarea,
 .theme-dark .modal textarea,
@@ -302,6 +409,39 @@
 
 .theme-dark .bar {
   background: rgba(255, 255, 255, 0.03);
+}
+
+/* Kapak sayfasindaki "Takım Tipi" premium select - app.css'te sabit beyaz
+   zemin/teal metin + teal renkli ok (SVG data URI icine gomulu) ile
+   tanimliydi, koyu modda sayfanin geri kaliniyla uyumsuz beyaz bir kutu
+   olarak kaliyordu. Ok rengi de SVG icinde sabit oldugu icin ayrica
+   (aciksi mavi) bir varyantla degistiriliyor. */
+.theme-dark .premium-select {
+  background-color: rgba(255, 255, 255, 0.04);
+  color: var(--aksa-blue-light);
+  border-color: var(--line);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%234A9FE0' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 7l5 5 5-5'/%3E%3C/svg%3E");
+}
+.theme-dark .premium-select:hover {
+  border-color: var(--aksa-blue-light);
+}
+.theme-dark .premium-select:focus {
+  border-color: var(--aksa-blue-light);
+  box-shadow: 0 0 0 3px rgba(74, 159, 224, 0.18);
+}
+.theme-dark .premium-select option {
+  background-color: #1c2733;
+  color: var(--ink);
+}
+
+/* Manuel Kapasite Dashboard'daki ekip uyesi kartinin ic satirlari (İş adı,
+   Efor, Durum, Eklenme/Kapanma tarihi) - onceden sabit inline "#fff" arka
+   plan/kenarlikla tanimliydi, koyu modda sayfanin geri kaliniyla uyumsuz
+   beyaz kutular olarak kaliyordu. */
+.theme-dark .mitem-input {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--ink);
+  border-color: var(--line);
 }
 
 /* app.css'te .addseg/.addbar acik mavi (#EFF6F8) sabit - karanlik modda

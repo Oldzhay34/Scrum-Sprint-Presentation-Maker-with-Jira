@@ -37,7 +37,7 @@ export default function CoverPage({ teamType, setTeamType, sprint, setSprint, ra
       <div className="meta" style={{ borderRadius: 12, border: "1px solid var(--line)" }}>
         <div className="field grow">
           <label>Takım tipi</label>
-          <select value={teamType} onChange={(e) => setTeamType(e.target.value)}>
+          <select className="premium-select" value={teamType} onChange={(e) => setTeamType(e.target.value)}>
             {TEAM_TYPES.map((t) => (
               <option key={t.value} value={t.value}>
                 {t.label}

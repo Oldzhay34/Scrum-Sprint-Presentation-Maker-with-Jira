@@ -1,30 +1,20 @@
 import { useRef } from "react";
 import Button from "../shared/Button";
-import { IconUpload, IconSparkles, IconDownload, IconSave } from "../shared/icons";
+import { IconUpload, IconDownload, IconSave } from "../shared/icons";
 
 /**
  * Sprint modu ust bar eylemleri. Pressman - Command/Menu Labeling: tum
- * etiketler eylem bildiren fiil yapisinda ("Excel Yükle", "Örnek Doldur", "PPTX İndir").
+ * etiketler eylem bildiren fiil yapisinda ("Excel Yükle", "PPTX İndir").
  * "Kaydet" (onSave), duzenleme yetkisi olmayan kullanicilar icin gizlenir
  * (App.jsx'te canEdit false ise onSave={null} geciliyor).
  */
 export default function SprintTopActions({
-  onExcelFile, excelLoading, onFillSample, onGenerate, generating, onSave, saving, pptxTheme, onPptxThemeChange,
+  onExcelFile, excelLoading, onGenerate, generating, onSave, saving,
 }) {
   const fileInputRef = useRef(null);
 
   return (
     <span style={{ display: "flex", gap: 10, alignItems: "center" }}>
-      {onPptxThemeChange && (
-        <span className="pptx-theme-switch" title="PPTX çıktısının teması">
-          <button type="button" className={pptxTheme !== "dark" ? "active" : ""} onClick={() => onPptxThemeChange("light")}>
-            Açık
-          </button>
-          <button type="button" className={pptxTheme === "dark" ? "active" : ""} onClick={() => onPptxThemeChange("dark")}>
-            Koyu
-          </button>
-        </span>
-      )}
       <input
         ref={fileInputRef}
         type="file"
@@ -38,10 +28,6 @@ export default function SprintTopActions({
       <Button variant="ghost" loading={excelLoading} loadingLabel="Okunuyor…" onClick={() => fileInputRef.current?.click()}>
         <IconUpload className="navbar-icon" />
         Excel Yükle
-      </Button>
-      <Button variant="ghost" onClick={onFillSample}>
-        <IconSparkles className="navbar-icon" />
-        Örnek Doldur
       </Button>
       {onSave && (
         <Button variant="ghost" loading={saving} loadingLabel="Kaydediliyor…" onClick={onSave}>

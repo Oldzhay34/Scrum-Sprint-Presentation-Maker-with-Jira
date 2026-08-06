@@ -19,8 +19,8 @@ import java.util.stream.Stream;
  *
  * Mock kimlik bilgileri:
  *  - admin / admin123  (ADMIN, teamId yok, tum takimlari duzenleyebilir)
- *  - 10001 / po123     (PO, teamId=1, RPA Ekibi)
- *  - 10002 / po123     (PO, teamId=2, İş Zekası Ekibi)
+ *  - 10001 / po123     (PO, teamId=1, department="RPA Ekibi")
+ *  - 10002 / po123     (PO, teamId=2, department="İş Zekası Ekibi")
  *
  * department degerleri bilerek "rpa"/"zeka" iceriyor - frontend'deki
  * resolveTeamTypeFromDepartment ve backend'deki TeamType.fromDepartmentName
@@ -38,7 +38,7 @@ public class MockUserRepositoryAdapter implements UserRepositoryPort {
                 mockUser("10001", passwordEncoder.encode("po123"), "PO Bir", Role.PO, 1L,
                         "AKSA Enerji", "RPA Ekibi", "Kıdemli Ürün Sorumlusu", "Uzman", "Kıdemli Ürün Sorumlusu", "2010"),
                 mockUser("10002", passwordEncoder.encode("po123"), "PO İki", Role.PO, 2L,
-                        "AKSA Enerji", "İş Zekası", "Ürün Sorumlusu", "Uzman", "Ürün Sorumlusu", "2020")
+                        "AKSA Enerji", "İş Zekası Ekibi", "Ürün Sorumlusu", "Uzman", "Ürün Sorumlusu", "2020")
         ).collect(Collectors.toMap(AuthUser::getSicil, u -> u));
     }
 
