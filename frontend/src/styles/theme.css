@@ -690,6 +690,36 @@ header.topbar {
   position: relative;
 }
 
+.topbar-logo-btn {
+  width: 104px;
+  height: 40px;
+  flex: none;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 10px;
+  background: #fff;
+  padding: 4px 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+.topbar-logo-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.22);
+  border-color: #fff;
+}
+.topbar-logo-btn:focus-visible {
+  outline: 2px solid var(--aksa-green);
+  outline-offset: 2px;
+}
+.topbar-logo-btn img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
 /* ---------------------------------------------------------------------- */
 /* Ust bar daraltma tutamaci - alt kenardan yukari cekilince (veya         */
 /* tiklaninca) topbar-content daralip kaybolur, tekrar cekilince/          */
@@ -1037,9 +1067,9 @@ header.topbar {
 /* durur (kullanici etkilesirken dikkat dagitmasin), reduced-motion'da     */
 /* tamamen kapanir.                                                        */
 /* ---------------------------------------------------------------------- */
-header.topbar .btn.ghost:not(:disabled) {
-  animation: aksa-topbtn-pulse-ghost 2.4s ease-in-out infinite;
-}
+/* Sadece tek bir birincil eylem (orn. PPTX Indir) nabiz atar - ghost      */
+/* butonlarda (Excel Yukle, Kaydet, Sunumlarim, Izleme...) kaldirildi,      */
+/* aksi halde bitisik butonlarin halkalari birbirine giriyordu.            */
 header.topbar .btn.primary:not(:disabled) {
   animation: aksa-topbtn-pulse-primary 2.4s ease-in-out infinite;
 }
@@ -1047,17 +1077,12 @@ header.topbar .btn:hover {
   animation-play-state: paused;
 }
 
-@keyframes aksa-topbtn-pulse-ghost {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); }
-  50% { box-shadow: 0 0 0 7px rgba(255, 255, 255, 0.16); }
-}
 @keyframes aksa-topbtn-pulse-primary {
   0%, 100% { box-shadow: 0 4px 14px rgba(110, 168, 43, 0.32), 0 0 0 0 rgba(141, 198, 63, 0); }
-  50% { box-shadow: 0 4px 14px rgba(110, 168, 43, 0.32), 0 0 0 8px rgba(141, 198, 63, 0.35); }
+  50% { box-shadow: 0 4px 14px rgba(110, 168, 43, 0.32), 0 0 0 4px rgba(141, 198, 63, 0.3); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  header.topbar .btn.ghost,
   header.topbar .btn.primary {
     animation: none;
   }
@@ -2028,4 +2053,333 @@ header.topbar .btn:hover {
 }
 .version-history-row .presentation-row-meta {
   flex: 1;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Monitoring / Aktivite Logu (/admin/monitoring) - admin-only sayfa.      */
+/* Genislik daralmasina (mobil/split-screen) karsi: KPI/filtre alanlari    */
+/* auto-fit/flex-wrap ile serbest sekilde satir kirar; log listesi genis   */
+/* ekranda grid-tablo gibi, dar ekranda (<=760px) etiketli kart listesine  */
+/* donusur - hicbir katmanda yatay tasma birikmez.                        */
+/* ---------------------------------------------------------------------- */
+.monitoring-page {
+  padding: 26px 30px;
+  min-height: calc(100vh - 90px);
+  background: var(--page-gradient);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.monitoring-content {
+  width: 100%;
+  max-width: 1360px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+@media (max-width: 640px) {
+  .monitoring-page {
+    padding: 18px 14px;
+  }
+}
+
+.monitoring-header {
+  min-width: 0;
+}
+.monitoring-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 4px;
+  font-size: 19px;
+  font-weight: 800;
+  color: var(--ink);
+}
+.monitoring-sub {
+  margin: 0;
+  font-size: 13px;
+  color: var(--mut);
+}
+
+.monitoring-kpis {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 14px;
+}
+.monitoring-kpi-tile {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 13px;
+  padding: 18px 20px;
+  border-radius: 16px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  min-width: 0;
+  overflow: hidden;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.monitoring-kpi-tile::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: var(--kpi-accent, var(--aksa-blue));
+}
+.monitoring-kpi-tile:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(11, 31, 51, 0.14);
+}
+.monitoring-kpi-tile.tone-blue { --kpi-accent: var(--aksa-blue); }
+.monitoring-kpi-tile.tone-green { --kpi-accent: var(--aksa-green-dark); }
+.monitoring-kpi-tile.tone-purple { --kpi-accent: #7c3aed; }
+.monitoring-kpi-tile.tone-amber { --kpi-accent: #c2570f; }
+.monitoring-kpi-icon {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  background: linear-gradient(135deg, var(--kpi-accent, var(--aksa-blue)), var(--aksa-blue-light));
+  box-shadow: 0 3px 10px rgba(13, 94, 168, 0.35);
+}
+.monitoring-kpi-icon svg {
+  width: 18px;
+  height: 18px;
+}
+.monitoring-kpi-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+.monitoring-kpi-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--mut);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.monitoring-kpi-value {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.monitoring-kpi-value.is-text {
+  font-size: 13.5px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.monitoring-kpi-subtext {
+  font-size: 11.5px;
+  color: var(--mut);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.monitoring-filterbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+}
+.monitoring-filterbar-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--mut);
+  flex: none;
+}
+.monitoring-filter-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+.monitoring-filter-fields .premium-select {
+  min-width: 150px;
+  flex: 1 1 150px;
+  max-width: 220px;
+}
+.monitoring-filterbar-actions {
+  display: flex;
+  gap: 8px;
+  flex: none;
+  margin-left: auto;
+}
+
+.monitoring-log-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  flex: 1;
+}
+.monitoring-log-panel-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0 2px;
+}
+.monitoring-log-panel-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--ink);
+}
+.monitoring-log-panel-count {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--mut);
+}
+.monitoring-log-scroll {
+  min-width: 0;
+  border-radius: 16px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  overflow: hidden;
+}
+.monitoring-log-list {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.monitoring-log-row {
+  display: grid;
+  grid-template-columns: 148px 1fr 1fr 1fr 130px;
+  gap: 10px;
+  align-items: center;
+  min-width: 0;
+}
+.monitoring-log-row:not(.monitoring-log-row-head) {
+  padding: 13px 18px;
+  font-size: 12.5px;
+  border-bottom: 1px solid var(--glass-border);
+  transition: background-color 0.12s ease;
+}
+.monitoring-log-row:not(.monitoring-log-row-head):last-child {
+  border-bottom: none;
+}
+.monitoring-log-row:not(.monitoring-log-row-head):hover {
+  background: rgba(74, 159, 224, 0.08);
+}
+.monitoring-log-row:not(.monitoring-log-row-head):nth-child(even) {
+  background: rgba(127, 145, 165, 0.05);
+}
+.monitoring-log-row:not(.monitoring-log-row-head):nth-child(even):hover {
+  background: rgba(74, 159, 224, 0.1);
+}
+.monitoring-log-row-head {
+  padding: 12px 18px;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--mut);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  border-bottom: 1px solid var(--glass-border);
+  background: rgba(127, 145, 165, 0.06);
+}
+.monitoring-log-cell {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.monitoring-log-time {
+  color: var(--mut);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.monitoring-log-actor {
+  font-weight: 700;
+  color: var(--ink);
+}
+.monitoring-log-sicil {
+  margin-left: 6px;
+  font-size: 11px;
+  color: var(--mut);
+}
+
+.monitoring-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.monitoring-badge.tone-success { background: rgba(22, 163, 74, 0.12); color: #16a34a; }
+.monitoring-badge.tone-danger { background: rgba(220, 38, 38, 0.12); color: #dc2626; }
+.monitoring-badge.tone-warn { background: rgba(224, 118, 20, 0.14); color: #c2570f; }
+.monitoring-badge.tone-accent { background: rgba(124, 58, 237, 0.12); color: #7c3aed; }
+.monitoring-badge.tone-auth { background: rgba(74, 159, 224, 0.16); color: var(--aksa-blue); }
+.monitoring-badge.tone-info { background: rgba(13, 94, 168, 0.10); color: var(--aksa-blue); }
+.theme-dark .monitoring-badge.tone-success { background: rgba(34, 197, 94, 0.18); color: #4ade80; }
+.theme-dark .monitoring-badge.tone-danger { background: rgba(239, 68, 68, 0.18); color: #fca5a5; }
+.theme-dark .monitoring-badge.tone-warn { background: rgba(251, 146, 60, 0.2); color: #fdba74; }
+.theme-dark .monitoring-badge.tone-accent { background: rgba(167, 139, 250, 0.2); color: #c4b5fd; }
+.theme-dark .monitoring-badge.tone-auth { background: rgba(74, 159, 224, 0.22); color: var(--aksa-blue-light); }
+.theme-dark .monitoring-badge.tone-info { background: rgba(74, 159, 224, 0.16); color: var(--aksa-blue-light); }
+
+.monitoring-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.monitoring-pagination-label {
+  font-size: 12.5px;
+  color: var(--mut);
+  text-align: center;
+}
+
+/* Dar ekran (mobil / daraltilmis split-screen): grid-tablo yerine her
+   satir dikey bir karta donusur, her hucrenin basina data-label ile
+   etiketi eklenir - hicbir icerik kesilmez/ic ice gecmez. */
+@media (max-width: 760px) {
+  .monitoring-log-row-head {
+    display: none;
+  }
+  .monitoring-log-row:not(.monitoring-log-row-head) {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+  .monitoring-log-cell {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .monitoring-log-cell::before {
+    content: attr(data-label);
+    flex: none;
+    font-size: 10.5px;
+    font-weight: 700;
+    color: var(--mut);
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+  }
 }
