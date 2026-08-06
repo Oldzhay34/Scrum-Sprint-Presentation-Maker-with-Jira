@@ -113,6 +113,11 @@ function VersionHistoryModal({ open, presentation, canRollback, onClose, onRolle
       .finally(() => setLoading(false));
   }, [open, presentation]);
 
+  // En yuksek versiyon numarasi = zaten aktif olan (head) surum - bu satir
+  // icin "Bu sürüme dön" butonu gosterilmez (zaten o surumdeyken donmenin
+  // anlami yok, bkz. kullanici bildirimi).
+  const currentVersion = versions.length ? Math.max(...versions.map((v) => v.version)) : null;
+
   const handleRollback = async (version) => {
     if (!window.confirm(`Sürüm ${version}'e dönülsün mü? Bu, mevcut içeriğin üzerine yeni bir sürüm olarak yazılır.`)) return;
     setRollingBackVersion(version);
@@ -136,15 +141,21 @@ function VersionHistoryModal({ open, presentation, canRollback, onClose, onRolle
           <div className="version-history-row" key={v.version}>
             <span>v{v.version}</span>
             <span className="presentation-row-meta">{formatDateTime(v.updatedAt)}{v.updatedBy ? ` · ${v.updatedBy}` : ""}</span>
-            {canRollback && (
-              <Button
-                variant="soft"
-                loading={rollingBackVersion === v.version}
-                loadingLabel="Dönülüyor…"
-                onClick={() => handleRollback(v.version)}
-              >
-                Bu sürüme dön
-              </Button>
+            {v.version === currentVersion ? (
+              <span className="presentation-row-meta" style={{ fontWeight: 700, color: "var(--teal2)" }}>
+                Güncel sürüm
+              </span>
+            ) : (
+              canRollback && (
+                <Button
+                  variant="soft"
+                  loading={rollingBackVersion === v.version}
+                  loadingLabel="Dönülüyor…"
+                  onClick={() => handleRollback(v.version)}
+                >
+                  Bu sürüme dön
+                </Button>
+              )
             )}
           </div>
         ))}

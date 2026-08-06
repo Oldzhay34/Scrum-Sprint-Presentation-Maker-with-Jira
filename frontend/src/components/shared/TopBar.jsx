@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { IconSun, IconMoon, IconPresentation } from "./icons";
+import { IconSun, IconMoon, IconPresentation, IconSettings, IconIdCard, IconLogout, IconHistory } from "./icons";
 import { ASSETS } from "../../assets/pptxAssets";
 import { resolveIsAdmin } from "../../lib/teamTypes";
+import { logout } from "../../lib/apiClient";
 
 const DRAG_THRESHOLD = 6; // px - bunun altindaki hareket "tiklama" sayilir
 const COLLAPSE_THRESHOLD = 14; // px - yukari/asagi bu kadar cekilince acilir/kapanir
@@ -16,8 +17,55 @@ const COLLAPSE_THRESHOLD = 14; // px - yukari/asagi bu kadar cekilince acilir/ka
  */
 export default function TopBar({ actions, theme, onToggleTheme, excelFileName, personnel }) {
   const [collapsed, setCollapsed] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsPos, setSettingsPos] = useState(null);
   const dragState = useRef(null); // { startY, moved }
+  const settingsRef = useRef(null);
+  const settingsBtnRef = useRef(null);
+  const settingsCloseTimer = useRef(null);
   const navigate = useNavigate();
+
+  // Panel .topbar-content'in overflow:hidden'ini (daraltma animasyonu icin,
+  // bkz. theme.css) asmak icin position:fixed kullanir - konumu butonun
+  // ekrandaki gercek konumundan hesaplar (parent'in clip kutusuna bagli kalmaz).
+  const computeSettingsPos = () => {
+    if (!settingsBtnRef.current) return;
+    const r = settingsBtnRef.current.getBoundingClientRect();
+    setSettingsPos({ top: r.bottom + 8, right: window.innerWidth - r.right });
+  };
+
+  // Fareyle uzerine gelince acilir (hover), tiklama sadece dokunmatik/klavye
+  // icin yedek kalir. Butondan panele gecerken kisa bir gecikmeyle kapanmasi
+  // engellenir (aksi halde aradaki 8px bosluk yuzunden titreyip kapanirdi).
+  const openSettings = () => {
+    if (settingsCloseTimer.current) {
+      clearTimeout(settingsCloseTimer.current);
+      settingsCloseTimer.current = null;
+    }
+    computeSettingsPos();
+    setSettingsOpen(true);
+  };
+  const scheduleCloseSettings = () => {
+    settingsCloseTimer.current = setTimeout(() => setSettingsOpen(false), 150);
+  };
+  const toggleSettings = () => {
+    if (!settingsOpen) computeSettingsPos();
+    setSettingsOpen((o) => !o);
+  };
+
+  // Ayarlar menusu disina tiklaninca kapanir.
+  useEffect(() => {
+    if (!settingsOpen) return;
+    const onDocClick = (e) => {
+      if (settingsRef.current && !settingsRef.current.contains(e.target)) setSettingsOpen(false);
+    };
+    document.addEventListener("mousedown", onDocClick);
+    return () => document.removeEventListener("mousedown", onDocClick);
+  }, [settingsOpen]);
+
+  useEffect(() => () => {
+    if (settingsCloseTimer.current) clearTimeout(settingsCloseTimer.current);
+  }, []);
 
   useEffect(() => {
     const onMove = (e) => {
@@ -77,38 +125,86 @@ export default function TopBar({ actions, theme, onToggleTheme, excelFileName, p
           </span>
         )}
         {actions}
-        {personnel && !resolveIsAdmin(personnel) && (
-          <button type="button" className="btn ghost" onClick={() => navigate("/presentations")}>
-            <IconPresentation className="navbar-icon" />
-            Sunumlarım
-          </button>
-        )}
         {personnel && (
-          <button type="button" className="btn ghost" onClick={() => navigate("/ortak-sunum")}>
-            <IconPresentation className="navbar-icon" />
-            Ortak Sunum
-          </button>
+          <div className="settings-menu" ref={settingsRef} onMouseEnter={openSettings} onMouseLeave={scheduleCloseSettings}>
+            <button
+              type="button"
+              className="theme-toggle"
+              ref={settingsBtnRef}
+              onClick={toggleSettings}
+              title="Ayarlar"
+              aria-label="Ayarlar"
+              aria-haspopup="true"
+              aria-expanded={settingsOpen}
+            >
+              <IconSettings />
+            </button>
+            {settingsOpen && settingsPos && (
+              <div className="settings-menu-panel" style={{ position: "fixed", top: settingsPos.top, right: settingsPos.right }}>
+                <button
+                  type="button"
+                  className="settings-menu-item"
+                  onClick={() => {
+                    onToggleTheme();
+                    setSettingsOpen(false);
+                  }}
+                >
+                  {theme === "dark" ? <IconSun className="navbar-icon" /> : <IconMoon className="navbar-icon" />}
+                  Tema
+                </button>
+                <button
+                  type="button"
+                  className="settings-menu-item"
+                  onClick={() => {
+                    navigate("/profile");
+                    setSettingsOpen(false);
+                  }}
+                >
+                  <IconIdCard className="navbar-icon" />
+                  Profil
+                </button>
+                {!resolveIsAdmin(personnel) && (
+                  <button
+                    type="button"
+                    className="settings-menu-item"
+                    onClick={() => {
+                      navigate("/presentations");
+                      setSettingsOpen(false);
+                    }}
+                  >
+                    <IconHistory className="navbar-icon" />
+                    Sunumlarım
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="settings-menu-item"
+                  onClick={() => {
+                    navigate("/ortak-sunum");
+                    setSettingsOpen(false);
+                  }}
+                >
+                  <IconPresentation className="navbar-icon" />
+                  Ortak Sunum Hazırla
+                </button>
+                <div className="settings-menu-divider" />
+                <button
+                  type="button"
+                  className="settings-menu-item settings-menu-item-danger"
+                  onClick={() => {
+                    setSettingsOpen(false);
+                    logout().finally(() => {
+                      window.location.href = "/";
+                    });
+                  }}
+                >
+                  <IconLogout className="navbar-icon" />
+                  Çıkış Yap
+                </button>
+              </div>
+            )}
+          </div>
         )}
-        {personnel && (
-          <button
-            type="button"
-            className="personnel-avatar-btn"
-            title="Profilim"
-            aria-label="Profilim"
-            onClick={() => navigate("/profile")}
-          >
-            👤
-          </button>
-        )}
-        <button
-          type="button"
-          className="theme-toggle"
-          onClick={onToggleTheme}
-          title={theme === "dark" ? "Açık temaya geç" : "Koyu temaya geç"}
-          aria-label="Tema değiştir"
-        >
-          {theme === "dark" ? <IconSun /> : <IconMoon />}
-        </button>
         </div>
       </div>
       <button

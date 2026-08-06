@@ -90,6 +90,21 @@ export function addContentSlide(pptx, data, assets, theme = "light") {
 
   function drawCard(x, y, items, sec, fs2, h) {
     s2.addShape(pptx.ShapeType.roundRect, { x, y, w: G.COL_W, h, rectRadius: 0.06, fill: { color: P.CARD_BG }, line: { color: P.CARD_LINE, width: 1 }, shadow: { type: "outer", color: "9CA3AF", blur: 6, offset: 2, angle: 90, opacity: 0.28 } });
+    // Onizlemedeki (.card-watermark, bkz. theme.css) kosede buyuk soluk filigran
+    // ikon - onceden SADECE canli onizlemede vardi ("bu CSS'i pptx hic gormez"
+    // yorumu artik gecersiz, bkz. kullanici bildirimi). Karta girmeden once
+    // (arka planin USTUNDE, metin/ikonun ALTINDA) cizilir ki cizim sirasi
+    // (=pptx katman sirasi) onizlemedeki gorsel dili birebir yansitsin.
+    const wmSize = Math.min(1.1458, G.COL_W * 0.34, h * 0.75);
+    s2.addImage({
+      data: sec.icon,
+      x: x + G.COL_W - wmSize - 0.08,
+      y: y + h - wmSize - 0.08,
+      w: wmSize,
+      h: wmSize,
+      rotate: -8,
+      transparency: theme === "dark" ? 86 : 91,
+    });
     s2.addShape(pptx.ShapeType.roundRect, { x: x + 0.07, y: y + 0.12, w: 0.075, h: h - 0.24, rectRadius: 0.04, fill: { color: sec.accent }, line: { type: "none" } });
     s2.addImage({ data: sec.icon, x: x + G.ACC_ZONE, y: y + G.PAD_T + 0.02, w: G.ICON, h: G.ICON });
     s2.addText(sec.title, { x: x + G.ACC_ZONE + G.ICON + 0.12, y: y + G.PAD_T, w: G.COL_W - G.ACC_ZONE - G.ICON - 0.3, h: G.TITLE_H - 0.06, fontFace: "Calibri", fontSize: 14.5, bold: true, color: sec.accent, valign: "middle", margin: 0 });
