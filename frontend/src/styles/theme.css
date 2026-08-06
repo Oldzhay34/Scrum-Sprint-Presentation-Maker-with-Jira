@@ -1916,8 +1916,31 @@ header.topbar .btn:hover {
   background: var(--page-gradient);
 }
 
+/* Liste + secili sunumun canli onizlemesi yan yana - sihirbazdaki
+   form|onizleme ikilisiyle ayni fikir, admin/PO'nun sunum listesine
+   gomulu halde (bkz. PresentationListPanel). Dar ekranlarda alt alta akar. */
+.presentation-panel-layout {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
 .presentation-list-panel {
+  flex: 1 1 460px;
   max-width: 780px;
+}
+.presentation-preview-col {
+  flex: 1 1 420px;
+  min-width: 0;
+  position: sticky;
+  top: 14px;
+}
+.presentation-row {
+  cursor: pointer;
+}
+.presentation-row.selected {
+  border-color: var(--aksa-blue-light);
+  box-shadow: 0 0 0 1px var(--aksa-blue-light) inset, 0 10px 24px rgba(13, 94, 168, 0.18);
 }
 .presentation-list-header {
   display: flex;
@@ -1945,15 +1968,15 @@ header.topbar .btn:hover {
 .presentation-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 14px;
 }
 .presentation-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 14px;
-  padding: 14px 18px;
-  border-radius: 14px;
+  gap: 18px;
+  padding: 16px 20px;
+  border-radius: 16px;
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
   box-shadow: var(--glass-shadow);
@@ -1964,32 +1987,103 @@ header.topbar .btn:hover {
   box-shadow: 0 10px 24px rgba(13, 94, 168, 0.16);
   border-color: rgba(74, 159, 224, 0.35);
 }
-.presentation-row-icon {
+
+/* Sunum satirinin kucuk daire ikonu yerine, gercek kapak slaydinin (agsi
+   dunya deseni) minyatur bir onizlemesi - liste artik bos/tek renkli
+   rozetler yerine gercek icerigi cagristiran, daha "dolu" bir gorunum
+   kazaniyor. */
+.presentation-row-thumb {
+  position: relative;
   flex: none;
-  width: 36px;
-  height: 36px;
+  width: 96px;
+  height: 60px;
+  border-radius: 10px;
+  overflow: hidden;
+  background-size: cover;
+  background-position: center;
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
+  display: flex;
+  align-items: flex-end;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.presentation-row:hover .presentation-row-thumb {
+  transform: scale(1.04);
+  box-shadow: 0 4px 16px rgba(74, 159, 224, 0.3);
+}
+.presentation-row-thumb::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(11, 22, 38, 0) 40%, rgba(9, 18, 32, 0.82) 100%);
+}
+.presentation-row-thumb-badge {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  z-index: 1;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   color: #fff;
   background: linear-gradient(135deg, var(--aksa-blue), var(--aksa-blue-light));
-  box-shadow: 0 0 12px rgba(74, 159, 224, 0.5);
+  box-shadow: 0 0 8px rgba(74, 159, 224, 0.6);
 }
+.presentation-row-thumb-label {
+  position: relative;
+  z-index: 1;
+  padding: 5px 8px;
+  font-size: 11.5px;
+  font-weight: 800;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
 .presentation-row-main {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
   min-width: 0;
+  flex: 1;
 }
 .presentation-row-sprint {
-  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
   font-weight: 800;
   color: var(--ink);
 }
+.presentation-row-version-pill {
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--aksa-blue);
+  background: rgba(13, 94, 168, 0.1);
+}
+.theme-dark .presentation-row-version-pill {
+  color: var(--aksa-blue-light);
+  background: rgba(74, 159, 224, 0.16);
+}
 .presentation-row-meta {
-  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
   color: var(--mut);
+}
+.presentation-row-meta svg {
+  flex: none;
+  color: var(--aksa-blue-light);
+  opacity: 0.85;
+}
+.presentation-row-meta-sub {
+  font-size: 11.5px;
+  opacity: 0.85;
 }
 .presentation-row-actions {
   display: flex;
@@ -2028,4 +2122,304 @@ header.topbar .btn:hover {
 }
 .version-history-row .presentation-row-meta {
   flex: 1;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Ortak Sunum (/ortak-sunum) sayfasi                                      */
+/* ---------------------------------------------------------------------- */
+/* Genel "main{display:grid; grid-template-columns:...}" kurali (bkz. app.css)
+   sihirbaz sayfasinin iki sutunlu (form|onizleme) duzeni icindi - bu sayfada
+   <main> etiketi ayni kurala takilip takim kartlarini yanlislikla iki
+   sutuna bolüyordu. Kendi duzenini kendisi belirler. */
+.joint-presentation-page {
+  display: block;
+}
+.joint-team-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(460px, 1fr));
+  gap: 20px;
+  align-items: start;
+}
+
+.joint-filter-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.joint-filter-title-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  border-radius: 50%;
+  color: #fff;
+  background: linear-gradient(135deg, var(--aksa-blue), var(--aksa-blue-light));
+  box-shadow: 0 0 10px rgba(74, 159, 224, 0.45);
+}
+
+/* KPI kutucuklari - sayfanin ustunde 4 sabit renkli ozet rakam (takim/secili/
+   madde/hazir sunum sayisi). Renkler birbirinden bagimsiz kucuk widget'lar
+   oldugu icin (tek bir grafikte karsilastirilan kategoriler degil) her biri
+   kendi sabit rengini tasir. */
+.joint-kpi-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 14px;
+  margin-bottom: 18px;
+}
+.joint-kpi-tile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+}
+.joint-kpi-icon {
+  flex: none;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+}
+.joint-kpi-blue .joint-kpi-icon { background: linear-gradient(135deg, var(--aksa-blue), var(--aksa-blue-light)); box-shadow: 0 0 10px rgba(74, 159, 224, 0.4); }
+.joint-kpi-green .joint-kpi-icon { background: linear-gradient(135deg, #16a34a, #4ade80); box-shadow: 0 0 10px rgba(22, 163, 74, 0.35); }
+.joint-kpi-purple .joint-kpi-icon { background: linear-gradient(135deg, #7c3aed, #a78bfa); box-shadow: 0 0 10px rgba(124, 58, 237, 0.35); }
+.joint-kpi-amber .joint-kpi-icon { background: linear-gradient(135deg, #e0761f, #f59e0b); box-shadow: 0 0 10px rgba(224, 118, 31, 0.35); }
+.joint-kpi-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.joint-kpi-value {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--ink);
+  line-height: 1.1;
+}
+.joint-kpi-label {
+  font-size: 11.5px;
+  color: var(--mut);
+  font-weight: 600;
+}
+
+/* Takim secim kartlari - eskiden basit checkbox+chip, simdi takima ozgu
+   renkli avatar + secildiginde belirginlesen check rozeti tasiyan kart
+   dugmeler (DAV_COLORS, admin takim listesiyle ayni renk dilini paylasir). */
+.joint-team-select-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.joint-team-select-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 7px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg);
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+.joint-team-select-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--team-accent, #0d5ea8) 20%, transparent);
+}
+.joint-team-select-card.checked {
+  border-color: var(--team-accent, var(--teal2));
+  background: color-mix(in srgb, var(--team-accent, transparent) 10%, var(--glass-bg));
+  box-shadow: 0 0 0 1px var(--team-accent, transparent) inset;
+}
+.joint-team-select-check {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 800;
+  color: #fff;
+  background: var(--team-accent, var(--teal2));
+  opacity: 0;
+  transform: scale(0.7);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+.joint-team-select-card.checked .joint-team-select-check {
+  opacity: 1;
+  transform: scale(1);
+}
+.joint-team-select-av {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+}
+.joint-team-select-name {
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.25;
+  color: var(--ink);
+}
+.joint-team-select-sub {
+  font-size: 12px;
+  color: var(--mut);
+}
+
+/* Sonuc kartlari - takima ozgu renkli avatar rozeti + ust kenarlikta ince
+   bir aksan cizgisi, hover'da o renge dogru hafif parlama. */
+.joint-team-card {
+  border-top: 3px solid var(--team-accent, var(--glass-border));
+}
+.joint-team-card:hover {
+  box-shadow: 0 12px 28px color-mix(in srgb, var(--team-accent, #0d5ea8) 22%, transparent);
+}
+.joint-team-card-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.joint-team-card-av {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18), 0 0 0 3px color-mix(in srgb, var(--team-accent, #0d5ea8) 30%, transparent);
+}
+
+/* Duzenlenebilir / salt-okunur rozetleri - eskiden duz renkli metin,
+   simdi diger sayfalardaki pill-rozet dilini (bkz. admin-team-item-type)
+   izliyor. */
+.joint-badge {
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+.joint-badge-edit {
+  color: var(--aksa-green-dark, #15803d);
+  background: rgba(22, 163, 74, 0.12);
+}
+.theme-dark .joint-badge-edit {
+  color: #4ade80;
+  background: rgba(74, 222, 128, 0.16);
+}
+.joint-badge-readonly {
+  color: var(--mut);
+  background: rgba(148, 163, 184, 0.16);
+}
+
+/* Coklu takim izgarasindaki mini slaytlar - tiklaninca/hover'da "büyüt"
+   ipucuyla o tek takimin sunumunu ZoomModal'da tam boy acar (bkz.
+   JointPresentationPage). Slaydin kendi CSS'i (PPTX ile birebir ayni
+   kalmasi gereken) degismiyor - sadece disaridan bir buyutme davranisi
+   ekleniyor. */
+.joint-mini-slidebox.zoomable {
+  position: relative;
+  cursor: zoom-in;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.joint-mini-slidebox.zoomable:hover,
+.joint-mini-slidebox.zoomable:focus-visible {
+  transform: scale(1.015);
+  box-shadow: 0 10px 26px rgba(13, 94, 168, 0.22);
+  outline: none;
+}
+.joint-mini-slidebox-hint {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  background: rgba(13, 30, 51, 0.72);
+  backdrop-filter: blur(4px);
+  opacity: 0;
+  transform: translateY(-2px);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  pointer-events: none;
+}
+.joint-mini-slidebox.zoomable:hover .joint-mini-slidebox-hint,
+.joint-mini-slidebox.zoomable:focus-visible .joint-mini-slidebox-hint {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Sonuc kartinin ozet sutunu - tamamlanma halkasi + bolum bazli madde
+   sayilari. Halkanin kendi rengi takima ozgu (--team-accent), altindaki
+   dagilim satirlari ise uygulamada zaten yerlesmis bolum renkleriyle
+   (bkz. app.css .sec.done/.active/.risk/.pending) ayni paleti kullanir. */
+.joint-summary {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 auto;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+}
+.joint-ring-label {
+  font-size: 13px;
+  font-weight: 800;
+  fill: var(--ink);
+}
+.joint-summary-caption {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--mut);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-top: 2px;
+}
+.joint-summary-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 6px;
+  align-items: flex-start;
+}
+.joint-summary-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: var(--ink);
+  white-space: nowrap;
+}
+.joint-summary-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex: none;
 }

@@ -1,24 +1,84 @@
 import { useEffect, useState } from "react";
 import TopBar from "./TopBar";
 import Button from "./Button";
+import ZoomModal from "./ZoomModal";
 import SectionEditor from "../sprint/SectionEditor";
 import SlideCanvas from "../sprint/SlideCanvas";
 import DashboardSlideCanvas from "../dashboard/DashboardSlideCanvas";
+import { IconUsers, IconCheckCircle, IconLayers, IconDownload } from "./icons";
 import { fetchTeams, fetchLatestPresentationsByTeams, savePresentation, recordPresentationDownload } from "../../lib/apiClient";
 import { sprintDataFromContent } from "../../lib/presentationContent";
 import { buildJointDeck } from "../../lib/jointDeckBuilder";
-import { sectionDefs, SECTION_KEYS } from "../../lib/geometry";
+import { sectionDefs, SECTION_KEYS, linesOf } from "../../lib/geometry";
 import { ASSETS } from "../../assets/pptxAssets";
 import { resolveIsAdmin } from "../../lib/teamTypes";
+import { DAV_COLORS } from "../../lib/format";
 import { useCanvasFit } from "../../hooks/useCanvasFit";
 
-/** Tek bir salt-okunur mini slayt kutusu - .slidebox ile ayni olceklendirme mantigini (useCanvasFit) kullanir. */
-function MiniSlideBox({ width = 420, children }) {
+/**
+ * Tek bir salt-okunur mini slayt kutusu - .slidebox ile ayni olceklendirme
+ * mantigini (useCanvasFit) kullanir. onZoom verilirse tiklaninca/hover'da
+ * "büyüt" ipucuyla o takimin sunumunu tam boy modalda acar - coklu takim
+ * gorunumunde her birini teker teker, buyultulmus incelemek icin.
+ */
+function MiniSlideBox({ width = 420, children, onZoom }) {
   const { boxRef, scale } = useCanvasFit();
   return (
-    <div className="slidebox" ref={boxRef} style={{ width, flex: "0 0 auto" }}>
+    <div
+      className={`slidebox joint-mini-slidebox${onZoom ? " zoomable" : ""}`}
+      ref={boxRef}
+      style={{ width, flex: "0 0 auto" }}
+      onClick={onZoom}
+      role={onZoom ? "button" : undefined}
+      tabIndex={onZoom ? 0 : undefined}
+    >
       {children(scale)}
+      {onZoom && <span className="joint-mini-slidebox-hint">⤢ Büyüt</span>}
     </div>
+  );
+}
+
+/** Bir sunumun icerik bolumlerindeki (Tamamlanan/Yapilacak/Riskler/Bekleyen) madde sayilari. */
+function sectionCounts(content) {
+  const counts = {};
+  SECTION_KEYS.forEach((k) => {
+    counts[k] = linesOf(content?.sections?.[k] || "").length;
+  });
+  return counts;
+}
+
+const SECTION_LABELS = { done: "Tamamlandı", active: "Devam Ediyor", risk: "Risk", pending: "Bekleyen" };
+const SECTION_COLORS = { done: "var(--green)", active: "var(--blue)", risk: "var(--amber)", pending: "var(--purple)" };
+
+/**
+ * Tek bir sunumun "Tamamlanan / (Tamamlanan+Yapilacak+Risk+Bekleyen)" oranini
+ * gosteren ince halka - coklu takim karsilastirmasi degil, TEK bir sunumun
+ * kendi ozet metriği oldugu icin takimin kendi rengini tasir (bkz. --team-accent).
+ */
+function CompletionRing({ counts, accent, size = 64, stroke = 6 }) {
+  const total = SECTION_KEYS.reduce((s, k) => s + counts[k], 0);
+  const pct = total > 0 ? Math.round((counts.done / total) * 100) : 0;
+  const r = (size - stroke) / 2;
+  const c = 2 * Math.PI * r;
+  const dash = (pct / 100) * c;
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="joint-ring" role="img" aria-label={`Tamamlanma oranı yüzde ${pct}`}>
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--glass-border)" strokeWidth={stroke} />
+      <circle
+        cx={size / 2}
+        cy={size / 2}
+        r={r}
+        fill="none"
+        stroke={accent}
+        strokeWidth={stroke}
+        strokeLinecap="round"
+        strokeDasharray={`${dash} ${c}`}
+        transform={`rotate(-90 ${size / 2} ${size / 2})`}
+      />
+      <text x="50%" y="50%" textAnchor="middle" dominantBaseline="central" className="joint-ring-label">
+        %{pct}
+      </text>
+    </svg>
   );
 }
 
@@ -51,6 +111,14 @@ export default function JointPresentationPage({ personnel, theme, onToggleTheme 
   const [error, setError] = useState(null);
   const [exporting, setExporting] = useState(false);
   const [editingTeamId, setEditingTeamId] = useState(null);
+  // Coklu takim ızgarasinda bir takimin sunumunu tek basina, buyultulmus
+  // incelemek icin - { teamId, tab } | null. tab, hangi mini-slide'a
+  // tiklandiysa onunla baslar, modal icinde sekmeler arasi gecilebilir.
+  const [zoom, setZoom] = useState(null);
+  const zoomResult = zoom ? results?.find((r) => r.teamId === zoom.teamId) : null;
+  const zoomTabs = zoomResult
+    ? [{ key: "content", label: "İçerik Slaytı" }, ...(zoomResult.dashData?.kpis ? [{ key: "dashboard", label: "Kapasite Dashboard" }] : [])]
+    : null;
   const [editedSections, setEditedSections] = useState({}); // { [teamId]: { done, active, risk, pending } }
   const [saveStatus, setSaveStatus] = useState({}); // { [teamId]: { loading, error } }
 
@@ -171,6 +239,10 @@ export default function JointPresentationPage({ personnel, theme, onToggleTheme 
     }
   };
 
+  const totalItems = results
+    ? results.reduce((sum, r) => sum + SECTION_KEYS.reduce((s, k) => s + sectionCounts(r.content)[k], 0), 0)
+    : null;
+
   return (
     <>
       <TopBar theme={theme} onToggleTheme={onToggleTheme} personnel={personnel} />
@@ -181,28 +253,76 @@ export default function JointPresentationPage({ personnel, theme, onToggleTheme 
           Sadece kendi takımınızın (adminseniz tüm takımların) sayfalarını buradan düzenleyebilirsiniz.
         </div>
 
-        <div className="bandpanel" style={{ marginBottom: 16 }}>
-          <div className="bandtoggle" style={{ cursor: "default" }}>Takımlar</div>
+        <div className="joint-kpi-row">
+          <div className="joint-kpi-tile joint-kpi-blue">
+            <span className="joint-kpi-icon"><IconUsers style={{ width: 18, height: 18 }} /></span>
+            <div className="joint-kpi-text">
+              <span className="joint-kpi-value">{teams.length}</span>
+              <span className="joint-kpi-label">Toplam Takım</span>
+            </div>
+          </div>
+          <div className="joint-kpi-tile joint-kpi-green">
+            <span className="joint-kpi-icon"><IconCheckCircle style={{ width: 18, height: 18 }} /></span>
+            <div className="joint-kpi-text">
+              <span className="joint-kpi-value">{selectedIds.size}</span>
+              <span className="joint-kpi-label">Seçili Takım</span>
+            </div>
+          </div>
+          <div className="joint-kpi-tile joint-kpi-purple">
+            <span className="joint-kpi-icon"><IconLayers style={{ width: 18, height: 18 }} /></span>
+            <div className="joint-kpi-text">
+              <span className="joint-kpi-value">{totalItems ?? "—"}</span>
+              <span className="joint-kpi-label">Toplam Madde</span>
+            </div>
+          </div>
+          <div className="joint-kpi-tile joint-kpi-amber">
+            <span className="joint-kpi-icon"><IconDownload style={{ width: 18, height: 18 }} /></span>
+            <div className="joint-kpi-text">
+              <span className="joint-kpi-value">{results?.length ?? 0}</span>
+              <span className="joint-kpi-label">Hazır Sunum</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="bandpanel joint-filter-panel" style={{ marginBottom: 16 }}>
+          <div className="bandtoggle joint-filter-title" style={{ cursor: "default" }}>
+            <span className="joint-filter-title-badge">
+              <IconUsers style={{ width: 14, height: 14 }} />
+            </span>
+            Takımlar
+          </div>
           {teamsLoading && <div className="mhint">Yükleniyor…</div>}
           {teamsError && <div className="login-error">{teamsError}</div>}
           {!teamsLoading && !teamsError && (
             <>
-              <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, fontWeight: 600 }}>
+              <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12, fontWeight: 600 }}>
                 <input type="checkbox" checked={selectedIds.size === teams.length && teams.length > 0} onChange={toggleAll} />
                 Tüm takımları seç
               </label>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
-                {teams.map((t) => (
-                  <label key={t.id} className="chip" style={{ cursor: "pointer" }}>
-                    <input
-                      type="checkbox"
-                      checked={selectedIds.has(t.id)}
-                      onChange={() => toggleTeam(t.id)}
-                      style={{ marginRight: 6 }}
-                    />
-                    {t.name}
-                  </label>
-                ))}
+              <div className="joint-team-select-grid">
+                {teams.map((t, i) => {
+                  const accent = "#" + DAV_COLORS[i % DAV_COLORS.length];
+                  const checked = selectedIds.has(t.id);
+                  const r = results?.find((x) => x.teamId === t.id);
+                  const itemCount = r ? SECTION_KEYS.reduce((s, k) => s + sectionCounts(r.content)[k], 0) : null;
+                  return (
+                    <button
+                      type="button"
+                      key={t.id}
+                      className={`joint-team-select-card${checked ? " checked" : ""}`}
+                      style={{ "--team-accent": accent }}
+                      onClick={() => toggleTeam(t.id)}
+                      aria-pressed={checked}
+                    >
+                      <span className="joint-team-select-check" aria-hidden="true">✓</span>
+                      <span className="joint-team-select-av" style={{ background: accent }}>
+                        {(t.name || "?").slice(0, 2).toUpperCase()}
+                      </span>
+                      <span className="joint-team-select-name">{t.name}</span>
+                      <span className="joint-team-select-sub">{itemCount != null ? `${itemCount} madde` : "Önizlemede güncellenir"}</span>
+                    </button>
+                  );
+                })}
               </div>
               <div style={{ display: "flex", gap: 10 }}>
                 <Button variant="primary" loading={loading} loadingLabel="Getiriliyor…" onClick={handleFetch}>
@@ -222,67 +342,107 @@ export default function JointPresentationPage({ personnel, theme, onToggleTheme 
 
         {results && results.length === 0 && <div className="presentation-list-empty">Seçilen takımların kayıtlı sunumu bulunamadı.</div>}
 
-        {results?.map((r) => {
-          const status = saveStatus[r.teamId];
-          const isEditing = editingTeamId === r.teamId;
-          return (
-            <div key={r.teamId} className="sec" style={{ marginBottom: 18 }}>
-              <div className="head" style={{ justifyContent: "space-between" }}>
-                <span className="t">{r.teamName}</span>
-                <span className="tools" style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  {r.canEdit ? (
-                    <span style={{ color: "var(--teal2)", fontSize: 12, fontWeight: 700 }}>Düzenlenebilir</span>
-                  ) : (
-                    <span style={{ color: "var(--mut)", fontSize: 12, fontWeight: 700 }}>🔒 Salt okunur</span>
-                  )}
-                  {r.canEdit && !isEditing && (
-                    <button type="button" className="addbar" onClick={() => startEdit(r)}>
-                      Düzenle
-                    </button>
-                  )}
-                  {r.canEdit && isEditing && (
-                    <>
-                      <Button variant="primary" loading={status?.loading} loadingLabel="Kaydediliyor…" onClick={() => handleSaveTeam(r)}>
-                        Kaydet
-                      </Button>
-                      <button type="button" className="delbar" onClick={() => setEditingTeamId(null)}>
-                        Vazgeç
+        <div className="joint-team-grid">
+          {results?.map((r) => {
+            const status = saveStatus[r.teamId];
+            const isEditing = editingTeamId === r.teamId;
+            const idx = teams.findIndex((t) => t.id === r.teamId);
+            const accent = "#" + DAV_COLORS[(idx < 0 ? 0 : idx) % DAV_COLORS.length];
+            return (
+              <div key={r.teamId} className="sec joint-team-card" style={{ "--team-accent": accent }}>
+                <div className="head" style={{ justifyContent: "space-between" }}>
+                  <span className="joint-team-card-title">
+                    <span className="joint-team-card-av" style={{ background: accent }}>
+                      {(r.teamName || "?").slice(0, 2).toUpperCase()}
+                    </span>
+                    <span className="t">{r.teamName}</span>
+                  </span>
+                  <span className="tools" style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    {r.canEdit ? (
+                      <span className="joint-badge joint-badge-edit">Düzenlenebilir</span>
+                    ) : (
+                      <span className="joint-badge joint-badge-readonly">🔒 Salt okunur</span>
+                    )}
+                    {r.canEdit && !isEditing && (
+                      <button type="button" className="addbar" onClick={() => startEdit(r)}>
+                        Düzenle
                       </button>
-                    </>
-                  )}
-                </span>
-              </div>
-              {status?.error && <div className="login-error" style={{ margin: "8px 0" }}>{status.error}</div>}
+                    )}
+                    {r.canEdit && isEditing && (
+                      <>
+                        <Button variant="primary" loading={status?.loading} loadingLabel="Kaydediliyor…" onClick={() => handleSaveTeam(r)}>
+                          Kaydet
+                        </Button>
+                        <button type="button" className="delbar" onClick={() => setEditingTeamId(null)}>
+                          Vazgeç
+                        </button>
+                      </>
+                    )}
+                  </span>
+                </div>
+                {status?.error && <div className="login-error" style={{ margin: "8px 0" }}>{status.error}</div>}
 
-              {isEditing ? (
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 10 }}>
-                  {SECTION_KEYS.map((key) => (
-                    <SectionEditor
-                      key={key}
-                      sectionKey={key}
-                      def={SEC[key]}
-                      text={editedSections[r.teamId]?.[key] || ""}
-                      onTextChange={(text) => handleSectionChange(r.teamId, key, text)}
-                      count={(editedSections[r.teamId]?.[key] || "").split("\n").filter((l) => l.trim()).length}
-                      chips={[]}
-                      onChipUse={(line) => handleSectionAppend(r.teamId, key, line)}
-                      onExpand={() => {}}
-                      teamType={r.content.teamType}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 10 }}>
-                  <MiniSlideBox>{(scale) => <SlideCanvas data={r.sprintData} tab="content" assets={assets} scale={scale} />}</MiniSlideBox>
-                  {r.dashData?.kpis && (
-                    <MiniSlideBox>{(scale) => <DashboardSlideCanvas dd={r.dashData} assets={assets} scale={scale} />}</MiniSlideBox>
-                  )}
-                </div>
-              )}
-            </div>
-          );
-        })}
+                {isEditing ? (
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 10 }}>
+                    {SECTION_KEYS.map((key) => (
+                      <SectionEditor
+                        key={key}
+                        sectionKey={key}
+                        def={SEC[key]}
+                        text={editedSections[r.teamId]?.[key] || ""}
+                        onTextChange={(text) => handleSectionChange(r.teamId, key, text)}
+                        count={(editedSections[r.teamId]?.[key] || "").split("\n").filter((l) => l.trim()).length}
+                        chips={[]}
+                        onChipUse={(line) => handleSectionAppend(r.teamId, key, line)}
+                        onExpand={() => {}}
+                        teamType={r.content.teamType}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 10 }}>
+                    <div className="joint-summary">
+                      <CompletionRing counts={sectionCounts(r.content)} accent={accent} />
+                      <span className="joint-summary-caption">Tamamlanma Oranı</span>
+                      <div className="joint-summary-breakdown">
+                        {["done", "active"].map((key) => (
+                          <span key={key} className="joint-summary-row">
+                            <span className="joint-summary-dot" style={{ background: SECTION_COLORS[key] }} />
+                            {sectionCounts(r.content)[key]} {SECTION_LABELS[key]}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    <MiniSlideBox onZoom={() => setZoom({ teamId: r.teamId, tab: "content" })}>
+                      {(scale) => <SlideCanvas data={r.sprintData} tab="content" assets={assets} scale={scale} />}
+                    </MiniSlideBox>
+                    {r.dashData?.kpis && (
+                      <MiniSlideBox onZoom={() => setZoom({ teamId: r.teamId, tab: "dashboard" })}>
+                        {(scale) => <DashboardSlideCanvas dd={r.dashData} assets={assets} scale={scale} />}
+                      </MiniSlideBox>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </main>
+
+      <ZoomModal
+        open={!!zoom}
+        onClose={() => setZoom(null)}
+        tabs={zoomTabs}
+        activeTab={zoom?.tab}
+        onTabChange={(tab) => setZoom((z) => (z ? { ...z, tab } : z))}
+        renderCanvas={(scale) =>
+          zoom?.tab === "dashboard" ? (
+            <DashboardSlideCanvas dd={zoomResult?.dashData || {}} assets={assets} scale={scale} />
+          ) : (
+            <SlideCanvas data={zoomResult?.sprintData} tab="content" assets={assets} scale={scale} />
+          )
+        }
+      />
     </>
   );
 }
