@@ -59,7 +59,6 @@
 }
 
 .theme-dark .stage,
-.theme-dark .modal .box,
 .theme-dark .zoombox,
 .theme-dark .bandpanel,
 .theme-dark .meta,
@@ -610,13 +609,31 @@ body {
 .stage,
 .bandpanel,
 .meta,
-.modal .box,
 .zoombox {
   background: var(--glass-bg) !important;
   backdrop-filter: blur(16px) saturate(140%);
   -webkit-backdrop-filter: blur(16px) saturate(140%);
   border: 1px solid var(--glass-border) !important;
   box-shadow: var(--glass-shadow);
+}
+
+/* Modal kutusu digger "glass" panellerden (sec/stage/bandpanel/meta/zoombox)
+   FARKLI olarak kendi sayfa gradyaninin UZERINDE degil, karanlik bir backdrop
+   UZERINDE oturuyor - ayni %62 saydamlikta cam arka plan (yukaridaki paylasilan
+   kural, !important ile) metni okunmaz hale getiriyordu (bkz. kullanici
+   bildirimi). Neredeyse tam opak (sadece hafif cam hissi icin ~%97) bir arka
+   plan kullanilir - hem acik hem koyu temada.
+ */
+.modal .box {
+  background: rgba(255, 255, 255, 0.97) !important;
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  border: 1px solid var(--glass-border) !important;
+  box-shadow: var(--glass-shadow);
+}
+.theme-dark .modal .box {
+  background: rgba(28, 39, 51, 0.97) !important;
+  border-color: var(--line);
 }
 
 .pmrow,

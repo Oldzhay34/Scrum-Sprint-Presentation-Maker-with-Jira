@@ -9,4 +9,6 @@ public interface PresentationVersionJpaRepository extends JpaRepository<Presenta
     List<PresentationVersionJpaEntity> findByPresentationIdOrderByVersionDesc(Long presentationId);
 
     Optional<PresentationVersionJpaEntity> findByPresentationIdAndVersion(Long presentationId, int version);
+
+    void deleteByPresentationIdAndVersionGreaterThan(Long presentationId, int version);
 }

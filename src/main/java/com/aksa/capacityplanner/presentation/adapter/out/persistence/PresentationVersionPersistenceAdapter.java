@@ -33,6 +33,11 @@ public class PresentationVersionPersistenceAdapter implements PresentationVersio
         return jpaRepository.findByPresentationIdAndVersion(presentationId, version).map(this::toDomain);
     }
 
+    @Override
+    public void deleteByPresentationIdAndVersionGreaterThan(Long presentationId, int version) {
+        jpaRepository.deleteByPresentationIdAndVersionGreaterThan(presentationId, version);
+    }
+
     private PresentationVersionJpaEntity toEntity(PresentationVersion version) {
         PresentationVersionJpaEntity entity = new PresentationVersionJpaEntity();
         entity.setId(version.getId());

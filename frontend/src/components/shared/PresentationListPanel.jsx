@@ -6,9 +6,10 @@ import ZoomModal from "./ZoomModal";
 import UnifiedPreviewPane from "./UnifiedPreviewPane";
 import SlideCanvas from "../sprint/SlideCanvas";
 import DashboardSlideCanvas from "../dashboard/DashboardSlideCanvas";
-import { IconPresentation, IconHistory, IconEdit, IconCalendar } from "./icons";
-import { fetchPresentations, fetchPresentation, fetchPresentationVersions, rollbackPresentation } from "../../lib/apiClient";
+import { IconPresentation, IconHistory, IconEdit, IconCalendar, IconDownload } from "./icons";
+import { fetchPresentations, fetchPresentation, fetchPresentationVersions, rollbackPresentation, recordPresentationDownload } from "../../lib/apiClient";
 import { sprintDataFromContent } from "../../lib/presentationContent";
+import { buildFullDeck } from "../../lib/fullDeckBuilder";
 import { ASSETS } from "../../assets/pptxAssets";
 
 function formatDateTime(iso) {
@@ -40,22 +41,31 @@ export default function PresentationListPanel({ teamId, teamName, canManage, sho
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewTab, setPreviewTab] = useState("cover");
   const [zoomOpen, setZoomOpen] = useState(false);
+  const [downloadingId, setDownloadingId] = useState(null);
+  // Onizleme icerigi useEffect'i sadece selectedId degisince tetiklenir -
+  // rollback SONRASI ayni sunum secili kalirsa (id degismez, sadece icerigi
+  // degisir) bu effect tetiklenmez ve onizleme ESKI (rollback oncesi)
+  // icerigi gostermeye devam ederdi. Bu sayac, id ayni kalsa bile "yeniden
+  // getir" sinyali vermek icin kullanilir (bkz. onRolledBack).
+  const [previewRefreshKey, setPreviewRefreshKey] = useState(0);
 
-  const reload = () => {
+  const reload = (keepSelectedId) => {
     if (!teamId) return;
     setLoading(true);
     setError(null);
-    setSelectedId(null);
+    if (!keepSelectedId) setSelectedId(null);
     fetchPresentations(teamId)
       .then(setPresentations)
       .catch((err) => setError(err?.message || "Sunumlar yüklenemedi."))
       .finally(() => setLoading(false));
   };
 
-  useEffect(reload, [teamId]);
+  useEffect(() => reload(false), [teamId]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
 
   // Liste yuklenince (veya takim degisince) ilk sunum otomatik secilir -
   // kullanici hemen bir onizleme gorsun, ayrica tiklamak zorunda kalmasin.
+  // Secili sunum listede hala varsa (orn. rollback sonrasi ayni id) DOKUNULMAZ.
   useEffect(() => {
     if (presentations.length > 0 && !presentations.some((p) => p.id === selectedId)) {
       setSelectedId(presentations[0].id);
@@ -77,10 +87,35 @@ export default function PresentationListPanel({ teamId, teamName, canManage, sho
       .then((p) => setPreviewContent(p.content || {}))
       .catch(() => setPreviewContent(null))
       .finally(() => setPreviewLoading(false));
-  }, [selectedId]);
+  }, [selectedId, previewRefreshKey]);
 
   const previewSprintData = previewContent ? sprintDataFromContent(previewContent) : null;
   const previewDashData = previewContent?.dashData || null;
+
+  // Liste satirindan dogrudan PPTX indirme - editoru acmadan, o sunumun
+  // KAYITLI (son kaydedilmis) icerigini indirir. handleGenerateFullDeck
+  // (App.jsx) ile ayni kural: kapasite dashboard verisi (kpis) olmadan
+  // slayt uretilemez, buildFullDeck bunu kontrol etmiyor (bkz. kod yorumu).
+  const handleDownloadPptx = async (p) => {
+    setDownloadingId(p.id);
+    try {
+      const full = await fetchPresentation(p.id);
+      const content = full.content || {};
+      const dashData = content.dashData || {};
+      if (!dashData.kpis) {
+        throw new Error("Bu sunumda kapasite dashboard verisi yok, PPTX indirilemedi.");
+      }
+      const sprintData = sprintDataFromContent(content);
+      const pptx = buildFullDeck(sprintData, dashData, ASSETS, "light");
+      const sp = (p.sprintNo || "X").toString().replace(/[^\w]/g, "");
+      await pptx.writeFile({ fileName: `Sprint_Kapasite_${sp}.pptx` });
+      recordPresentationDownload("INDIVIDUAL", [teamId]).catch(() => {});
+    } catch (err) {
+      setError(err?.message || "PPTX indirilemedi.");
+    } finally {
+      setDownloadingId(null);
+    }
+  };
 
   return (
     <div className="presentation-panel-layout">
@@ -138,6 +173,15 @@ export default function PresentationListPanel({ teamId, teamName, canManage, sho
                   <IconEdit style={{ width: 15, height: 15 }} />
                   Düzenle
                 </Button>
+                <Button
+                  variant="soft"
+                  loading={downloadingId === p.id}
+                  loadingLabel="Hazırlanıyor…"
+                  onClick={() => handleDownloadPptx(p)}
+                >
+                  <IconDownload style={{ width: 15, height: 15 }} />
+                  PPTX İndir
+                </Button>
               </div>
             </div>
           ))}
@@ -150,7 +194,11 @@ export default function PresentationListPanel({ teamId, teamName, canManage, sho
           onClose={() => setHistoryFor(null)}
           onRolledBack={() => {
             setHistoryFor(null);
-            reload();
+            // Ayni sunum (id degismez) secili KALIR - sadece listedeki
+            // v/tarih etiketi ve onizleme icerigi tazelenir, kullanici
+            // rollback yaptigi satirdan koparilmaz.
+            reload(true);
+            setPreviewRefreshKey((k) => k + 1);
           }}
         />
       </div>
@@ -218,7 +266,12 @@ function VersionHistoryModal({ open, presentation, canRollback, onClose, onRolle
   const currentVersion = versions.length ? Math.max(...versions.map((v) => v.version)) : null;
 
   const handleRollback = async (version) => {
-    if (!window.confirm(`Sürüm ${version}'e dönülsün mü? Bu, mevcut içeriğin üzerine yeni bir sürüm olarak yazılır.`)) return;
+    if (
+      !window.confirm(
+        `Sürüm ${version}'e dönülsün mü?\n\nBu işlem GERİ ALINAMAZ: sürüm ${version}'den sonraki tüm sürümler kalıcı olarak silinecek, güncel sürüm tekrar v${version} olacak.`
+      )
+    )
+      return;
     setRollingBackVersion(version);
     try {
       await rollbackPresentation(presentation.id, version);
@@ -259,7 +312,7 @@ function VersionHistoryModal({ open, presentation, canRollback, onClose, onRolle
           </div>
         ))}
       </div>
-      <Button variant="ghost" onClick={onClose} style={{ marginTop: 14 }}>
+      <Button variant="ghost" onClick={onClose} style={{ marginTop: 14, color: "#B91C1C" }}>
         Kapat
       </Button>
     </Modal>

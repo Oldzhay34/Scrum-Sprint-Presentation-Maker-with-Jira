@@ -11,4 +11,7 @@ public interface PresentationVersionRepositoryPort {
     List<PresentationVersion> findByPresentationId(Long presentationId);
 
     Optional<PresentationVersion> findByPresentationIdAndVersion(Long presentationId, int version);
+
+    /** Bir versiyonun SONRASINDAKI tum surum kayitlarini siler - gercek "geri sarma" rollback'i icin. */
+    void deleteByPresentationIdAndVersionGreaterThan(Long presentationId, int version);
 }

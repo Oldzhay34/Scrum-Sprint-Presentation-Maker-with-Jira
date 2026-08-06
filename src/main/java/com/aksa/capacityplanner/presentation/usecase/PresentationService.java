@@ -80,6 +80,13 @@ public class PresentationService implements PresentationUseCase {
         return versionRepository.findByPresentationId(presentationId);
     }
 
+    /**
+     * GERCEK geri sarma: hedef versiyonu YENI bir surum olarak head'e EKLEMEZ
+     * (onceki davranis buydu) - bunun yerine head'in kendisini hedef versiyonun
+     * icerigine/numarasina DUSURUR ve hedeften SONRAKI tum surum kayitlarini
+     * SILER. "v6'ya donunce v6 yazsin, v7+ kalici olarak gitsin" (bkz. kullanici
+     * bildirimi) - versiyon gecmisi bu noktadan sonra KISALIR, geri alinamaz.
+     */
     @Override
     @Transactional
     public SprintPresentation rollback(Long presentationId, int version, String updatedBySicil) {
@@ -87,8 +94,13 @@ public class PresentationService implements PresentationUseCase {
         PresentationVersion target = versionRepository.findByPresentationIdAndVersion(presentationId, version)
                 .orElseThrow(() -> new NotFoundException("Versiyon bulunamadi: presentationId=" + presentationId + ", version=" + version));
 
-        return upsert(presentation.getTeamId(), presentation.getSprintNo(), presentation.getDateRange(),
-                target.getContent(), updatedBySicil);
+        presentation.setContent(target.getContent());
+        presentation.setCurrentVersion(version);
+        presentation.setUpdatedBy(updatedBySicil);
+        SprintPresentation saved = presentationRepository.save(presentation);
+
+        versionRepository.deleteByPresentationIdAndVersionGreaterThan(presentationId, version);
+        return saved;
     }
 
     @Override
