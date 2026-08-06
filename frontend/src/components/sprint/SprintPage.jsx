@@ -2,6 +2,7 @@ import { SECTION_KEYS, sectionDefs } from "../../lib/geometry";
 import BandEditorPanel from "./BandEditorPanel";
 import SectionEditor from "./SectionEditor";
 import ErrorBanner from "../shared/ErrorBanner";
+import { hasFteTracking } from "../../lib/teamTypes";
 
 const SECTION_TITLES_TR = {
   done: "İçerik — her satır bir madde",
@@ -17,7 +18,7 @@ export default function SprintPage({ form, band, excel, assets, onExpandSection 
   return (
     <section>
       {excel.info && <div className="excelinfo" style={{ marginBottom: 10 }}>{excel.info}</div>}
-      <BandEditorPanel band={band} />
+      <BandEditorPanel band={band} hasFte={hasFteTracking(form.teamType)} />
       <p className="panelttl">{SECTION_TITLES_TR.done}</p>
       {excel.error && <ErrorBanner error={excel.error} onDismiss={() => {}} />}
       {SECTION_KEYS.map((key) => (
@@ -34,6 +35,7 @@ export default function SprintPage({ form, band, excel, assets, onExpandSection 
             excel.removeSuggestion(key, text);
           }}
           onExpand={() => onExpandSection(key)}
+          teamType={form.teamType}
         />
       ))}
     </section>

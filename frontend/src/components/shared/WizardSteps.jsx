@@ -9,7 +9,7 @@ const STEPS = [
  * sonra icerik slayti, en son kapasite dashboard'unkiler doldurulur.
  * Adimlara dogrudan tiklayarak da atlanabilir.
  */
-export default function WizardSteps({ step, onStepChange }) {
+export default function WizardSteps({ step, onStepChange, onBack }) {
   return (
     <div className="wizard-steps">
       {STEPS.map((s, i) => (
@@ -25,6 +25,11 @@ export default function WizardSteps({ step, onStepChange }) {
           {i < STEPS.length - 1 && <span className="wizard-step-line" />}
         </div>
       ))}
+      {onBack && (
+        <button type="button" className="btn soft wizard-steps-back" onClick={onBack}>
+          ← Geri
+        </button>
+      )}
     </div>
   );
 }

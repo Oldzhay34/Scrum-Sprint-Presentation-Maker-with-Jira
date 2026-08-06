@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { IconLayers, IconSun, IconMoon } from "./icons";
+import { useNavigate } from "react-router-dom";
+import { IconSun, IconMoon, IconPresentation } from "./icons";
+import { ASSETS } from "../../assets/pptxAssets";
+import { resolveIsAdmin } from "../../lib/teamTypes";
 
 const DRAG_THRESHOLD = 6; // px - bunun altindaki hareket "tiklama" sayilir
 const COLLAPSE_THRESHOLD = 14; // px - yukari/asagi bu kadar cekilince acilir/kapanir
@@ -8,11 +11,13 @@ const COLLAPSE_THRESHOLD = 14; // px - yukari/asagi bu kadar cekilince acilir/ka
  * Ust bar: Aksa markasina uygun logo/ikon, moda gore degisen eylem butonlari
  * (actions slot), artı acik/koyu tema anahtari. Alt kenardaki tutamactan
  * yukari cekilince (veya tutamaca tiklaninca) daralir/kapanir, asagi
- * cekilince tekrar acilir.
+ * cekilince tekrar acilir. Profil rozeti metin tasimaz, tiklaninca dogrudan
+ * /profile sayfasina gotururu (orada kullanici bilgileri ve cikis yap yer alir).
  */
-export default function TopBar({ actions, theme, onToggleTheme, excelFileName }) {
+export default function TopBar({ actions, theme, onToggleTheme, excelFileName, personnel }) {
   const [collapsed, setCollapsed] = useState(false);
   const dragState = useRef(null); // { startY, moved }
+  const navigate = useNavigate();
 
   useEffect(() => {
     const onMove = (e) => {
@@ -49,20 +54,22 @@ export default function TopBar({ actions, theme, onToggleTheme, excelFileName })
     <header className={`topbar${collapsed ? " topbar-collapsed" : ""}`}>
       <div className="topbar-content">
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <div
-            style={{
-              width: 40, height: 40, borderRadius: 10, flex: "none",
-              background: "rgba(255,255,255,.14)", display: "flex", alignItems: "center", justifyContent: "center",
-            }}
+          <button
+            type="button"
+            className="topbar-logo-btn"
+            onClick={() => navigate("/")}
+            title="Ana sayfa"
+            aria-label="Ana sayfaya git"
           >
-            <IconLayers style={{ width: 22, height: 22, color: "#fff" }} />
-          </div>
+            <img src={ASSETS.logo_b} alt="Aksa" />
+          </button>
           <div>
             <h1>Sprint &amp; Dashboard Üretici</h1>
             <div className="sub">Sprint sunumu ve kapasite dashboard'unu üret · canlı önizle · markalı PPTX indir</div>
           </div>
         </div>
         <div className="spacer" />
+        <div className="topbar-actions">
         {excelFileName && (
           <span className="excel-file-chip" title={excelFileName}>
             <span className="excel-file-chip-icon" aria-hidden="true">📄</span>
@@ -70,6 +77,29 @@ export default function TopBar({ actions, theme, onToggleTheme, excelFileName })
           </span>
         )}
         {actions}
+        {personnel && !resolveIsAdmin(personnel) && (
+          <button type="button" className="btn ghost" onClick={() => navigate("/presentations")}>
+            <IconPresentation className="navbar-icon" />
+            Sunumlarım
+          </button>
+        )}
+        {personnel && (
+          <button type="button" className="btn ghost" onClick={() => navigate("/ortak-sunum")}>
+            <IconPresentation className="navbar-icon" />
+            Ortak Sunum
+          </button>
+        )}
+        {personnel && (
+          <button
+            type="button"
+            className="personnel-avatar-btn"
+            title="Profilim"
+            aria-label="Profilim"
+            onClick={() => navigate("/profile")}
+          >
+            👤
+          </button>
+        )}
         <button
           type="button"
           className="theme-toggle"
@@ -79,6 +109,7 @@ export default function TopBar({ actions, theme, onToggleTheme, excelFileName })
         >
           {theme === "dark" ? <IconSun /> : <IconMoon />}
         </button>
+        </div>
       </div>
       <button
         type="button"

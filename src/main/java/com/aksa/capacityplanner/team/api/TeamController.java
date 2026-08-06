@@ -4,6 +4,7 @@ import com.aksa.capacityplanner.team.api.dto.CustomFieldDefinitionDto;
 import com.aksa.capacityplanner.team.api.dto.TeamDto;
 import com.aksa.capacityplanner.team.domain.Team;
 import com.aksa.capacityplanner.team.domain.TeamCustomFieldDefinition;
+import com.aksa.capacityplanner.team.domain.TeamType;
 import com.aksa.capacityplanner.team.facade.TeamFacade;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -76,17 +77,18 @@ public class TeamController {
     }
 
     public record TeamRequest(@NotBlank String name, String description,
-                               BigDecimal maintenanceAllocationPercent, BigDecimal defaultTargetWorkDays) {
+                               BigDecimal maintenanceAllocationPercent, BigDecimal defaultTargetWorkDays,
+                               TeamType teamType) {
     }
 
     private Team toDomain(TeamRequest request) {
         return new Team(null, request.name(), request.description(),
-                request.maintenanceAllocationPercent(), request.defaultTargetWorkDays());
+                request.maintenanceAllocationPercent(), request.defaultTargetWorkDays(), request.teamType());
     }
 
     private TeamDto toDto(Team team) {
         return new TeamDto(team.getId(), team.getName(), team.getDescription(),
-                team.getMaintenanceAllocationPercent(), team.getDefaultTargetWorkDays());
+                team.getMaintenanceAllocationPercent(), team.getDefaultTargetWorkDays(), team.getTeamType());
     }
 
     private CustomFieldDefinitionDto toDto(TeamCustomFieldDefinition definition) {

@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { parseDashboardExcel } from "../lib/excelParsers";
 import { num, autoRange, nfmt1 } from "../lib/format";
+import { hasFteTracking } from "../lib/teamTypes";
 
 const DEFAULT_META = { team: "", dateRange: "01 Haziran – 31 Aralık 2026", reportDate: "", reportObj: null };
 
@@ -9,7 +10,7 @@ const DEFAULT_META = { team: "", dateRange: "01 Haziran – 31 Aralık 2026", re
  * duzenledigi kisi/rol/tamamlanan + son 2 hafta delta alanlari) yonetir ve
  * dashSlideHTML'in JSX karsiligi icin gereken `dashData` nesnesini uretir.
  */
-export function useDashboardData(dTeam, setDTeam, dSprint, setDSprint) {
+export function useDashboardData(dTeam, setDTeam, dSprint, setDSprint, teamType) {
   const [loaded, setLoaded] = useState(false);
   const [persons, setPersons] = useState([]);
   const [kpis, setKpis] = useState(null);
@@ -27,7 +28,7 @@ export function useDashboardData(dTeam, setDTeam, dSprint, setDSprint) {
   const [error, setError] = useState(null);
   const BASE_INFO = "Excel yükleyin — Kapasite Takip dosyasındaki Rapor sayfası okunur. Sprint modundan farklı olarak burada tüm sayılar Excel'den gelir.";
 
-  const loadFile = (file) => {
+  const loadFile = (file, onParsed) => {
     setLoading(true);
     setError(null);
     const reader = new FileReader();
@@ -39,7 +40,11 @@ export function useDashboardData(dTeam, setDTeam, dSprint, setDSprint) {
         setKpis(parsed.kpis);
         setMeta(parsed.meta);
         setTotalFte(parsed.totalFte);
-        if (!dTeam.trim()) setDTeam(parsed.meta.team);
+        // Her yeni Excel yuklendiginde ekip adi da o dosyadan gelenle
+        // guncellensin - "sadece bossa doldur" mantigi, alan zaten dolu
+        // (varsayilan) oldugu icin hicbir zaman tetiklenmiyordu.
+        setDTeam(parsed.meta.team);
+        onParsed?.({ teamType: parsed.teamType, sprintNo: parsed.sprintNo, range: parsed.range });
       } catch (err) {
         setError('Excel okunamadı: ' + (err?.message || "bilinmeyen hata") + ' — dosyanın "Rapor" sayfasını içerdiğinden emin olun.');
       } finally {
@@ -75,7 +80,7 @@ export function useDashboardData(dTeam, setDTeam, dSprint, setDSprint) {
         kapanan: dKapanan,
         eklenen: dEklenen,
         fte: dFte,
-        net: dNet !== "" ? num(dNet) : -tamamlanan,
+        net: dNet !== "" ? num(dNet) : num(dKapanan) - num(dEklenen),
         range: autoRange(meta.reportObj),
       };
     }
@@ -109,5 +114,6 @@ export function useDashboardData(dTeam, setDTeam, dSprint, setDSprint) {
     dTeam, setDTeam, dSprint, setDSprint,
     dKapanan, setDKapanan, dEklenen, setDEklenen, dFte, setDFte, dNet, setDNet,
     loadFile, updatePerson, dashData,
+    hasFte: hasFteTracking(teamType),
   };
 }

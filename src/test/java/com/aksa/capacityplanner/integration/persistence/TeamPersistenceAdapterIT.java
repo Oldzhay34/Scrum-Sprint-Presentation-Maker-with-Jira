@@ -2,6 +2,7 @@ package com.aksa.capacityplanner.integration.persistence;
 
 import com.aksa.capacityplanner.team.adapter.out.persistence.TeamPersistenceAdapter;
 import com.aksa.capacityplanner.team.domain.Team;
+import com.aksa.capacityplanner.team.domain.TeamType;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.context.annotation.Import;
@@ -29,7 +30,7 @@ class TeamPersistenceAdapterIT {
     @Test
     void save_thenFindById_roundTripsAllFields() {
         Team team = new Team(null, "RPA Ekibi", "Robotik Surec Otomasyonu",
-                new BigDecimal("0.2500"), new BigDecimal("120.00"));
+                new BigDecimal("0.2500"), new BigDecimal("120.00"), TeamType.RPA);
 
         Team saved = adapter.save(team);
         Optional<Team> found = adapter.findById(saved.getId());
@@ -38,12 +39,13 @@ class TeamPersistenceAdapterIT {
         assertThat(found.get().getName()).isEqualTo("RPA Ekibi");
         assertThat(found.get().getMaintenanceAllocationPercent()).isEqualByComparingTo("0.2500");
         assertThat(found.get().getDefaultTargetWorkDays()).isEqualByComparingTo("120.00");
+        assertThat(found.get().getTeamType()).isEqualTo(TeamType.RPA);
     }
 
     @Test
     void findAll_returnsAllSavedTeams() {
-        adapter.save(new Team(null, "Ekip A", null, BigDecimal.ZERO, null));
-        adapter.save(new Team(null, "Ekip B", null, BigDecimal.ZERO, null));
+        adapter.save(new Team(null, "Ekip A", null, BigDecimal.ZERO, null, TeamType.GENEL));
+        adapter.save(new Team(null, "Ekip B", null, BigDecimal.ZERO, null, TeamType.GENEL));
 
         List<Team> all = adapter.findAll();
 
@@ -52,7 +54,7 @@ class TeamPersistenceAdapterIT {
 
     @Test
     void deleteById_removesTeam() {
-        Team saved = adapter.save(new Team(null, "Silinecek Ekip", null, BigDecimal.ZERO, null));
+        Team saved = adapter.save(new Team(null, "Silinecek Ekip", null, BigDecimal.ZERO, null, TeamType.GENEL));
 
         adapter.deleteById(saved.getId());
 

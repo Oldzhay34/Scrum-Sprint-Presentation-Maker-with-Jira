@@ -44,7 +44,7 @@ export default function UnifiedPreviewPane({ sprintData, dashData, assets, activ
           <button type="button" className="carousel-arrow" aria-label="Sonraki slayt" onClick={() => goTo(1)}>
             ›
           </button>
-          <button type="button" className="tab zoomtrig" title="Slaydı büyük ve düzenlenebilir önizlemede aç" onClick={onZoom}>
+          <button type="button" className="tab zoomtrig" title="Slaydı büyük önizlemede aç" onClick={onZoom}>
             ⤢ Preview
           </button>
         </div>

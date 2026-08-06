@@ -1,10 +1,13 @@
 package com.aksa.capacityplanner.common.web;
 
 import com.aksa.capacityplanner.asset.adapter.out.storage.StorageException;
+import com.aksa.capacityplanner.auth.domain.InvalidCredentialsException;
 import com.aksa.capacityplanner.common.domain.DomainValidationException;
 import com.aksa.capacityplanner.common.domain.NotFoundException;
+import com.aksa.capacityplanner.document.adapter.out.storage.DocumentStorageException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -24,8 +27,23 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
     }
 
+    @ExceptionHandler(InvalidCredentialsException.class)
+    public ResponseEntity<ApiErrorResponse> handleInvalidCredentials(InvalidCredentialsException ex, HttpServletRequest request) {
+        return build(HttpStatus.UNAUTHORIZED, ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ApiErrorResponse> handleAccessDenied(AccessDeniedException ex, HttpServletRequest request) {
+        return build(HttpStatus.FORBIDDEN, ex.getMessage(), request);
+    }
+
     @ExceptionHandler(StorageException.class)
     public ResponseEntity<ApiErrorResponse> handleStorageError(StorageException ex, HttpServletRequest request) {
+        return build(HttpStatus.BAD_GATEWAY, ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(DocumentStorageException.class)
+    public ResponseEntity<ApiErrorResponse> handleDocumentStorageError(DocumentStorageException ex, HttpServletRequest request) {
         return build(HttpStatus.BAD_GATEWAY, ex.getMessage(), request);
     }
 

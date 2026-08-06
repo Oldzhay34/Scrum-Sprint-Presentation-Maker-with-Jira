@@ -30,6 +30,7 @@
 		<java.version>17</java.version>
 		<testcontainers.version>1.21.3</testcontainers.version>
 		<rest-assured.version>5.5.2</rest-assured.version>
+		<jjwt.version>0.12.6</jjwt.version>
 		<!-- mvn verify: varsayilan olarak test piramidinin tum ust katmanlarini calistirir.
 		     Tek bir katmani calistirmak icin ilgili profili aktive et (bkz asagidaki profiles),
 		     orn: mvn verify -P integration-tests -->
@@ -57,10 +58,29 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-validation</artifactId>
 		</dependency>
-		
-		
-		
-	     <dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-security</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>io.jsonwebtoken</groupId>
+			<artifactId>jjwt-api</artifactId>
+			<version>${jjwt.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>io.jsonwebtoken</groupId>
+			<artifactId>jjwt-impl</artifactId>
+			<version>${jjwt.version}</version>
+			<scope>runtime</scope>
+		</dependency>
+		<dependency>
+			<groupId>io.jsonwebtoken</groupId>
+			<artifactId>jjwt-jackson</artifactId>
+			<version>${jjwt.version}</version>
+			<scope>runtime</scope>
+		</dependency>
+
+		    <dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-webmvc</artifactId>
 		    </dependency>
@@ -84,8 +104,8 @@
 </dependency>
 
 		    <dependency>
-			<groupId>org.postgresql</groupId>
-			<artifactId>postgresql</artifactId>
+			<groupId>com.microsoft.sqlserver</groupId>
+			<artifactId>mssql-jdbc</artifactId>
 			<scope>runtime</scope>
 		    </dependency>
 		    <dependency>
@@ -94,7 +114,7 @@
 		    </dependency>
 		    <dependency>
 			<groupId>org.flywaydb</groupId>
-			<artifactId>flyway-database-postgresql</artifactId>
+			<artifactId>flyway-sqlserver</artifactId>
 		    </dependency>
 		<dependency>
 			<groupId>com.github.ben-manes.caffeine</groupId>
@@ -129,7 +149,7 @@
 		</dependency>
 		<dependency>
 			<groupId>org.testcontainers</groupId>
-			<artifactId>postgresql</artifactId>
+			<artifactId>mssqlserver</artifactId>
 			<scope>test</scope>
 		</dependency>
 		<dependency>

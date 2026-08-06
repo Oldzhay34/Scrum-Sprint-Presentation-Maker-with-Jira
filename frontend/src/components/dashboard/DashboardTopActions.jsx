@@ -1,12 +1,14 @@
 import { useRef } from "react";
 import Button from "../shared/Button";
-import { IconUpload, IconDownload } from "../shared/icons";
+import { IconUpload, IconDownload, IconSave } from "../shared/icons";
 
-export default function DashboardTopActions({ onExcelFile, excelLoading, onGenerate, generating }) {
+export default function DashboardTopActions({
+  onExcelFile, excelLoading, onGenerate, generating, onSave, saving,
+}) {
   const fileInputRef = useRef(null);
 
   return (
-    <span style={{ display: "flex", gap: 10 }}>
+    <span style={{ display: "flex", gap: 10, alignItems: "center" }}>
       <input
         ref={fileInputRef}
         type="file"
@@ -21,6 +23,12 @@ export default function DashboardTopActions({ onExcelFile, excelLoading, onGener
         <IconUpload className="navbar-icon" />
         Excel Yükle
       </Button>
+      {onSave && (
+        <Button variant="ghost" loading={saving} loadingLabel="Kaydediliyor…" onClick={onSave}>
+          <IconSave className="navbar-icon" />
+          Kaydet
+        </Button>
+      )}
       <Button variant="primary" loading={generating} loadingLabel="Hazırlanıyor…" onClick={onGenerate}>
         <IconDownload className="navbar-icon" />
         PPTX İndir

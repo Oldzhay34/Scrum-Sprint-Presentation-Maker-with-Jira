@@ -1,6 +1,7 @@
 import {
-  G, SEGCOL, BAND, bandBars, fitSectionItems, rowHeights, stretchRowHeights, parseRuns, num, sectionDefs, gapAt, extractPriority,
-  PRIORITY_COLORS, PRIORITY_ORDER, PRIORITY_UNSET_LABEL, PRIORITY_UNSET_COLOR, hasPriorityTags, logoPositions,
+  G, SEGCOL, BAND, bandBars, fitContent, parseRuns, sectionDefs, gapAt, extractPriority,
+  extractComment, PRIORITY_COLORS, PRIORITY_ORDER, PRIORITY_UNSET_LABEL, PRIORITY_UNSET_COLOR, hasPriorityTags, logoPositions,
+  segmentWidths,
 } from "./geometry";
 
 /** Kapak slaydini verilen pptx'e ekler - buildFullDeck tarafindan kullanilir. */
@@ -18,14 +19,22 @@ export function addCoverSlide(pptx, data, assets) {
   return s1;
 }
 
+// Onizlemedeki koyu tema paleti (bkz. theme.css .theme-dark .slidecanvas.tab-content)
+// ile birebir ayni degerler - "PPTX koyu temada da onizlemeyle eslessin" istegi.
+const CONTENT_PALETTE = {
+  light: { PAGE_BG: "FFFFFF", CARD_BG: "FFFFFF", HEADER: "164E63", CARD_LINE: "E5E7EB", TXT_BOLD: "1F2937", TXT_NORMAL: "374151" },
+  dark: { PAGE_BG: "131C27", CARD_BG: "1C2733", HEADER: "4A9FE0", CARD_LINE: "3A4756", TXT_BOLD: "E7EDF5", TXT_NORMAL: "B7C4D3" },
+};
+
 /** Icerik slaydini verilen pptx'e ekler - buildFullDeck tarafindan kullanilir. */
-export function addContentSlide(pptx, data, assets) {
-  const TEAL = "164E63", ORANGE = "E67514", INK = "1F2937", LINE = "E5E7EB";
+export function addContentSlide(pptx, data, assets, theme = "light") {
+  const P = CONTENT_PALETTE[theme] || CONTENT_PALETTE.light;
+  const TEAL = "164E63", ORANGE = "E67514";
   const SEC = sectionDefs(assets);
 
   const s2 = pptx.addSlide();
-  s2.background = { color: "FFFFFF" };
-  s2.addText(data.subtitle, { x: 0.4, y: 0.24, w: 9.8, h: 0.6, fontFace: "Calibri", fontSize: 25, bold: true, color: TEAL, margin: 0, valign: "middle" });
+  s2.background = { color: P.PAGE_BG };
+  s2.addText(data.subtitle, { x: 0.4, y: 0.24, w: 9.8, h: 0.6, fontFace: "Calibri", fontSize: 25, bold: true, color: P.HEADER, margin: 0, valign: "middle" });
   // Onizlemedeki .s-logos (right:24px, top:14px, flex row, img height:34px) ile
   // birebir ayni konumlandirma - bkz. geometry.js/logoPositions.
   const contentLogos = logoPositions({ rightEdge: 13.195, top: 0.147, height: 0.357, gap: 0.084 });
@@ -45,20 +54,26 @@ export function addContentSlide(pptx, data, assets) {
       s2.addText((bar.label || "").toUpperCase(), { x: bx + 0.03, y: BAND.Y, w: labelW - 0.06, h: BAND.H, fontFace: "Calibri", fontSize: 8.5, bold: true, color: "FFFFFF", align: "center", valign: "middle", margin: 0, fit: "shrink" });
       const segX0 = bx + labelW + 0.04, segW = barW - labelW - 0.04;
       const segs = bar.segments.filter((s) => s && String(s.value).trim() !== "");
-      const sum = segs.reduce((a, s) => a + Math.max(0.0001, num(s.value)), 0) || 1;
+      // segmentWidths, degere ORANTILI genislik yerine once her segmentin
+      // KENDI metnini (orn. "1.26") tek satirda gosterebilecegi bir taban
+      // genislik ayirir - onceki surumde kucuk bir oran, uzun bir metinden
+      // dar bir kutu demekti ve PowerPoint metni IKI SATIRA kirip (fit:"shrink"
+      // burada hic yoktu) gorsel olarak bozuk/tasmis gosteriyordu.
+      const widths = segmentWidths(segs, segW);
       let cx = segX0;
-      segs.forEach((s) => {
-        const w = Math.max(0.14, (num(s.value) / sum) * segW);
+      segs.forEach((s, si) => {
+        const w = widths[si];
         s2.addShape(pptx.ShapeType.rect, { x: cx, y: BAND.Y, w, h: BAND.H, fill: { color: SEGCOL[s.color] || "456BBA" } });
-        s2.addText(String(s.value), { x: cx, y: BAND.Y, w, h: BAND.H, fontFace: "Calibri", fontSize: 10, bold: true, color: "FFFFFF", align: "center", valign: "middle", margin: 0 });
+        s2.addText(String(s.value), { x: cx, y: BAND.Y, w, h: BAND.H, fontFace: "Calibri", fontSize: 10, bold: true, color: "FFFFFF", align: "center", valign: "middle", margin: 0, fit: "shrink" });
         cx += w;
       });
     });
     return BAND.Y + BAND.H + 0.16;
   }
 
+  const footerTeam = (data.teamName || "Ekip").trim();
   s2.addShape(pptx.ShapeType.rect, { x: 0, y: 7.14, w: 13.333, h: 0.36, fill: { color: TEAL } });
-  s2.addText("Gizli & Dahili Kullanım   |   Scrum Ekibi – Planlama Toplantısı", { x: 0.4, y: 7.14, w: 7, h: 0.36, fontFace: "Calibri", fontSize: 10, color: "D6E4EA", margin: 0, valign: "middle" });
+  s2.addText(`Gizli & Dahili Kullanım   |   ${footerTeam}`, { x: 0.4, y: 7.14, w: 7, h: 0.36, fontFace: "Calibri", fontSize: 10, color: "D6E4EA", margin: 0, valign: "middle" });
 
   if (hasPriorityTags(data)) {
     const legendEntries = [...PRIORITY_ORDER.map((p) => [p, PRIORITY_COLORS[p]]), [PRIORITY_UNSET_LABEL, PRIORITY_UNSET_COLOR]];
@@ -71,42 +86,86 @@ export function addContentSlide(pptx, data, assets) {
   }
 
   const CARDS_TOP = drawBand();
-  const { fs: FS, sections } = fitSectionItems(data, CARDS_TOP);
-  const natural = rowHeights(sections, FS);
-  const { topH, botH } = stretchRowHeights(natural.topH, natural.botH, CARDS_TOP);
+  const { sections, fsByKey, topH, botH } = fitContent(data, CARDS_TOP);
 
   function drawCard(x, y, items, sec, fs2, h) {
-    s2.addShape(pptx.ShapeType.roundRect, { x, y, w: G.COL_W, h, rectRadius: 0.06, fill: { color: "FFFFFF" }, line: { color: LINE, width: 1 }, shadow: { type: "outer", color: "9CA3AF", blur: 6, offset: 2, angle: 90, opacity: 0.28 } });
+    s2.addShape(pptx.ShapeType.roundRect, { x, y, w: G.COL_W, h, rectRadius: 0.06, fill: { color: P.CARD_BG }, line: { color: P.CARD_LINE, width: 1 }, shadow: { type: "outer", color: "9CA3AF", blur: 6, offset: 2, angle: 90, opacity: 0.28 } });
     s2.addShape(pptx.ShapeType.roundRect, { x: x + 0.07, y: y + 0.12, w: 0.075, h: h - 0.24, rectRadius: 0.04, fill: { color: sec.accent }, line: { type: "none" } });
     s2.addImage({ data: sec.icon, x: x + G.ACC_ZONE, y: y + G.PAD_T + 0.02, w: G.ICON, h: G.ICON });
     s2.addText(sec.title, { x: x + G.ACC_ZONE + G.ICON + 0.12, y: y + G.PAD_T, w: G.COL_W - G.ACC_ZONE - G.ICON - 0.3, h: G.TITLE_H - 0.06, fontFace: "Calibri", fontSize: 14.5, bold: true, color: sec.accent, valign: "middle", margin: 0 });
     if (items.length) {
       const runs = items
         .map((t, i) => {
-          const { priority, text } = extractPriority(t);
+          const { text: withoutComment, comment: rawComment } = extractComment(t);
+          const comment = rawComment.trim();
+          const { priority, text } = extractPriority(withoutComment);
           const bulletColor = priority ? PRIORITY_COLORS[priority] : PRIORITY_UNSET_COLOR;
-          const para = parseRuns(text).map((r) => ({ text: r.text, options: { bold: r.bold, color: r.bold ? INK : "374151" } }));
-          para[0].options = Object.assign({}, para[0].options, {
-            // "25CF" (●) - kucuk "•" isaretinden daha buyuk/net, oncelik rengini
-            // daha belirgin gosterir (bkz. app.css .card li .dot ile onizlemede ayni fikir).
-            bullet: { code: "25CF", indent: 14, color: bulletColor },
+          const mainRuns = parseRuns(text).map((r) => ({ text: r.text, options: { bold: r.bold, color: r.bold ? P.TXT_BOLD : P.TXT_NORMAL } }));
+          if (priority) {
+            // Renkli/kalin bir metin etiketi ("KRİTİK " gibi) - bkz. asagidaki dot
+            // ile ayni renk mantigi.
+            mainRuns.unshift({ text: priority.toUpperCase() + "  ", options: { bold: true, color: bulletColor } });
+          }
+          // Oncelik noktasi: pptxgenjs/PowerPoint'te native "bullet" ozelliginin
+          // rengi (bullet:{color}) guvenilir basilmiyor - oncelik BELIRTILMEMIS
+          // maddelerde (bkz. kullanici bildirimi) bu yuzden PRIORITY_UNSET_COLOR
+          // (siyaha yakin) yerine PowerPoint'in varsayilan/tema rengi (gri, "Düşük"
+          // ile ayni gorunen) basiliyordu. Guvenilir tek yol, noktayi normal bir
+          // METIN karakteri olarak (native bullet KULLANMADAN) elle eklemek -
+          // oncelik etiketinde ("KRİTİK " gibi) zaten kullanilan ayni yontem.
+          mainRuns.unshift({ text: "●  ", options: { color: bulletColor } });
+          // NOT: burada breakLine SET EDILMEZ - mainRuns[0] madde metninin
+          // sadece ILK run'i olabilir (orn. "metin " + "**Departman**" gibi
+          // ic ice bold varsa). breakLine, madde SONUNDAKI run'a (asagida,
+          // yorum/isLastItem mantigiyla) ait bir ozellik - buraya konursa
+          // bold departman/etiket parcasi, ait oldugu satirdan kopup bir
+          // ALT SATIRA duserdi (bkz. kullanici bildirimi: "bold yazılar
+          // aşağı satıra kayıyor").
+          mainRuns[0].options = Object.assign({}, mainRuns[0].options, {
             paraSpaceAfter: gapAt(fs2) * 72,
-            breakLine: true,
           });
-          para[para.length - 1].options = Object.assign({}, para[para.length - 1].options, { breakLine: i < items.length - 1 });
-          return para;
+          const isLastItem = i === items.length - 1;
+          if (comment) {
+            // Maddeye ozel yorum: ana metnin hemen altina, agac (tree) gorunumunde
+            // ("  * yorum") ve yesil serit (highlight) ile vurgulanmis bir alt satir
+            // olarak eklenir - bkz. SlideCanvas.jsx'teki .item-comment ile
+            // onizlemede ayni gorsel dil (emoji kullanilmaz).
+            mainRuns[mainRuns.length - 1].options = Object.assign({}, mainRuns[mainRuns.length - 1].options, { breakLine: true });
+            mainRuns.push({
+              text: "  * " + comment,
+              options: {
+                italic: true,
+                color: "166534",
+                highlight: "D1FAE5",
+                fontSize: fs2 * 0.84,
+                breakLine: !isLastItem,
+                paraSpaceAfter: gapAt(fs2) * 72,
+              },
+            });
+          } else {
+            mainRuns[mainRuns.length - 1].options = Object.assign({}, mainRuns[mainRuns.length - 1].options, { breakLine: !isLastItem });
+          }
+          return mainRuns;
         })
         .flat();
-      s2.addText(runs, { x: x + G.ACC_ZONE, y: y + G.PAD_T + G.TITLE_H, w: G.COL_W - G.ACC_ZONE - G.PAD_R, h: h - G.PAD_T - G.TITLE_H - G.PAD_B + 0.05, fontFace: "Calibri", fontSize: fs2, color: "374151", valign: "top", margin: 0, lineSpacingMultiple: 1.0 });
+      s2.addText(runs, {
+        x: x + G.ACC_ZONE, y: y + G.PAD_T + G.TITLE_H, w: G.COL_W - G.ACC_ZONE - G.PAD_R, h: h - G.PAD_T - G.TITLE_H - G.PAD_B + 0.05,
+        fontFace: "Calibri", fontSize: fs2, color: P.TXT_NORMAL, valign: "top", margin: 0, lineSpacingMultiple: 1.0,
+        // Onizlemedeki (geometry.js/fitContent) font hesabi bir TAHMIN (karakter/
+        // satir yaklasimidir) - gercek PowerPoint metin sarma davranisiyla birebir
+        // eslesmeyebilir. fit:"shrink", PowerPoint'in kendi autofit motorunu devreye
+        // sokup kutuya HIC BIR ZAMAN tasmayacagini garanti eder (guvenlik agi).
+        fit: "shrink",
+      });
     }
     return h;
   }
 
   const yBot = CARDS_TOP + topH + G.GAP_Y;
-  drawCard(G.X_L, CARDS_TOP, sections.done, SEC.done, FS, topH);
-  drawCard(G.X_L, yBot, sections.risk, SEC.risk, FS, botH);
-  drawCard(G.X_R, CARDS_TOP, sections.active, SEC.active, FS, topH);
-  drawCard(G.X_R, yBot, sections.pending, SEC.pending, FS, botH);
+  drawCard(G.X_L, CARDS_TOP, sections.done, SEC.done, fsByKey.done, topH);
+  drawCard(G.X_L, yBot, sections.risk, SEC.risk, fsByKey.risk, botH);
+  drawCard(G.X_R, CARDS_TOP, sections.active, SEC.active, fsByKey.active, topH);
+  drawCard(G.X_R, yBot, sections.pending, SEC.pending, fsByKey.pending, botH);
 
   return s2;
 }

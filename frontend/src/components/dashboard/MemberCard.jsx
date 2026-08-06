@@ -1,7 +1,4 @@
-import { isValidNumberInput } from "../../lib/validation";
-
-const NUMBER_TITLE_SUFFIX = " (Sayı olmalı, örn: 12 veya 12,5.)";
-const invalidStyle = { borderColor: "#DC2626", outlineColor: "#DC2626" };
+import { sanitizeDecimalInput, sanitizeIntegerInput, sanitizeRatioInput } from "../../lib/format";
 
 /**
  * Tek bir ekip uyesi karti: kisi bilgileri + o kisiye ait is kalemleri.
@@ -10,7 +7,7 @@ const invalidStyle = { borderColor: "#DC2626", outlineColor: "#DC2626" };
  */
 export default function MemberCard({ member, statuses, items, onUpdateMember, onRemoveMember, onAddItem, onUpdateItem, onRemoveItem }) {
   return (
-    <div className="bar" style={{ background: "#fff" }}>
+    <div className="bar">
       <div className="barrow" style={{ flexWrap: "wrap" }}>
         <input
           className="barlabel"
@@ -35,8 +32,8 @@ export default function MemberCard({ member, statuses, items, onUpdateMember, on
           onChange={(e) => onUpdateMember({ startDate: e.target.value })}
         />
         <select
-          className="barlabel"
-          style={{ flex: "0 0 140px" }}
+          className="premium-select premium-select-sm"
+          style={{ flex: "0 0 150px" }}
           value={member.statusCode}
           onChange={(e) => onUpdateMember({ statusCode: e.target.value })}
         >
@@ -48,25 +45,21 @@ export default function MemberCard({ member, statuses, items, onUpdateMember, on
         </select>
         <input
           className="barlabel"
-          style={{ flex: "0 0 130px", ...(isValidNumberInput(member.targetWorkDays) ? null : invalidStyle) }}
+          style={{ flex: "0 0 130px" }}
           placeholder="Hedef gün (opsiyonel)"
-          title={
-            "Boş bırakılırsa 1 Haziran kuralına göre otomatik hesaplanır, sonradan değiştirilebilir" +
-            (isValidNumberInput(member.targetWorkDays) ? "" : NUMBER_TITLE_SUFFIX)
-          }
+          title="Boş bırakılırsa 1 Haziran kuralına göre otomatik hesaplanır, sonradan değiştirilebilir"
+          inputMode="numeric"
           value={member.targetWorkDays || ""}
-          onChange={(e) => onUpdateMember({ targetWorkDays: e.target.value })}
+          onChange={(e) => onUpdateMember({ targetWorkDays: sanitizeIntegerInput(e.target.value) })}
         />
         <input
           className="barlabel"
-          style={{ flex: "0 0 130px", ...(isValidNumberInput(member.maintenanceAllocationPercent) ? null : invalidStyle) }}
+          style={{ flex: "0 0 130px" }}
           placeholder="Kişiye özel bakım oranı"
-          title={
-            "Boş bırakılırsa takım seviyesindeki genel bakım/SR oranı kullanılır (örn: 0.2 = %20)" +
-            (isValidNumberInput(member.maintenanceAllocationPercent) ? "" : NUMBER_TITLE_SUFFIX)
-          }
+          title="Boş bırakılırsa takım seviyesindeki genel bakım/SR oranı kullanılır (örn: 0.2 = %20)"
+          inputMode="decimal"
           value={member.maintenanceAllocationPercent || ""}
-          onChange={(e) => onUpdateMember({ maintenanceAllocationPercent: e.target.value })}
+          onChange={(e) => onUpdateMember({ maintenanceAllocationPercent: sanitizeRatioInput(e.target.value) })}
         />
         <button type="button" className="delbar" onClick={onRemoveMember}>
           Kişiyi sil
@@ -79,23 +72,22 @@ export default function MemberCard({ member, statuses, items, onUpdateMember, on
       {items.map((item) => (
         <div className="segrow" key={item.clientId} style={{ marginBottom: 6 }}>
           <input
-            style={{ flex: "1 1 180px", border: "1px solid var(--line)", borderRadius: 7, padding: "6px 9px", fontSize: 13 }}
+            className="mitem-input"
+            style={{ flex: "1 1 180px" }}
             placeholder="İş adı"
             value={item.title}
             onChange={(e) => onUpdateItem(item.clientId, { title: e.target.value })}
           />
           <input
-            style={{
-              width: 90, border: "1px solid var(--line)", borderRadius: 7, padding: "6px 9px", fontSize: 13,
-              ...(isValidNumberInput(item.plannedEffortDays) ? null : invalidStyle),
-            }}
+            className="mitem-input"
+            style={{ width: 90 }}
             placeholder="Efor (AG)"
-            title={isValidNumberInput(item.plannedEffortDays) ? undefined : "Sayı olmalı (örn: 12 veya 12,5)."}
+            inputMode="decimal"
             value={item.plannedEffortDays}
-            onChange={(e) => onUpdateItem(item.clientId, { plannedEffortDays: e.target.value })}
+            onChange={(e) => onUpdateItem(item.clientId, { plannedEffortDays: sanitizeDecimalInput(e.target.value) })}
           />
           <select
-            style={{ border: "1px solid var(--line)", borderRadius: 7, padding: "6px 9px", fontSize: 13 }}
+            className="premium-select premium-select-sm"
             value={item.statusCode}
             onChange={(e) => onUpdateItem(item.clientId, { statusCode: e.target.value })}
           >
@@ -108,14 +100,16 @@ export default function MemberCard({ member, statuses, items, onUpdateMember, on
           <input
             type="date"
             title="Eklenme tarihi (opsiyonel — Yeni Eklenen Efor hesaplaması için)"
-            style={{ border: "1px solid var(--line)", borderRadius: 7, padding: "6px 9px", fontSize: 12 }}
+            className="mitem-input"
+            style={{ fontSize: 12 }}
             value={item.addedDate}
             onChange={(e) => onUpdateItem(item.clientId, { addedDate: e.target.value })}
           />
           <input
             type="date"
             title="Kapanma tarihi (opsiyonel — Dönem Kapanan Efor hesaplaması için)"
-            style={{ border: "1px solid var(--line)", borderRadius: 7, padding: "6px 9px", fontSize: 12 }}
+            className="mitem-input"
+            style={{ fontSize: 12 }}
             value={item.closedDate}
             onChange={(e) => onUpdateItem(item.clientId, { closedDate: e.target.value })}
           />

@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { PRIORITY_OPTIONS, SECTOR_OPTIONS } from "../../lib/excelParsers";
-import { extractPriority } from "../../lib/geometry";
+import { extractPriority, extractComment, withComment, linesOf } from "../../lib/geometry";
 
 const fieldStyle = { border: "1px solid var(--line)", borderRadius: 7, padding: "6px 9px", fontSize: 13, fontFamily: "inherit" };
 
@@ -22,12 +22,42 @@ const PLACEHOLDERS = {
  * Pressman - User Help Facilities: her bolumde placeholder ornegi ve
  * "Başlık: açıklama" bicimlendirme ipucu gosterilir.
  */
-export default function SectionEditor({ sectionKey, def, text, onTextChange, count, chips, onChipUse, onExpand }) {
+export default function SectionEditor({ sectionKey, def, text, onTextChange, count, chips, onChipUse, onExpand, teamType }) {
   const textareaRef = useRef(null);
   const [manualText, setManualText] = useState("");
   const [manualSector, setManualSector] = useState("");
   const [manualDept, setManualDept] = useState("");
   const [manualPriority, setManualPriority] = useState("");
+  // Yorum ekleme ozelligi tum takim tiplerine acik.
+  // acikIdx: kullanicinin "+ Yorum" ile actigi, henuz yorumu olmayan satirlarin
+  // indexleri - yorumu zaten olan satirlar her zaman acik gosterilir.
+  const [openCommentIdx, setOpenCommentIdx] = useState(() => new Set());
+
+  const handleClear = () => {
+    if (!text.trim()) return;
+    if (!window.confirm("Bu bölümdeki tüm maddeler silinecek. Emin misiniz?")) return;
+    onTextChange("");
+  };
+
+  const updateLineAt = (idx, newLine) => {
+    const items = linesOf(text);
+    items[idx] = newLine;
+    onTextChange(items.join("\n"));
+  };
+
+  const removeLineAt = (idx) => {
+    const items = linesOf(text).filter((_, i) => i !== idx);
+    onTextChange(items.join("\n"));
+  };
+
+  const toggleCommentOpen = (idx) => {
+    setOpenCommentIdx((prev) => {
+      const next = new Set(prev);
+      if (next.has(idx)) next.delete(idx);
+      else next.add(idx);
+      return next;
+    });
+  };
 
   const addManualLine = () => {
     const trimmed = manualText.trim();
@@ -126,6 +156,9 @@ export default function SectionEditor({ sectionKey, def, text, onTextChange, cou
         <button type="button" className="addseg" onClick={addManualLine}>
           + Ekle
         </button>
+        <button type="button" className="delbar" title="Bu bölümdeki tüm maddeleri sil" onClick={handleClear}>
+          Temizle
+        </button>
       </div>
       <div className="chips">
         {chips.map((chipText) => {
@@ -143,6 +176,52 @@ export default function SectionEditor({ sectionKey, def, text, onTextChange, cou
             </button>
           );
         })}
+      </div>
+      <div className="comment-panel">
+        <div className="panelttl" style={{ marginTop: 10 }}>Eklenen maddeler</div>
+        <div className="hint" style={{ marginBottom: 6 }}>
+          Bir maddeyi × ile slayttan çıkarabilirsiniz.
+          {" Bir maddeye yorum eklerseniz, slaytta o maddenin altında öne çıkan bir not olarak görünür."}
+        </div>
+        {linesOf(text).map((line, i) => {
+          const { text: itemText, comment } = extractComment(line);
+          const { text: plain } = extractPriority(itemText);
+          const label = plain.replace(/\*\*/g, "");
+          const open = comment !== "" || openCommentIdx.has(i);
+          return (
+            <div className="bar" key={i}>
+              <div className="barrow">
+                <span className="barlabel" style={{ flex: "1 1 240px", background: "transparent", border: 0, padding: "6px 2px" }} title={label}>
+                  {label.length > 70 ? label.slice(0, 68) + "…" : label}
+                </span>
+                {!open && (
+                  <button type="button" className="addseg" onClick={() => toggleCommentOpen(i)}>
+                    Yorum ekle
+                  </button>
+                )}
+                {comment && (
+                  <button type="button" className="delbar" onClick={() => updateLineAt(i, withComment(itemText, ""))}>
+                    Yorumu sil
+                  </button>
+                )}
+                <button type="button" className="delseg" title="Maddeyi slayttan çıkar" onClick={() => removeLineAt(i)}>
+                  ×
+                </button>
+              </div>
+              {open && (
+                <input
+                  className="barlabel"
+                  style={{ marginTop: 6, width: "100%" }}
+                  placeholder="Bu madde için yorum yazın…"
+                  value={comment}
+                  onChange={(e) => updateLineAt(i, withComment(itemText, e.target.value))}
+                  autoFocus={!comment}
+                />
+              )}
+            </div>
+          );
+        })}
+        {linesOf(text).length === 0 && <div className="mhint">Henüz madde eklenmedi.</div>}
       </div>
     </div>
   );

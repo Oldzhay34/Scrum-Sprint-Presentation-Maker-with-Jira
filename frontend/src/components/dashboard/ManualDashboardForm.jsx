@@ -4,6 +4,7 @@ import AlertModal from "../shared/AlertModal";
 import StatusEditor from "./StatusEditor";
 import CustomKpiEditor from "./CustomKpiEditor";
 import MemberCard from "./MemberCard";
+import { sanitizeIntegerInput, sanitizeRatioInput } from "../../lib/format";
 
 /**
  * Kapasite Dashboard'un "Manuel Gir" modu: Excel gerekmeden, ekip uyesi ve is
@@ -24,7 +25,7 @@ export default function ManualDashboardForm({ m }) {
             <label>
               Sprint No <span className="opt">opsiyonel</span>
             </label>
-            <input value={m.sprintNo} onChange={(e) => m.setSprintNo(e.target.value)} placeholder="örn: 7" />
+            <input inputMode="numeric" value={m.sprintNo} onChange={(e) => m.setSprintNo(sanitizeIntegerInput(e.target.value))} placeholder="örn: 7" />
           </div>
           <div className="field">
             <label>Dönem başlangıcı</label>
@@ -42,7 +43,7 @@ export default function ManualDashboardForm({ m }) {
             <label>
               Bakım/SR oranı <span className="opt">örn: 0.2 = %20</span>
             </label>
-            <input value={m.maintenanceAllocationPercent} onChange={(e) => m.setMaintenanceAllocationPercent(e.target.value)} placeholder="0.2" />
+            <input inputMode="decimal" value={m.maintenanceAllocationPercent} onChange={(e) => m.setMaintenanceAllocationPercent(sanitizeRatioInput(e.target.value))} placeholder="0.2" />
           </div>
           <div className="field">
             <label>
@@ -59,7 +60,7 @@ export default function ManualDashboardForm({ m }) {
 
       <StatusEditor statuses={m.statuses} onAdd={m.addStatus} onUpdate={m.updateStatus} onRemove={m.removeStatus} />
 
-      <CustomKpiEditor kpis={m.customKpis} onAdd={m.addCustomKpi} onUpdate={m.updateCustomKpi} onRemove={m.removeCustomKpi} />
+      <CustomKpiEditor kpis={m.customKpis} onAdd={m.addCustomKpi} onUpdate={m.updateCustomKpi} onRemove={m.removeCustomKpi} hasFte={m.hasFte} />
 
       <p className="panelttl">Ekip üyeleri ve iş kalemleri</p>
       {m.members.length === 0 && <div className="mhint">Henüz üye eklenmedi. Aşağıdaki butonla başla.</div>}

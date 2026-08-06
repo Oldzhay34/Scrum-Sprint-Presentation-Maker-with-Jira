@@ -1,5 +1,4 @@
-import { DAV_COLORS, nfmtInt, num } from "../../lib/format";
-import { isValidNumberInput } from "../../lib/validation";
+import { DAV_COLORS, nfmtInt, num, sanitizeDecimalInput } from "../../lib/format";
 
 /**
  * Kisi eslestirme tablosu: Excel'den gelen ad/toplam sabit, rol/kisaltma/
@@ -34,10 +33,10 @@ export default function PersonMappingTable({ persons, onUpdate }) {
             <input
               className="pmtam"
               placeholder="0"
-              title={isValidNumberInput(p.tamamlanan) ? "Tamamlanan iş yükü (AG)" : "Sayı olmalı (örn: 12 veya 12,5)."}
-              style={isValidNumberInput(p.tamamlanan) ? undefined : { borderColor: "#DC2626", outlineColor: "#DC2626" }}
+              title="Tamamlanan iş yükü (AG)"
+              inputMode="decimal"
               value={p.tamamlanan}
-              onChange={(e) => onUpdate(i, { tamamlanan: e.target.value })}
+              onChange={(e) => onUpdate(i, { tamamlanan: sanitizeDecimalInput(e.target.value) })}
             />
             <div className="pmmeta">{nfmtInt(p.toplam)} → {nfmtInt(acik)}</div>
           </div>
