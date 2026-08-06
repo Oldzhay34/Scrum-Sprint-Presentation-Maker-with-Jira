@@ -1,4 +1,5 @@
 import { sanitizeIntegerInput } from "../../lib/format";
+import { IconTag, IconHash } from "../shared/icons";
 
 export default function DashboardMetaForm({ dTeam, setDTeam, dSprint, setDSprint }) {
   return (
@@ -7,12 +8,12 @@ export default function DashboardMetaForm({ dTeam, setDTeam, dSprint, setDSprint
       <div className="bandpanel">
         <div className="deltagrid">
           <div className="field">
-            <label>Ekip adı</label>
+            <label><IconTag className="field-icon" />Ekip adı</label>
             <input value={dTeam} onChange={(e) => setDTeam(e.target.value)} placeholder="Excel'den gelir, düzenlenebilir" />
           </div>
           <div className="field">
             <label>
-              Sprint No <span className="opt">opsiyonel</span>
+              <IconHash className="field-icon" />Sprint No <span className="opt">opsiyonel</span>
             </label>
             <input inputMode="numeric" value={dSprint} onChange={(e) => setDSprint(sanitizeIntegerInput(e.target.value))} placeholder="örn: 7" />
           </div>

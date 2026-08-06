@@ -3,11 +3,12 @@ import { BrowserRouter, Navigate, Route, Routes, useNavigate, useParams, useSear
 import "./styles/app.css";
 import "./styles/theme.css";
 
-import { fetchCurrentUser, fetchUserProfile, fetchPresentation, logout, savePresentation } from "./lib/apiClient";
+import { fetchCurrentUser, fetchUserProfile, fetchPresentation, logout, savePresentation, recordPresentationDownload } from "./lib/apiClient";
 import LoginPage from "./components/shared/LoginPage";
 import ProfilePage from "./components/shared/ProfilePage";
 import AdminHomePage from "./components/shared/AdminHomePage";
 import PresentationsPage from "./components/shared/PresentationsPage";
+import JointPresentationPage from "./components/shared/JointPresentationPage";
 import TopBar from "./components/shared/TopBar";
 import ZoomModal from "./components/shared/ZoomModal";
 import ExportPreviewModal from "./components/shared/ExportPreviewModal";
@@ -37,7 +38,7 @@ import { useManualDashboard } from "./hooks/useManualDashboard";
 import { useTheme } from "./hooks/useTheme";
 import { useCoverImage } from "./hooks/useCoverImage";
 
-import { sectionDefs } from "./lib/geometry";
+import { sectionDefs, SECTION_KEYS } from "./lib/geometry";
 import { buildFullDeck } from "./lib/fullDeckBuilder";
 import { ASSETS } from "./assets/pptxAssets";
 import { hasFteTracking, resolveIsAdmin, resolveTeamTypeFromDepartment } from "./lib/teamTypes";
@@ -119,6 +120,16 @@ export default function App() {
           element={
             personnel ? (
               <PresentationsPage personnel={personnel} theme={theme} onToggleTheme={toggleTheme} />
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
+        />
+        <Route
+          path="/ortak-sunum"
+          element={
+            personnel ? (
+              <JointPresentationPage personnel={personnel} theme={theme} onToggleTheme={toggleTheme} />
             ) : (
               <Navigate to="/" replace />
             )
@@ -327,6 +338,16 @@ function MainApp({ theme, toggleTheme, personnel, presentationId, newForTeamId }
     if (range) sprintForm.setRange(range);
   };
   const handleExcelFile = (file) => {
+    // Daha once elle girilmis olabilecek veri (icerik bolumleri + kapasite
+    // manuel giris) yeni yuklenen Excel'in verisiyle CELISMESIN/karisik
+    // gorunmesin diye temizlenir - bkz. kullanici bildirimi.
+    if (SECTION_KEYS.some((k) => sprintForm.sections[k]?.trim())) {
+      SECTION_KEYS.forEach((k) => sprintForm.setSectionText(k, ""));
+    }
+    if (manual.members.length || manual.workItems.length) {
+      manual.clearEntries();
+    }
+    setDashSource("excel");
     excel.loadFile(file, sprintForm.team, applyExcelMeta);
     dashboard.loadFile(file, applyExcelMeta);
     setExcelFileName(file.name);
@@ -345,6 +366,11 @@ function MainApp({ theme, toggleTheme, personnel, presentationId, newForTeamId }
       const pptx = buildFullDeck(data, activeDashData, assets, pptxTheme);
       const sp = (sprintForm.sprint.trim() || "X").replace(/[^\w]/g, "");
       await pptx.writeFile({ fileName: `Sprint_Kapasite_${sp}.pptx` });
+      if (saveTeamId) {
+        recordPresentationDownload("INDIVIDUAL", [saveTeamId]).catch(() => {
+          // indirme kaydi best-effort - basarisiz olsa da kullaniciyi engellemez
+        });
+      }
     });
 
   const sprintData = { ...sprintForm.data, showBand: band.show, targets: band.bars };

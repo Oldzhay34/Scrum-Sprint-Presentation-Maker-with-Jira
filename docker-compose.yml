@@ -71,6 +71,55 @@ services:
       timeout: 5s
       retries: 10
 
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: capacity-planner-backend
+    restart: unless-stopped
+    environment:
+      DB_HOST: mssql
+      DB_PORT: 1433
+      DB_NAME: ${DB_NAME:-capacity_planner}
+      DB_USERNAME: ${DB_USERNAME:-sa}
+      DB_PASSWORD: ${DB_PASSWORD:-CapacityPlanner!2024}
+      DB_ENCRYPT: ${DB_ENCRYPT:-true}
+      DB_TRUST_SERVER_CERTIFICATE: ${DB_TRUST_SERVER_CERTIFICATE:-true}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: ${RABBITMQ_USERNAME:-capacity_planner}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-capacity_planner}
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-capacity_planner}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-capacity_planner}
+      MINIO_BUCKET: ${MINIO_BUCKET:-capacity-planner-assets}
+    ports:
+      - "${BACKEND_PORT:-8080}:8080"
+    depends_on:
+      mssql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8080}
+    container_name: capacity-planner-frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-5173}:80"
+    depends_on:
+      - backend
+
 volumes:
   capacity-planner-mssql-data:
   capacity-planner-minio-data:

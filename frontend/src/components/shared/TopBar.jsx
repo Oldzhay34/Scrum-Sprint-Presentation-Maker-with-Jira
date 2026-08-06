@@ -86,6 +86,12 @@ export default function TopBar({ actions, theme, onToggleTheme, excelFileName, p
           </button>
         )}
         {personnel && (
+          <button type="button" className="btn ghost" onClick={() => navigate("/ortak-sunum")}>
+            <IconPresentation className="navbar-icon" />
+            Ortak Sunum
+          </button>
+        )}
+        {personnel && (
           <button
             type="button"
             className="personnel-avatar-btn"

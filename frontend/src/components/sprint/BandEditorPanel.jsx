@@ -5,10 +5,10 @@ import BandSelectionModal from "./BandSelectionModal";
 import { MAX_BAND_BARS } from "../../hooks/useBandEditor";
 
 const COLOR_OPTS = [
-  ["green", "Yeşil"], ["blue", "Mavi"], ["orange", "Turuncu"], ["amber", "Sarı"],
+  ["green", "Yeşil"], ["lightgreen", "Açık Yeşil"], ["blue", "Mavi"], ["orange", "Turuncu"], ["amber", "Sarı"],
   ["red", "Kırmızı"], ["gray", "Gri"], ["purple", "Mor"],
 ];
-const SEGCOL = { green: "8BC34A", blue: "456BBA", orange: "E67514", amber: "E8A64D", red: "D9534F", gray: "9AA3AF", purple: "7C3AED" };
+const SEGCOL = { green: "8BC34A", lightgreen: "A8E6A1", blue: "456BBA", orange: "E67514", amber: "E8A64D", red: "D9534F", gray: "9AA3AF", purple: "7C3AED" };
 
 /**
  * Opsiyonel "Hedefler" bandi editoru. Pressman - User Help Facilities:

@@ -3,9 +3,11 @@ package com.aksa.capacityplanner.presentation.api;
 import com.aksa.capacityplanner.auth.domain.Role;
 import com.aksa.capacityplanner.auth.security.JwtTokenProvider;
 import com.aksa.capacityplanner.presentation.api.dto.PresentationDetailDto;
+import com.aksa.capacityplanner.presentation.api.dto.PresentationDownloadRequest;
 import com.aksa.capacityplanner.presentation.api.dto.PresentationSummaryDto;
 import com.aksa.capacityplanner.presentation.api.dto.PresentationUpsertRequest;
 import com.aksa.capacityplanner.presentation.api.dto.PresentationVersionDto;
+import com.aksa.capacityplanner.presentation.domain.PresentationDownloadLog;
 import com.aksa.capacityplanner.presentation.domain.PresentationVersion;
 import com.aksa.capacityplanner.presentation.domain.SprintPresentation;
 import com.aksa.capacityplanner.presentation.facade.PresentationFacade;
@@ -42,6 +44,24 @@ public class PresentationController {
         SprintPresentation saved = presentationFacade.upsert(request.teamId(), request.sprintNo(), request.dateRange(),
                 request.content(), claims.sicil(), claims.teamId(), claims.role() == Role.ADMIN);
         return toDetailDto(saved);
+    }
+
+    /**
+     * Ortak (coklu takim) sunum ekrani: her istenen takim icin en son sunumu
+     * dondurur - bkz. PresentationFacade.listLatestPerTeam. Okuma zaten
+     * herkese acik oldugundan (bkz. PresentationFacade sinif yorumu) burada
+     * ek bir yetki kontrolu yapilmaz.
+     */
+    @GetMapping("/latest")
+    public List<PresentationDetailDto> listLatestByTeams(@RequestParam List<Long> teamIds) {
+        return presentationFacade.listLatestPerTeam(teamIds).stream().map(this::toDetailDto).toList();
+    }
+
+    /** Bir PPTX indirmesini (toplu/bireysel) denetim amacli kaydeder. */
+    @PostMapping("/downloads")
+    public void recordDownload(@Valid @RequestBody PresentationDownloadRequest request, Authentication authentication) {
+        JwtTokenProvider.AccessTokenClaims claims = requireClaims(authentication);
+        presentationFacade.recordDownload(PresentationDownloadLog.DownloadType.valueOf(request.downloadType()), request.teamIds(), claims.sicil());
     }
 
     @GetMapping("/{id}/versions")

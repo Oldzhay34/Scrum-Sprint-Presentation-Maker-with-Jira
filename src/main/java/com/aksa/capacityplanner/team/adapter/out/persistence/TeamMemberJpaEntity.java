@@ -5,9 +5,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UpdateTimestamp;
-import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -48,12 +46,13 @@ public class TeamMemberJpaEntity {
     @Column(name = "target_work_days_overridden")
     private boolean targetWorkDaysOverridden;
 
-    // columnDefinition kasten belirtilmiyor: Hibernate her dialect icin uygun JSON
-    // tipini kendisi secer (SQL Server -> nvarchar(max) + JSON serileştirme,
-    // H2 -> json), boylece testlerde H2 ile de calisir. Migration'da (bkz.
-    // V1__init.sql) bu kolon nvarchar(max) olarak olusturulur.
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "custom_field_values")
+    // 1NF: ayri bir EAV tablosunda (bkz. V9 migration) - Hibernate
+    // @ElementCollection ile Map<fieldKey, value>'yu kendisi yonetir, entity/
+    // adapter kodu JSON (de)serilestirme yapmaz.
+    @ElementCollection
+    @CollectionTable(name = "team_member_custom_field_values", joinColumns = @JoinColumn(name = "team_member_id"))
+    @MapKeyColumn(name = "field_key")
+    @Column(name = "value", columnDefinition = "nvarchar(max)")
     private Map<String, String> customFieldValues = new HashMap<>();
 
     @CreationTimestamp

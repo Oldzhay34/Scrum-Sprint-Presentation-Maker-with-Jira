@@ -1,5 +1,6 @@
 package com.aksa.capacityplanner.presentation.facade;
 
+import com.aksa.capacityplanner.presentation.domain.PresentationDownloadLog;
 import com.aksa.capacityplanner.presentation.domain.PresentationVersion;
 import com.aksa.capacityplanner.presentation.domain.SprintPresentation;
 import com.aksa.capacityplanner.presentation.port.in.PresentationUseCase;
@@ -47,6 +48,20 @@ public class PresentationFacade {
         SprintPresentation presentation = presentationUseCase.getById(presentationId);
         requireEditAccess(presentation.getTeamId(), callerTeamId, callerIsAdmin);
         return presentationUseCase.rollback(presentationId, version, callerSicil);
+    }
+
+    /**
+     * Ortak (coklu takim) sunum ekrani icin: okuma zaten herkese acik (bkz.
+     * sinif yorumu ustte) - PO'nun kendi takimi disindaki takimlarin en son
+     * sunumunu SALT-OKUNUR gormesi burada da ayni ilkeyle kisitlanmaz.
+     */
+    public List<SprintPresentation> listLatestPerTeam(List<Long> teamIds) {
+        return presentationUseCase.listLatestPerTeamReadOnly(teamIds);
+    }
+
+    /** Indirme kaydi herhangi bir kimlik dogrulanmis kullanici icin tutulur - takim kisitlamasi gerekmez (salt telemetri). */
+    public PresentationDownloadLog recordDownload(PresentationDownloadLog.DownloadType downloadType, List<Long> teamIds, String downloadedBy) {
+        return presentationUseCase.recordDownload(downloadType, teamIds, downloadedBy);
     }
 
     private void requireEditAccess(Long targetTeamId, Long callerTeamId, boolean callerIsAdmin) {

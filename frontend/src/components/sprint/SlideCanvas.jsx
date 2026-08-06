@@ -57,7 +57,7 @@ function Card({ x, y, w, h, items, sec, fontSize }) {
                 </span>
               )}
               <BulletText text={text} />
-              {comment.trim() && <div className="item-comment">💬 {comment.trim()}</div>}
+              {comment.trim() && <div className="item-comment">* {comment.trim()}</div>}
             </li>
           );
         })}
@@ -141,7 +141,7 @@ export default function SlideCanvas({ data, tab, assets, scale }) {
         <Card x={G.X_R} y={cardsTop} w={G.COL_W} h={topH} items={sections.active} sec={SEC.active} fontSize={fsByKey.active} />
         <Card x={G.X_R} y={yBot} w={G.COL_W} h={botH} items={sections.pending} sec={SEC.pending} fontSize={fsByKey.pending} />
         <div className="s-footer">
-          Gizli &amp; Dahili Kullanım&nbsp;&nbsp;|&nbsp;&nbsp;{footerTeam} – Planlama Toplantısı
+          Gizli &amp; Dahili Kullanım&nbsp;&nbsp;|&nbsp;&nbsp;{footerTeam}
           {hasPriorityTags(data) && <PriorityLegend />}
         </div>
       </>

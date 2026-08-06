@@ -9,4 +9,6 @@ public interface SprintPresentationReadOnlyJpaRepository extends JpaRepository<S
     Optional<SprintPresentationReadOnlyJpaEntity> findById(Long id);
 
     List<SprintPresentationReadOnlyJpaEntity> findByTeamId(Long teamId);
+
+    List<SprintPresentationReadOnlyJpaEntity> findByTeamIdIn(List<Long> teamIds);
 }

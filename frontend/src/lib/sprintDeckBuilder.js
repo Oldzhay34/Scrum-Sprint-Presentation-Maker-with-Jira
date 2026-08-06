@@ -73,7 +73,7 @@ export function addContentSlide(pptx, data, assets, theme = "light") {
 
   const footerTeam = (data.teamName || "Ekip").trim();
   s2.addShape(pptx.ShapeType.rect, { x: 0, y: 7.14, w: 13.333, h: 0.36, fill: { color: TEAL } });
-  s2.addText(`Gizli & Dahili Kullanım   |   ${footerTeam} – Planlama Toplantısı`, { x: 0.4, y: 7.14, w: 7, h: 0.36, fontFace: "Calibri", fontSize: 10, color: "D6E4EA", margin: 0, valign: "middle" });
+  s2.addText(`Gizli & Dahili Kullanım   |   ${footerTeam}`, { x: 0.4, y: 7.14, w: 7, h: 0.36, fontFace: "Calibri", fontSize: 10, color: "D6E4EA", margin: 0, valign: "middle" });
 
   if (hasPriorityTags(data)) {
     const legendEntries = [...PRIORITY_ORDER.map((p) => [p, PRIORITY_COLORS[p]]), [PRIORITY_UNSET_LABEL, PRIORITY_UNSET_COLOR]];
@@ -102,14 +102,18 @@ export function addContentSlide(pptx, data, assets, theme = "light") {
           const bulletColor = priority ? PRIORITY_COLORS[priority] : PRIORITY_UNSET_COLOR;
           const mainRuns = parseRuns(text).map((r) => ({ text: r.text, options: { bold: r.bold, color: r.bold ? P.TXT_BOLD : P.TXT_NORMAL } }));
           if (priority) {
-            // Onceki surumde oncelik SADECE maddenin basindaki isaretin (bullet)
-            // rengiyle gosteriliyordu - pptxgenjs/PowerPoint'te ozel bullet rengi
-            // guvenilir basilmiyordu (bkz. kullanici bildirimi: "renkleri hic
-            // bastırılmıyor"). Renkli/kalin bir metin etiketi ("KRİTİK " gibi)
-            // her zaman guvenilir basildigi icin asil duzeltme budur; bullet rengi
-            // (asagida) best-effort olarak ayrica denenmeye devam eder.
+            // Renkli/kalin bir metin etiketi ("KRİTİK " gibi) - bkz. asagidaki dot
+            // ile ayni renk mantigi.
             mainRuns.unshift({ text: priority.toUpperCase() + "  ", options: { bold: true, color: bulletColor } });
           }
+          // Oncelik noktasi: pptxgenjs/PowerPoint'te native "bullet" ozelliginin
+          // rengi (bullet:{color}) guvenilir basilmiyor - oncelik BELIRTILMEMIS
+          // maddelerde (bkz. kullanici bildirimi) bu yuzden PRIORITY_UNSET_COLOR
+          // (siyaha yakin) yerine PowerPoint'in varsayilan/tema rengi (gri, "Düşük"
+          // ile ayni gorunen) basiliyordu. Guvenilir tek yol, noktayi normal bir
+          // METIN karakteri olarak (native bullet KULLANMADAN) elle eklemek -
+          // oncelik etiketinde ("KRİTİK " gibi) zaten kullanilan ayni yontem.
+          mainRuns.unshift({ text: "●  ", options: { color: bulletColor } });
           // NOT: burada breakLine SET EDILMEZ - mainRuns[0] madde metninin
           // sadece ILK run'i olabilir (orn. "metin " + "**Departman**" gibi
           // ic ice bold varsa). breakLine, madde SONUNDAKI run'a (asagida,
@@ -118,22 +122,21 @@ export function addContentSlide(pptx, data, assets, theme = "light") {
           // ALT SATIRA duserdi (bkz. kullanici bildirimi: "bold yazılar
           // aşağı satıra kayıyor").
           mainRuns[0].options = Object.assign({}, mainRuns[0].options, {
-            // "25CF" (●) - kucuk "•" isaretinden daha buyuk/net, oncelik rengini
-            // daha belirgin gosterir (bkz. app.css .card li .dot ile onizlemede ayni fikir).
-            bullet: { code: "25CF", indent: 14, color: bulletColor },
             paraSpaceAfter: gapAt(fs2) * 72,
           });
           const isLastItem = i === items.length - 1;
           if (comment) {
-            // Maddeye ozel yorum (Iş Zekası): ana metnin hemen altina, italik +
-            // farkli renkte "premium" bir alt satir olarak eklenir - bkz.
-            // SlideCanvas.jsx'teki .item-comment ile onizlemede ayni gorsel dil.
+            // Maddeye ozel yorum: ana metnin hemen altina, agac (tree) gorunumunde
+            // ("  * yorum") ve yesil serit (highlight) ile vurgulanmis bir alt satir
+            // olarak eklenir - bkz. SlideCanvas.jsx'teki .item-comment ile
+            // onizlemede ayni gorsel dil (emoji kullanilmaz).
             mainRuns[mainRuns.length - 1].options = Object.assign({}, mainRuns[mainRuns.length - 1].options, { breakLine: true });
             mainRuns.push({
-              text: "   💬  " + comment,
+              text: "  * " + comment,
               options: {
                 italic: true,
-                color: "0D9488",
+                color: "166534",
+                highlight: "D1FAE5",
                 fontSize: fs2 * 0.84,
                 breakLine: !isLastItem,
                 paraSpaceAfter: gapAt(fs2) * 72,

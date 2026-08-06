@@ -228,6 +228,23 @@ export async function fetchPresentationVersions(id) {
   return requestJson(`/api/presentations/${id}/versions`);
 }
 
+/**
+ * Ortak (çoklu takım) sunum ekranı için: verilen her takımın EN SON sunumunu
+ * döner (bkz. backend PresentationFacade.listLatestPerTeam). Okuma herkese
+ * açık olduğundan PO'lar da diğer takımların en son sürümünü buradan görür.
+ */
+export async function fetchLatestPresentationsByTeams(teamIds) {
+  return requestJson(`/api/presentations/latest?teamIds=${teamIds.join(",")}`);
+}
+
+/** Bir PPTX indirmesini (toplu/bireysel) denetim amaçlı kaydeder — bkz. backend PresentationDownloadLog. */
+export async function recordPresentationDownload(downloadType, teamIds) {
+  return requestJson("/api/presentations/downloads", {
+    method: "POST",
+    body: JSON.stringify({ downloadType, teamIds }),
+  });
+}
+
 /** Belirtilen versiyonu YENİ bir versiyon olarak head'e geri kopyalar (geçmiş silinmez). */
 export async function rollbackPresentation(id, version) {
   return requestJson(`/api/presentations/${id}/versions/${version}/rollback`, { method: "POST" });

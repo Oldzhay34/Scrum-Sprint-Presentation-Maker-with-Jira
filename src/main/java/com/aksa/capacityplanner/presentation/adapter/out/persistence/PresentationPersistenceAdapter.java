@@ -4,8 +4,13 @@ import com.aksa.capacityplanner.presentation.domain.SprintPresentation;
 import com.aksa.capacityplanner.presentation.port.out.PresentationRepositoryPort;
 import org.springframework.stereotype.Component;
 
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Component
 public class PresentationPersistenceAdapter implements PresentationRepositoryPort {
@@ -51,6 +56,30 @@ public class PresentationPersistenceAdapter implements PresentationRepositoryPor
     @Override
     public List<SprintPresentation> findByTeamIdReadOnly(Long teamId) {
         return readOnlyJpaRepository.findByTeamId(teamId).stream().map(this::toDomain).toList();
+    }
+
+    private static final Pattern SPRINT_NO_DIGITS = Pattern.compile("\\d+");
+
+    /** sprintNo icindeki ilk sayi dizisini cikarir (orn. "Sprint 7" -> 7); sayi yoksa -1 (en dusuk oncelik). */
+    private static long sprintNoRank(String sprintNo) {
+        if (sprintNo == null) return -1;
+        Matcher m = SPRINT_NO_DIGITS.matcher(sprintNo);
+        return m.find() ? Long.parseLong(m.group()) : -1;
+    }
+
+    @Override
+    public List<SprintPresentation> findLatestPerTeamReadOnly(List<Long> teamIds) {
+        // "En son surum" hem sprint numarasina (once) hem de guncelleme
+        // zamanina (esitlikte) gore belirlenir - bkz. kullanici tercihi.
+        Comparator<SprintPresentationReadOnlyJpaEntity> byLatest =
+                Comparator.<SprintPresentationReadOnlyJpaEntity>comparingLong(e -> sprintNoRank(e.getSprintNo()))
+                        .thenComparing(SprintPresentationReadOnlyJpaEntity::getUpdatedAt)
+                        .reversed();
+        Map<Long, SprintPresentationReadOnlyJpaEntity> latestByTeam = new LinkedHashMap<>();
+        readOnlyJpaRepository.findByTeamIdIn(teamIds).stream()
+                .sorted(byLatest)
+                .forEach(e -> latestByTeam.putIfAbsent(e.getTeamId(), e));
+        return latestByTeam.values().stream().map(this::toDomain).toList();
     }
 
     private SprintPresentation toDomain(SprintPresentationReadOnlyJpaEntity entity) {

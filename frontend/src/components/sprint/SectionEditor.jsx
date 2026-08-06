@@ -28,10 +28,9 @@ export default function SectionEditor({ sectionKey, def, text, onTextChange, cou
   const [manualSector, setManualSector] = useState("");
   const [manualDept, setManualDept] = useState("");
   const [manualPriority, setManualPriority] = useState("");
-  // Yorum paneli sadece Iş Zekası ekibine ozel gorunur (bkz. lib/teamTypes.js).
+  // Yorum ekleme ozelligi tum takim tiplerine acik.
   // acikIdx: kullanicinin "+ Yorum" ile actigi, henuz yorumu olmayan satirlarin
   // indexleri - yorumu zaten olan satirlar her zaman acik gosterilir.
-  const isIsZekasi = teamType === "IS_ZEKASI";
   const [openCommentIdx, setOpenCommentIdx] = useState(() => new Set());
 
   const handleClear = () => {
@@ -182,7 +181,7 @@ export default function SectionEditor({ sectionKey, def, text, onTextChange, cou
         <div className="panelttl" style={{ marginTop: 10 }}>Eklenen maddeler</div>
         <div className="hint" style={{ marginBottom: 6 }}>
           Bir maddeyi × ile slayttan çıkarabilirsiniz.
-          {isIsZekasi && " Bir maddeye yorum eklerseniz, slaytta o maddenin altında öne çıkan bir not olarak görünür."}
+          {" Bir maddeye yorum eklerseniz, slaytta o maddenin altında öne çıkan bir not olarak görünür."}
         </div>
         {linesOf(text).map((line, i) => {
           const { text: itemText, comment } = extractComment(line);
@@ -195,12 +194,12 @@ export default function SectionEditor({ sectionKey, def, text, onTextChange, cou
                 <span className="barlabel" style={{ flex: "1 1 240px", background: "transparent", border: 0, padding: "6px 2px" }} title={label}>
                   {label.length > 70 ? label.slice(0, 68) + "…" : label}
                 </span>
-                {isIsZekasi && !open && (
+                {!open && (
                   <button type="button" className="addseg" onClick={() => toggleCommentOpen(i)}>
-                    💬 Yorum ekle
+                    Yorum ekle
                   </button>
                 )}
-                {isIsZekasi && comment && (
+                {comment && (
                   <button type="button" className="delbar" onClick={() => updateLineAt(i, withComment(itemText, ""))}>
                     Yorumu sil
                   </button>
@@ -209,7 +208,7 @@ export default function SectionEditor({ sectionKey, def, text, onTextChange, cou
                   ×
                 </button>
               </div>
-              {isIsZekasi && open && (
+              {open && (
                 <input
                   className="barlabel"
                   style={{ marginTop: 6, width: "100%" }}

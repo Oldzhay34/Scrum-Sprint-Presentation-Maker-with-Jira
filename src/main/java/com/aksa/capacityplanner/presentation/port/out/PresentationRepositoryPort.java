@@ -19,4 +19,11 @@ public interface PresentationRepositoryPort {
 
     /** sprint_presentations_readonly view'i uzerinden okur (bkz. V5) - salt-okunur goruntuleme yollari icin. */
     List<SprintPresentation> findByTeamIdReadOnly(Long teamId);
+
+    /**
+     * Verilen her takim icin EN GUNCEL sunumu (once sprint numarasi, esitlikte
+     * son guncelleme zamani baz alinarak) dondurur - ortak (coklu takim)
+     * sunum ozelligi icin. sprint_presentations_readonly view'i uzerinden okur.
+     */
+    List<SprintPresentation> findLatestPerTeamReadOnly(List<Long> teamIds);
 }

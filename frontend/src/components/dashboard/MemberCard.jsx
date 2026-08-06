@@ -32,8 +32,8 @@ export default function MemberCard({ member, statuses, items, onUpdateMember, on
           onChange={(e) => onUpdateMember({ startDate: e.target.value })}
         />
         <select
-          className="barlabel"
-          style={{ flex: "0 0 140px" }}
+          className="premium-select premium-select-sm"
+          style={{ flex: "0 0 150px" }}
           value={member.statusCode}
           onChange={(e) => onUpdateMember({ statusCode: e.target.value })}
         >
@@ -87,7 +87,7 @@ export default function MemberCard({ member, statuses, items, onUpdateMember, on
             onChange={(e) => onUpdateItem(item.clientId, { plannedEffortDays: sanitizeDecimalInput(e.target.value) })}
           />
           <select
-            className="mitem-input"
+            className="premium-select premium-select-sm"
             value={item.statusCode}
             onChange={(e) => onUpdateItem(item.clientId, { statusCode: e.target.value })}
           >

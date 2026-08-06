@@ -62,6 +62,12 @@ export function useManualDashboard(team, setTeam, sprintNo, setSprintNo, teamTyp
   const updateWorkItem = (clientId, patch) =>
     setWorkItems((prev) => prev.map((wi) => (wi.clientId === clientId ? { ...wi, ...patch } : wi)));
   const removeWorkItem = (clientId) => setWorkItems((prev) => prev.filter((wi) => wi.clientId !== clientId));
+  // Yeni bir Excel yuklendiginde daha once elle girilmis uye/is kalemi
+  // verisini temizlemek icin - bkz. App.jsx handleExcelFile.
+  const clearEntries = () => {
+    setMembers([]);
+    setWorkItems([]);
+  };
 
   const addStatus = () => setStatuses((prev) => [...prev, { code: "", label: "", countsAsCompleted: false }]);
   const updateStatus = (index, patch) => setStatuses((prev) => prev.map((s, i) => (i === index ? { ...s, ...patch } : s)));
@@ -150,7 +156,7 @@ export function useManualDashboard(team, setTeam, sprintNo, setSprintNo, teamTyp
     maintenanceAllocationPercent, setMaintenanceAllocationPercent,
     alertMessage, alertTitle, clearAlert: () => setAlertMessage(null),
     members, addMember, updateMember, removeMember,
-    workItems, workItemsByMember, addWorkItem, updateWorkItem, removeWorkItem,
+    workItems, workItemsByMember, addWorkItem, updateWorkItem, removeWorkItem, clearEntries,
     statuses, addStatus, updateStatus, removeStatus,
     customKpis, addCustomKpi, updateCustomKpi, removeCustomKpi,
     dashData, loading, error, compute,

@@ -1,4 +1,5 @@
 import { sanitizeDecimalInput, sanitizeIntegerInput } from "../../lib/format";
+import { IconCheckCircle, IconPlusCircle, IconRocket, IconTrendingDelta } from "../shared/icons";
 
 export default function DeltaForm({ dKapanan, setDKapanan, dEklenen, setDEklenen, dFte, setDFte, dNet, setDNet, hasFte = true }) {
   return (
@@ -8,27 +9,27 @@ export default function DeltaForm({ dKapanan, setDKapanan, dEklenen, setDEklenen
         <div className="deltagrid">
           <div className="field">
             <label>
-              Dönem Kapanan İş Yükü <span className="req">zorunlu</span>
+              <IconCheckCircle className="field-icon" />Dönem Kapanan İş Yükü <span className="req">zorunlu</span>
             </label>
             <input inputMode="numeric" value={dKapanan} onChange={(e) => setDKapanan(sanitizeIntegerInput(e.target.value))} placeholder="örn: 37" />
           </div>
           <div className="field">
             <label>
-              Yeni Eklenen İş Yükü <span className="req">zorunlu</span>
+              <IconPlusCircle className="field-icon" />Yeni Eklenen İş Yükü <span className="req">zorunlu</span>
             </label>
             <input inputMode="numeric" value={dEklenen} onChange={(e) => setDEklenen(sanitizeIntegerInput(e.target.value))} placeholder="örn: 62" />
           </div>
           {hasFte && (
             <div className="field">
               <label>
-                Canlıya Alınan FTE <span className="opt">opsiyonel</span>
+                <IconRocket className="field-icon" />Canlıya Alınan FTE <span className="opt">opsiyonel</span>
               </label>
               <input inputMode="decimal" value={dFte} onChange={(e) => setDFte(sanitizeDecimalInput(e.target.value))} placeholder="örn: 0,05 — yoksa boş bırak" />
             </div>
           )}
           <div className="field">
             <label>
-              Net İş Yükü Değişimi <span className="opt">opsiyonel · boşsa = Kapanan − Eklenen</span>
+              <IconTrendingDelta className="field-icon" />Net İş Yükü Değişimi <span className="opt">opsiyonel · boşsa = Kapanan − Eklenen</span>
             </label>
             <input inputMode="decimal" value={dNet} onChange={(e) => setDNet(sanitizeDecimalInput(e.target.value, true))} placeholder="otomatik" />
           </div>

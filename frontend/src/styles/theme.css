@@ -453,6 +453,19 @@
   color: var(--aksa-blue-light);
 }
 
+/* app.css'te .delbar acik kirmizi gradient sabit - karanlik modda goze
+   batiyordu, ayni "danger pill" dilini koyu zeminle uyumlu bir varyanta
+   ceviriyoruz. */
+.theme-dark .delbar {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #FCA5A5;
+}
+.theme-dark .delbar:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: #FCA5A5;
+}
+
 /* ---------------------------------------------------------------------- */
 /* Sayfa arka plani - hafif Aksa mavi/yesil radyal gecisler                */
 /* ---------------------------------------------------------------------- */
