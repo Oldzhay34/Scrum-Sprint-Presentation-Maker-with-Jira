@@ -4,6 +4,7 @@ import com.aksa.capacityplanner.asset.adapter.out.storage.StorageException;
 import com.aksa.capacityplanner.auth.domain.InvalidCredentialsException;
 import com.aksa.capacityplanner.common.domain.DomainValidationException;
 import com.aksa.capacityplanner.common.domain.NotFoundException;
+import com.aksa.capacityplanner.document.adapter.out.storage.DocumentStorageException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
@@ -38,6 +39,11 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(StorageException.class)
     public ResponseEntity<ApiErrorResponse> handleStorageError(StorageException ex, HttpServletRequest request) {
+        return build(HttpStatus.BAD_GATEWAY, ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(DocumentStorageException.class)
+    public ResponseEntity<ApiErrorResponse> handleDocumentStorageError(DocumentStorageException ex, HttpServletRequest request) {
         return build(HttpStatus.BAD_GATEWAY, ex.getMessage(), request);
     }
 
