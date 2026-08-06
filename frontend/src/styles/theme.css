@@ -544,6 +544,36 @@ header.topbar {
   position: relative;
 }
 
+.topbar-logo-btn {
+  width: 104px;
+  height: 40px;
+  flex: none;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 10px;
+  background: #fff;
+  padding: 4px 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+.topbar-logo-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.22);
+  border-color: #fff;
+}
+.topbar-logo-btn:focus-visible {
+  outline: 2px solid var(--aksa-green);
+  outline-offset: 2px;
+}
+.topbar-logo-btn img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
 /* ---------------------------------------------------------------------- */
 /* Ust bar daraltma tutamaci - alt kenardan yukari cekilince (veya         */
 /* tiklaninca) topbar-content daralip kaybolur, tekrar cekilince/          */
@@ -880,9 +910,9 @@ header.topbar {
 /* durur (kullanici etkilesirken dikkat dagitmasin), reduced-motion'da     */
 /* tamamen kapanir.                                                        */
 /* ---------------------------------------------------------------------- */
-header.topbar .btn.ghost:not(:disabled) {
-  animation: aksa-topbtn-pulse-ghost 2.4s ease-in-out infinite;
-}
+/* Sadece tek bir birincil eylem (orn. PPTX Indir) nabiz atar - ghost      */
+/* butonlarda (Excel Yukle, Kaydet, Sunumlarim, Izleme...) kaldirildi,      */
+/* aksi halde bitisik butonlarin halkalari birbirine giriyordu.            */
 header.topbar .btn.primary:not(:disabled) {
   animation: aksa-topbtn-pulse-primary 2.4s ease-in-out infinite;
 }
@@ -890,17 +920,12 @@ header.topbar .btn:hover {
   animation-play-state: paused;
 }
 
-@keyframes aksa-topbtn-pulse-ghost {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); }
-  50% { box-shadow: 0 0 0 7px rgba(255, 255, 255, 0.16); }
-}
 @keyframes aksa-topbtn-pulse-primary {
   0%, 100% { box-shadow: 0 4px 14px rgba(110, 168, 43, 0.32), 0 0 0 0 rgba(141, 198, 63, 0); }
-  50% { box-shadow: 0 4px 14px rgba(110, 168, 43, 0.32), 0 0 0 8px rgba(141, 198, 63, 0.35); }
+  50% { box-shadow: 0 4px 14px rgba(110, 168, 43, 0.32), 0 0 0 4px rgba(141, 198, 63, 0.3); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  header.topbar .btn.ghost,
   header.topbar .btn.primary {
     animation: none;
   }

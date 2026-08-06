@@ -54,24 +54,22 @@ export default function TopBar({ actions, theme, onToggleTheme, excelFileName, p
     <header className={`topbar${collapsed ? " topbar-collapsed" : ""}`}>
       <div className="topbar-content">
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <div
-            style={{
-              width: 104, height: 40, borderRadius: 10, flex: "none",
-              background: "rgba(255,255,255,.14)", overflow: "hidden",
-            }}
+          <button
+            type="button"
+            className="topbar-logo-btn"
+            onClick={() => navigate("/")}
+            title="Ana sayfa"
+            aria-label="Ana sayfaya git"
           >
-            <img
-              src={ASSETS.logo_b}
-              alt="Aksa"
-              style={{ width: "100%", height: "100%", objectFit: "cover" }}
-            />
-          </div>
+            <img src={ASSETS.logo_b} alt="Aksa" />
+          </button>
           <div>
             <h1>Sprint &amp; Dashboard Üretici</h1>
             <div className="sub">Sprint sunumu ve kapasite dashboard'unu üret · canlı önizle · markalı PPTX indir</div>
           </div>
         </div>
         <div className="spacer" />
+        <div className="topbar-actions">
         {excelFileName && (
           <span className="excel-file-chip" title={excelFileName}>
             <span className="excel-file-chip-icon" aria-hidden="true">📄</span>
@@ -105,6 +103,7 @@ export default function TopBar({ actions, theme, onToggleTheme, excelFileName, p
         >
           {theme === "dark" ? <IconSun /> : <IconMoon />}
         </button>
+        </div>
       </div>
       <button
         type="button"
