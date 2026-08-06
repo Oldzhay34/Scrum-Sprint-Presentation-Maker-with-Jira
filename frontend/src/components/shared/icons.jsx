@@ -144,15 +144,6 @@ export function IconIdCard(props) {
   );
 }
 
-/** Sprint No alani icin - numarali etiket/rozet. */
-export function IconHash(props) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
-      <path d="M9 3 7 21M17 3l-2 18M4 8.5h16M3.5 15.5h16" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
 /** Donem Kapanan Is Yuku - tamamlanmis/kapanmis is anlamina gelen onay isareti. */
 export function IconCheckCircle(props) {
   return (
