@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import Button from "../shared/Button";
 import AlertModal from "../shared/AlertModal";
 import ReadOnlyNotice from "../shared/ReadOnlyNotice";
-import { IconUpload } from "../shared/icons";
+import { IconUpload, IconUsers, IconHash, IconCalendar } from "../shared/icons";
 import { isValidNumberInput } from "../../lib/validation";
 import { sanitizeIntegerInput } from "../../lib/format";
 import { TEAM_TYPES } from "../../lib/teamTypes";
@@ -35,25 +35,36 @@ export default function CoverPage({ teamType, setTeamType, sprint, setSprint, ra
   return (
     <section>
       <div className="meta" style={{ borderRadius: 12, border: "1px solid var(--line)" }}>
-        <div className="field grow">
+        <div className="field">
           <label>Takım tipi</label>
-          <select className="premium-select" value={teamType} onChange={(e) => setTeamType(e.target.value)}>
-            {TEAM_TYPES.map((t) => (
-              <option key={t.value} value={t.value}>
-                {t.label}
-              </option>
-            ))}
-          </select>
+          <div className="icon-select">
+            <span className="icon-select-badge">
+              <IconUsers style={{ width: 14, height: 14 }} />
+            </span>
+            <select className="premium-select" value={teamType} onChange={(e) => setTeamType(e.target.value)}>
+              {TEAM_TYPES.map((t) => (
+                <option key={t.value} value={t.value}>
+                  {t.label}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
         {canEdit && (
           <>
             <div className="field">
               <label>Sprint no</label>
-              <input inputMode="numeric" value={sprint} onChange={(e) => setSprint(sanitizeIntegerInput(e.target.value))} onBlur={handleSprintBlur} />
+              <div className="icon-field">
+                <IconHash className="icon-field-icon" style={{ width: 14, height: 14 }} />
+                <input inputMode="numeric" value={sprint} onChange={(e) => setSprint(sanitizeIntegerInput(e.target.value))} onBlur={handleSprintBlur} />
+              </div>
             </div>
             <div className="field grow">
               <label>Tarih aralığı</label>
-              <input value={range} onChange={(e) => setRange(e.target.value)} />
+              <div className="icon-field">
+                <IconCalendar className="icon-field-icon" style={{ width: 14, height: 14 }} />
+                <input value={range} onChange={(e) => setRange(e.target.value)} />
+              </div>
             </div>
           </>
         )}
@@ -71,12 +82,12 @@ export default function CoverPage({ teamType, setTeamType, sprint, setSprint, ra
       {canEdit && (
         <>
           <p className="panelttl" style={{ marginTop: 14 }}>Kapak görseli</p>
-          <div className="sec">
+          <div className="sec cover-image-sec">
             <div style={{ display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap" }}>
               <img
                 src={cover.coverBg}
                 alt="Kapak görseli önizleme"
-                style={{ width: 160, height: 90, objectFit: "cover", borderRadius: 8, border: "1px solid var(--line)" }}
+                className="cover-preview-img"
               />
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 <input
