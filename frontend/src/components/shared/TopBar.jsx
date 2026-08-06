@@ -112,7 +112,7 @@ export default function TopBar({ actions, theme, onToggleTheme, excelFileName, p
             <img src={ASSETS.logo_b} alt="Aksa" />
           </button>
           <div>
-            <h1>Sprint &amp; Dashboard Üretici</h1>
+            <h1>Dijital Uygulamalar ve Ürün Geliştirme Agile Sistemi</h1>
             <div className="sub">Sprint sunumu ve kapasite dashboard'unu üret · canlı önizle · markalı PPTX indir</div>
           </div>
         </div>

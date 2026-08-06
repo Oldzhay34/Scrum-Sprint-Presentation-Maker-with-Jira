@@ -2354,12 +2354,15 @@ header.topbar .btn:hover {
 }
 .monitoring-kpi-tile:hover {
   transform: translateY(-2px);
-  box-shadow: 0 12px 28px rgba(11, 31, 51, 0.14);
+  box-shadow: 0 12px 28px color-mix(in srgb, var(--kpi-accent, #0d5ea8) 24%, transparent);
 }
-.monitoring-kpi-tile.tone-blue { --kpi-accent: var(--aksa-blue); }
-.monitoring-kpi-tile.tone-green { --kpi-accent: var(--aksa-green-dark); }
-.monitoring-kpi-tile.tone-purple { --kpi-accent: #7c3aed; }
-.monitoring-kpi-tile.tone-amber { --kpi-accent: #c2570f; }
+/* Ortak Sunum sayfasindaki (.joint-kpi-*) renk cifleriyle BIREBIR AYNI -
+   "ayni renkler ayni canlilik" istegi: her ton kendi acik varyantina
+   degrade oluyor, once hepsi (yanlislikla) tek bir mavi acige gidiyordu. */
+.monitoring-kpi-tile.tone-blue { --kpi-accent: var(--aksa-blue); --kpi-accent-light: var(--aksa-blue-light); }
+.monitoring-kpi-tile.tone-green { --kpi-accent: #16a34a; --kpi-accent-light: #4ade80; }
+.monitoring-kpi-tile.tone-purple { --kpi-accent: #7c3aed; --kpi-accent-light: #a78bfa; }
+.monitoring-kpi-tile.tone-amber { --kpi-accent: #e0761f; --kpi-accent-light: #f59e0b; }
 .monitoring-kpi-icon {
   flex: none;
   width: 40px;
@@ -2369,8 +2372,8 @@ header.topbar .btn:hover {
   align-items: center;
   justify-content: center;
   color: #fff;
-  background: linear-gradient(135deg, var(--kpi-accent, var(--aksa-blue)), var(--aksa-blue-light));
-  box-shadow: 0 3px 10px rgba(13, 94, 168, 0.35);
+  background: linear-gradient(135deg, var(--kpi-accent, var(--aksa-blue)), var(--kpi-accent-light, var(--aksa-blue-light)));
+  box-shadow: 0 0 10px color-mix(in srgb, var(--kpi-accent, #0d5ea8) 45%, transparent);
 }
 .monitoring-kpi-icon svg {
   width: 18px;
@@ -2730,11 +2733,21 @@ header.topbar .btn:hover {
 .monitoring-filterbar-title {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   font-size: 12.5px;
   font-weight: 700;
   color: var(--mut);
   flex: none;
+}
+.monitoring-filterbar-title-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  border-radius: 50%;
+  color: #fff;
+  background: linear-gradient(135deg, var(--aksa-blue), var(--aksa-blue-light));
+  box-shadow: 0 0 10px rgba(74, 159, 224, 0.45);
 }
 .monitoring-filter-fields {
   display: flex;

@@ -136,7 +136,7 @@ export default function LoginPage({ onLogin, theme, onToggleTheme }) {
         <div className="login-logo">
           <img src={ASSETS.logo_b} alt="Aksa" />
         </div>
-        <h1 className="login-title">Sprint &amp; Dashboard Üretici</h1>
+        <h1 className="login-title">Dijital Uygulamalar ve Ürün Geliştirme Agile Sistemi</h1>
         <p className="login-sub">Devam etmek için giriş yapın</p>
 
         <div className="field">

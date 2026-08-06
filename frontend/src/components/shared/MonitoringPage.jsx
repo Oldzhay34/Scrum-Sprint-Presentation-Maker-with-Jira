@@ -172,7 +172,9 @@ export default function MonitoringPage({ personnel, theme, onToggleTheme }) {
 
         <div className="monitoring-filterbar">
           <div className="monitoring-filterbar-title">
-            <IconFilter style={{ width: 15, height: 15 }} />
+            <span className="monitoring-filterbar-title-badge">
+              <IconFilter style={{ width: 13, height: 13 }} />
+            </span>
             Filtrele
           </div>
           <div className="monitoring-filter-fields">
