@@ -142,7 +142,14 @@ export function addContentSlide(pptx, data, assets, theme = "light", cornerMesh 
           const comment = rawComment.trim();
           const { priority, text } = extractPriority(withoutComment);
           const bulletColor = priority ? PRIORITY_COLORS[priority] : PRIORITY_UNSET_COLOR;
-          const mainRuns = parseRuns(text).map((r) => ({ text: r.text, options: { bold: r.bold, color: r.bold ? P.TXT_BOLD : P.TXT_NORMAL } }));
+          // **bold** parcalar - onizlemede (bkz. app.css .card li b) yesil
+          // "highlight" kutusu olarak gosteriliyor; ayni renk cifti (D1FAE5/166534)
+          // burada da PowerPoint'in native metin vurgusuyla (highlight) taklit
+          // edilir - "yorum" ozelligiyle (asagida) BİREBİR AYNI gorsel dil.
+          const mainRuns = parseRuns(text).map((r) => ({
+            text: r.text,
+            options: r.bold ? { bold: true, color: "166534", highlight: "D1FAE5" } : { color: P.TXT_NORMAL },
+          }));
           if (priority) {
             // Renkli/kalin bir metin etiketi ("KRİTİK " gibi) - bkz. asagidaki dot
             // ile ayni renk mantigi.

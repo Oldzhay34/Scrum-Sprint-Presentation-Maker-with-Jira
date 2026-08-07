@@ -1,18 +1,24 @@
 import { useEffect, useRef, useState } from "react";
 import Button from "./Button";
-import { IconSun, IconMoon } from "./icons";
+import { IconSun, IconMoon, IconCheckCircle, IconPlusCircle, IconGauge, IconUsers } from "./icons";
 import { login } from "../../lib/apiClient";
 import { ASSETS } from "../../assets/pptxAssets";
 
 // Dashboard/icerik slaydinda kullandigimiz 4 bolumun ikon+renk kimligiyle
 // birebir ayni (bkz. lib/geometry.js sectionDefs) - login sayfasinda arka
 // planda zipliyan (DVD ekran koruyucusu gibi) dekoratif rozetler olarak
-// tekrar kullanilir.
+// tekrar kullanilir. Kapasite Dashboard'un kendi kimligindeki (Son 2 Hafta /
+// Hedefler bandi) ikon+renklerle (bkz. DeltaForm.jsx, BandEditorPanel.jsx)
+// birkac tane daha eklendi - "Icon" verilenler PNG asset degil, SVG bilesen.
 const FLOAT_ICONS = [
   { icon: "icon_check", accent: "16a34a", size: 80 },
   { icon: "icon_rocket", accent: "2563eb", size: 96 },
   { icon: "icon_warn", accent: "e0761f", size: 86 },
   { icon: "icon_clock", accent: "7c3aed", size: 74 },
+  { Icon: IconCheckCircle, accent: "16a34a", size: 68 },
+  { Icon: IconPlusCircle, accent: "2563eb", size: 78 },
+  { Icon: IconGauge, accent: "0d5ea8", size: 70 },
+  { Icon: IconUsers, accent: "c2570f", size: 64 },
 ];
 
 /**
@@ -105,22 +111,36 @@ export default function LoginPage({ onLogin, theme, onToggleTheme }) {
       <div className="login-glow-orb login-glow-orb-d" aria-hidden="true" />
       {FLOAT_ICONS.map((f, i) => (
         <div
-          key={f.icon}
+          key={f.icon || f.Icon.name}
           ref={(el) => (iconRefs.current[i] = el)}
           className="login-float-wrap"
           style={{ width: f.size, height: f.size }}
         >
-          <img
-            className="login-float-icon"
-            src={ASSETS[f.icon]}
-            alt=""
-            aria-hidden="true"
-            style={{
-              background: `radial-gradient(circle at 30% 28%, #ffffffb0, transparent 42%), linear-gradient(135deg, #${f.accent}, #${f.accent}90)`,
-              border: "2px solid rgba(255,255,255,0.55)",
-              boxShadow: `0 0 30px #${f.accent}b0, 0 0 12px #${f.accent}`,
-            }}
-          />
+          {f.Icon ? (
+            <div
+              className="login-float-icon login-float-icon-svg"
+              aria-hidden="true"
+              style={{
+                background: `radial-gradient(circle at 30% 28%, #ffffffb0, transparent 42%), linear-gradient(135deg, #${f.accent}, #${f.accent}90)`,
+                border: "2px solid rgba(255,255,255,0.55)",
+                boxShadow: `0 0 30px #${f.accent}b0, 0 0 12px #${f.accent}`,
+              }}
+            >
+              <f.Icon style={{ width: "42%", height: "42%", color: "#fff" }} />
+            </div>
+          ) : (
+            <img
+              className="login-float-icon"
+              src={ASSETS[f.icon]}
+              alt=""
+              aria-hidden="true"
+              style={{
+                background: `radial-gradient(circle at 30% 28%, #ffffffb0, transparent 42%), linear-gradient(135deg, #${f.accent}, #${f.accent}90)`,
+                border: "2px solid rgba(255,255,255,0.55)",
+                boxShadow: `0 0 30px #${f.accent}b0, 0 0 12px #${f.accent}`,
+              }}
+            />
+          )}
         </div>
       ))}
       <button
@@ -136,8 +156,7 @@ export default function LoginPage({ onLogin, theme, onToggleTheme }) {
         <div className="login-logo">
           <img src={ASSETS.logo_b} alt="Aksa" />
         </div>
-        <h1 className="login-title">Dijital Uygulamalar ve Ürün Geliştirme Agile Sistemi</h1>
-        <p className="login-sub">Devam etmek için giriş yapın</p>
+        <h1 className="login-title">Odyssey</h1>
 
         <div className="field">
           <label>Sicil No</label>
