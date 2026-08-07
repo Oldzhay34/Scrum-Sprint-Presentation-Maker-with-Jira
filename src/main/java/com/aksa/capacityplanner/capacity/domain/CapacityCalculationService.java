@@ -38,7 +38,7 @@ public class CapacityCalculationService {
                         && !wi.getAddedDate().isBefore(input.previousSnapshotDate())
                         && !wi.getAddedDate().isAfter(input.reportDate()));
 
-        BigDecimal netChange = newlyAdded.subtract(periodClosed);
+        BigDecimal netChange = periodClosed.subtract(newlyAdded);
 
         BigDecimal teamMaintenancePercent = input.maintenanceAllocationPercent() == null
                 ? BigDecimal.ZERO : input.maintenanceAllocationPercent();

@@ -1,4 +1,5 @@
 import { DAV_COLORS, barColor, dStatus, nfmt1, nfmtInt, npct } from "../../lib/format";
+import { resolveTableHeaders } from "../../lib/dashboardTableHeaders";
 
 /**
  * Kapasite dashboard slaydini (KPI kartlari + son 2 hafta delta + kisi tablosu)
@@ -19,6 +20,7 @@ export default function DashboardSlideCanvas({ dd, assets, scale }) {
   }
 
   const k = dd.kpis, dur = dStatus(k.durum, k.doluluk);
+  const th = resolveTableHeaders(dd.tableHeaders);
   const cards = [
     ["Toplam İş Yükü", nfmtInt(k.toplam), "A/G", "var(--ink)"],
     ["Tamamlanan İş Yükü", nfmtInt(k.tamamlanan), "A/G", "#16A34A"],
@@ -79,13 +81,13 @@ export default function DashboardSlideCanvas({ dd, assets, scale }) {
         <div className="dhead">Kişi Bazlı Kapasite Özeti</div>
         <div className="dtable">
           <div className="dtr h">
-            <span>Kişi</span>
-            <span className="ctr">Toplam İş Yükü<b className="ag">(AG)</b></span>
-            <span className="ctr">Tamamlanan<b className="ag">(AG)</b></span>
-            <span className="ctr">Açık İş Yükü<b className="ag">(AG)</b></span>
-            <span className="ctr">Kullanılabilir Kapasite<b className="ag">(AG)</b></span>
-            <span>Bakımlı Doluluk %</span>
-            <span className="ctr">Durum</span>
+            <span>{th.kisi}</span>
+            <span className="ctr">{th.toplam}<b className="ag">(AG)</b></span>
+            <span className="ctr">{th.tamamlanan}<b className="ag">(AG)</b></span>
+            <span className="ctr">{th.acik}<b className="ag">(AG)</b></span>
+            <span className="ctr">{th.kapasite}<b className="ag">(AG)</b></span>
+            <span>{th.doluluk}</span>
+            <span className="ctr">{th.durum}</span>
           </div>
           {(dd.persons || []).map((p, i) => {
             const ps = dStatus(p.durum, p.doluluk);

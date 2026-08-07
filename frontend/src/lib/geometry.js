@@ -8,12 +8,21 @@ export const G = {
 };
 G.X_R = G.X_L + G.COL_W + G.GAP_X;
 
-// Kart icin denenecek yazi boyutlari, en buyukten en kucuge. Icerik azsa buyuk
-// uclar (12.5'e kadar) denenir; cok fazla madde eklenirse (bkz. pickFS) kucuk
-// uclara kadar inilir ki icerik hicbir zaman slayt sinirlarinin disina tasip
-// sessizce kaybolmasin.
+// Kart icin denenecek yazi boyutlari, en buyukten en kucuge (normal/kucultme
+// yolu). Cok fazla madde eklenirse (bkz. pickCardFS) kucuk uclara kadar
+// inilir ki icerik hicbir zaman slayt sinirlarinin disina tasip sessizce
+// kaybolmasin.
 export const FS_CANDIDATES = [12.5, 12, 11.5, 11, 10.5, 10, 9.5, 9, 8.5, 8, 7.5, 7, 6.5, 6, 5.5, 5, 4.5, 4];
 export const FS_MIN = FS_CANDIDATES[FS_CANDIDATES.length - 1];
+export const FS_BASE = FS_CANDIDATES[0];
+
+// Bir kartta az madde varsa (bkz. GROW_ITEM_THRESHOLD), kart bos/dagitik
+// gorunmesin diye yazi FS_BASE'in UZERINE de cikabilir - GROW_MAX'e kadar.
+// Oran, istenen "normal 14 ise 18'i gecmesin" (goz yormayacak ust sinir)
+// orneginden turetildi: 18/14 ≈ 1.286 * FS_BASE(12.5) ≈ 16.
+export const GROW_MAX = 16;
+export const GROW_CANDIDATES = [16, 15.5, 15, 14.5, 14, 13.5, 13, FS_BASE];
+export const GROW_ITEM_THRESHOLD = 5;
 
 /** Maddeler arasi bosluk, yazi boyutuyla orantili kuculur (sabit kalirsa kucuk fontlarda oranti bozulur). */
 export function gapAt(f) {
@@ -45,10 +54,58 @@ export function logoPositions({ rightEdge, top, height, gap = 0.0833 }) {
 
 export const SECTION_KEYS = ["done", "active", "risk", "pending"];
 
+/**
+ * Bir metni satirlara ayirir (bos satirlar atilir). SectionEditor ve
+ * useSprintForm ayni fonksiyonu kullanir. Sadece maddenin ANA metni trim
+ * edilir - yorum kismina dokunulmaz, yoksa kullanici yorum kutusuna yazarken
+ * her tuş vurusunda (state round-trip'inde) satirin sonundaki bosluk
+ * karakteri aninda silinip bosluk hic yazilamiyormus gibi gorunuyordu.
+ */
+export function linesOf(text) {
+  return String(text || "")
+    .split("\n")
+    .map((line) => {
+      const { text: base, comment } = extractComment(line);
+      const trimmedBase = base.trim();
+      if (!trimmedBase) return "";
+      return comment !== "" ? trimmedBase + COMMENT_SEP + comment : trimmedBase;
+    })
+    .filter(Boolean);
+}
+
+// Bir maddeye (satira) yorum eklemek icin, gorunmez bir kontrol karakteriyle
+// (kullanicinin klavyeden asla yazamayacagi) metnin sonuna eklenir - boylece
+// mevcut string tabanli bolum modeli (useSprintForm.sections) degismeden,
+// SectionEditor/SlideCanvas/sprintDeckBuilder ayni satirdan hem metni hem
+// yorumu cikarabilir. Sadece Iş Zekası ekibine ozel "yorum ekle" ozelligi icin.
+const COMMENT_SEP = "";
+
+/** Bir maddenin (ham satirin) metnini ve varsa yorumunu ayirir. */
+export function extractComment(t) {
+  const str = String(t);
+  const idx = str.indexOf(COMMENT_SEP);
+  if (idx === -1) return { text: str, comment: "" };
+  return { text: str.slice(0, idx), comment: str.slice(idx + 1) };
+}
+
+/**
+ * Bir maddenin metnini (yorumu koruyarak) veya yorumunu (metni koruyarak)
+ * gunceller. Yorum burada TRIM EDILMEZ - kullanici hala yaziyorken (orn. iki
+ * kelime arasina bosluk koyarken) trim, her tus vurusunda son karakteri
+ * (bosluk) silip bosluk yazilamiyormus hissi yaratirdi. Baştaki/sondaki
+ * fazladan bosluklar sadece goruntulenirken (SlideCanvas/sprintDeckBuilder)
+ * temizlenir.
+ */
+export function withComment(text, comment) {
+  const base = String(text || "");
+  const c = String(comment || "");
+  return c !== "" ? base + COMMENT_SEP + c : base;
+}
+
 export function sectionDefs(assets) {
   return {
-    done: { title: "Geçen Sprint'te Yapılanlar", icon: assets.icon_check, accent: "16A34A" },
-    active: { title: "Aktif Sprint'te Yapılacaklar", icon: assets.icon_rocket, accent: "2563EB" },
+    done: { title: "Tamamlanan İşler", icon: assets.icon_check, accent: "16A34A" },
+    active: { title: "Yapılacak İşler", icon: assets.icon_rocket, accent: "2563EB" },
     risk: { title: "Riskler", icon: assets.icon_warn, accent: "E0761F" },
     pending: { title: "Bekleyen Konular", icon: assets.icon_clock, accent: "7C3AED" },
   };
@@ -58,21 +115,52 @@ const textW = G.COL_W - G.ACC_ZONE - G.PAD_R - 0.16;
 export const cplAt = (f) => Math.floor(textW / (f * 0.0086));
 export const lhAt = (f) => f * 0.0178 + 0.02;
 
+function stripPriorityTag(t) {
+  return String(t).replace(/##(.+?)##/g, "");
+}
+
+// Kalin ("**metin**") karakterler tarayicida (canvas measureText ile Segoe UI
+// 700 vs 400 icin olculdu, ~%7) ve PPTX ciktisinda (Calibri Bold, pptxgenjs
+// autoFit kullanmiyor) normalden daha genis yer kaplar. Bu agirlik
+// uygulanmazsa itemLineCount kalin metinlerde gercekte kirilacak satir
+// sayisini az tahmin eder, kart yuksekligi (cardH) buna gore az hesaplanir
+// ve son satir(lar) sabit yukseklikli karttan tasip alt karti kaydiriyormus
+// gibi gorunurdu (PPTX'te ise gercekten tasar, autoFit yok).
+const BOLD_WIDTH_FACTOR = 1.08;
+
+function weightedLen(t) {
+  return parseRuns(stripPriorityTag(t)).reduce(
+    (sum, run) => sum + run.text.length * (run.bold ? BOLD_WIDTH_FACTOR : 1),
+    0
+  );
+}
+
 export function plainLen(t) {
-  return String(t).replace(/\*\*/g, "").replace(/##(.+?)##/g, "").length;
+  const { text } = extractComment(t);
+  return weightedLen(text);
+}
+
+/** Bir maddenin (yorum dahil) kac satir yer kaplayacagini tahmin eder - bkz. bulletsBlockH. */
+export function itemLineCount(t, cpl) {
+  const { text, comment } = extractComment(t);
+  let L = Math.max(1, Math.ceil((weightedLen(text) || 1) / cpl));
+  if (comment) {
+    L += Math.max(1, Math.ceil((comment.length || 1) / cpl));
+  }
+  return L;
 }
 
 export function bulletsBlockH(items, f) {
   const cpl = cplAt(f), lh = lhAt(f), gap = gapAt(f);
   let h = 0;
   items.forEach((t, i) => {
-    const L = Math.max(1, Math.ceil((plainLen(t) || 1) / cpl));
+    const L = itemLineCount(t, cpl);
     h += L * lh + (i < items.length - 1 ? gap : 0);
   });
   return h;
 }
 
-export const SEGCOL = { green: "8BC34A", blue: "456BBA", orange: "E67514", amber: "E8A64D", red: "D9534F", gray: "9AA3AF", purple: "7C3AED" };
+export const SEGCOL = { green: "8BC34A", lightgreen: "A8E6A1", blue: "456BBA", orange: "E67514", amber: "E8A64D", red: "D9534F", gray: "9AA3AF", purple: "7C3AED" };
 export const BAND = { Y: 1.14, H: 0.44, GAP: 0.30, X: 0.35, W: 13.333 - 0.70 };
 
 export function num(v) {
@@ -86,6 +174,37 @@ export function bandBars(d) {
     : [];
 }
 
+/**
+ * Hedefler bandindaki segmentlerin genisligini hesaplar. Onceden SADECE degere
+ * orantili genislik kullaniliyordu (kucuk bir deger kucuk genislik demekti) -
+ * degerin kendisi "1.26" gibi birkaç haneli oldugunda, orantili genislik metnin
+ * KENDISINDEN dar kalabiliyor ve sayi kutunun icinde IKI SATIRA kirilip
+ * (gorsel olarak asagiya "taşıyormuş" gibi) bozuk gorunuyordu.
+ *
+ * Once her segmentin KENDI metnini tek satirda gosterebilecegi bir TABAN
+ * genislik ayrilir (karakter sayisina gore); geriye kalan alan (varsa)
+ * degerlere ORANTILI dagitilir - boylece "buyuk deger = genis bar" gorsel
+ * mantigi korunurken hicbir segment kendi metninden dar olamaz. Taban
+ * genislikler toplami mevcut alani asarsa (asiri dar bir bant), hepsi ayni
+ * oranda kucultulur ki toplam GENISLIK HER ZAMAN tam olarak totalW'ye esit
+ * kalsin - bandin kendisi tasmaz/kaymaz.
+ *
+ * Onizleme (SlideCanvas) ve PPTX (sprintDeckBuilder) AYNI fonksiyonu kullanir.
+ */
+export function segmentWidths(segs, totalW, charW = 0.078, padding = 0.14) {
+  const values = segs.map((s) => Math.max(0.0001, num(s.value)));
+  const sum = values.reduce((a, b) => a + b, 0) || 1;
+  const mins = segs.map((s) => Math.max(0.3, String(s.value).trim().length * charW + padding));
+  const minTotal = mins.reduce((a, b) => a + b, 0);
+
+  if (minTotal >= totalW) {
+    const scale = totalW / minTotal;
+    return mins.map((m) => m * scale);
+  }
+  const remaining = totalW - minTotal;
+  return values.map((v, i) => mins[i] + (v / sum) * remaining);
+}
+
 export function cardsTopFor(d) {
   return bandBars(d).length ? BAND.Y + BAND.H + 0.16 : G.Y_TOP;
 }
@@ -94,53 +213,85 @@ export function cardH(items, f) {
   return G.PAD_T + G.TITLE_H + bulletsBlockH(items, f) + G.PAD_B;
 }
 
-// row-aligned: top cards (done|active) share a height, bottom cards (risk|pending) share a height
-export function rowHeights(d, f) {
-  return { topH: Math.max(cardH(d.done, f), cardH(d.active, f)), botH: Math.max(cardH(d.risk, f), cardH(d.pending, f)) };
+/**
+ * Bir TEK kartin (bolumun) en iyi yazi boyutunu, verilen yukseklik butcesine
+ * gore secer - digerBölumlerden BAGIMSIZ. Madde sayisi GROW_ITEM_THRESHOLD'in
+ * altindaysa (kart bos/dagitik gorunmesin diye) once GROW_CANDIDATES (FS_BASE
+ * ustu, GROW_MAX'e kadar) denenir; degilse veya hicbiri sigmazsa normal
+ * FS_CANDIDATES (FS_BASE'ten FS_MIN'e kucule kucule) denenir.
+ */
+function ladderFor(items) {
+  return items.length > 0 && items.length < GROW_ITEM_THRESHOLD ? GROW_CANDIDATES : FS_CANDIDATES;
 }
 
-export function pickFS(d, cardsTop) {
-  const avail = G.Y_BOT - cardsTop;
-  for (const c of FS_CANDIDATES) {
-    const r = rowHeights(d, c);
-    if (r.topH + G.GAP_Y + r.botH <= avail) return c;
+export function pickCardFS(items, availH) {
+  const ladder = ladderFor(items);
+  for (const c of ladder) {
+    if (cardH(items, c) <= availH) return c;
   }
   return FS_MIN;
 }
 
-/**
- * En kucuk font boyutunda (FS_MIN) bile icerik sigmiyorsa (asiri sayida madde),
- * fazlalik maddeleri gorunmeden sessizce kaybetmek yerine en dolu bolumden
- * kirpip yerine "+N madde daha" notu birakir - boylece kullanici her zaman
- * neyin gizlendigini gorur. Cogu durumda (FS_MIN'e kadar sigan icerik) hicbir
- * kirpma yapilmaz, sadece font kuculur.
- */
-export function fitSectionItems(d, cardsTop) {
-  const fs = pickFS(d, cardsTop);
-  const avail = G.Y_BOT - cardsTop;
-  const fits = (data) => {
-    const r = rowHeights(data, fs);
-    return r.topH + G.GAP_Y + r.botH <= avail;
-  };
+const ROW_KEYS = { top: ["done", "active"], bottom: ["risk", "pending"] };
 
-  if (fits(d)) return { fs, sections: d };
+/**
+ * Icerik slaytinin 4 kartini da (her biri KENDI madde sayisina gore BAGIMSIZ
+ * yazi boyutuyla) sigdirir. Ayni satirdaki iki kart (done|active, risk|pending)
+ * gorsel hizalanma icin AYNI kart yuksekligini paylasir (max of the two), ama
+ * fontlari birbirinden bagimsizdir - onceki surumde TUM slayt TEK bir paylasilan
+ * fontu kullaniyordu (bir kart cok maddeliyse digerleri de gereksiz kuculuyordu).
+ *
+ * En kucuk font boyutunda (FS_MIN) bile icerik sigmiyorsa (asiri sayida madde),
+ * fazlalik maddeleri gorunmeden sessizce kaybetmek yerine en dolu karttan kirpip
+ * yerine "+N madde daha" notu birakir.
+ *
+ * Onizleme (SlideCanvas) ve PPTX (sprintDeckBuilder) AYNI fonksiyonu kullanir,
+ * ikisi de senkron kalir.
+ */
+export function fitContent(d, cardsTop) {
+  const avail = G.Y_BOT - cardsTop;
 
   const sections = { done: [...d.done], active: [...d.active], risk: [...d.risk], pending: [...d.pending] };
+  const ladder = {};
+  const idx = {};
   const removed = { done: 0, active: 0, risk: 0, pending: 0 };
+  SECTION_KEYS.forEach((k) => {
+    ladder[k] = ladderFor(sections[k]);
+    idx[k] = 0;
+    // Tek basina (satir ortagi olmadan) avail'e bile sigmiyorsa onceden kucult.
+    while (idx[k] < ladder[k].length - 1 && cardH(sections[k], ladder[k][idx[k]]) > avail) idx[k]++;
+  });
+
+  const fsOf = (k) => ladder[k][idx[k]];
+  const rowH = (row) => Math.max(...ROW_KEYS[row].map((k) => cardH(sections[k], fsOf(k))));
+
   let guard = 0;
-  while (!fits(sections) && guard++ < 1000) {
-    const topKey = cardH(sections.done, fs) >= cardH(sections.active, fs) ? "done" : "active";
-    const botKey = cardH(sections.risk, fs) >= cardH(sections.pending, fs) ? "risk" : "pending";
-    const r = rowHeights(sections, fs);
-    const key = r.topH >= r.botH ? topKey : botKey;
-    if (sections[key].length <= 1) break;
-    sections[key].pop();
-    removed[key]++;
+  while (guard++ < 2000) {
+    const topH = rowH("top"), botH = rowH("bottom");
+    if (topH + G.GAP_Y + botH <= avail) break;
+    const row = topH >= botH ? "top" : "bottom";
+    const [a, b] = ROW_KEYS[row];
+    const tallerKey = cardH(sections[a], fsOf(a)) >= cardH(sections[b], fsOf(b)) ? a : b;
+    if (idx[tallerKey] < ladder[tallerKey].length - 1) {
+      idx[tallerKey]++;
+      continue;
+    }
+    if (sections[tallerKey].length <= 1) break; // daha fazla kucultulemez/kirpilamiz, tasmaya izin ver
+    sections[tallerKey].pop();
+    removed[tallerKey]++;
   }
+
   SECTION_KEYS.forEach((k) => {
     if (removed[k] > 0) sections[k].push(`+${removed[k]} madde daha (slayda sığmadı — metni kısaltın veya madde sayısını azaltın)`);
   });
-  return { fs, sections };
+
+  const fsByKey = {};
+  SECTION_KEYS.forEach((k) => { fsByKey[k] = fsOf(k); });
+
+  const natural = { topH: rowH("top"), botH: rowH("bottom") };
+  const { topH, botH } = stretchRowHeights(natural.topH, natural.botH, cardsTop);
+
+  return { sections, fsByKey, topH, botH };
 }
 
 // Öncelik degerlerinin slaytta/PPTX'te gosterilecegi renkler (SEGCOL paletiyle

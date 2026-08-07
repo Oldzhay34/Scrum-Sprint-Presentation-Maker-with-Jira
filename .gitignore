@@ -35,3 +35,9 @@ build/
 ### Env ###
 .env
 
+### macOS ###
+.DS_Store
+
+### Local scratch ###
+/reference/
+.claude

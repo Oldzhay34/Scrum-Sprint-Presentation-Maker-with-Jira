@@ -1,0 +1,128 @@
+package com.aksa.capacityplanner.presentation.usecase;
+
+import com.aksa.capacityplanner.common.domain.NotFoundException;
+import com.aksa.capacityplanner.presentation.domain.PresentationDownloadLog;
+import com.aksa.capacityplanner.presentation.domain.PresentationVersion;
+import com.aksa.capacityplanner.presentation.domain.SprintPresentation;
+import com.aksa.capacityplanner.presentation.port.in.PresentationUseCase;
+import com.aksa.capacityplanner.presentation.port.out.PresentationDownloadLogRepositoryPort;
+import com.aksa.capacityplanner.presentation.port.out.PresentationRepositoryPort;
+import com.aksa.capacityplanner.presentation.port.out.PresentationVersionRepositoryPort;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Instant;
+import java.util.List;
+import java.util.Map;
+
+@Service
+public class PresentationService implements PresentationUseCase {
+
+    private final PresentationRepositoryPort presentationRepository;
+    private final PresentationVersionRepositoryPort versionRepository;
+    private final PresentationDownloadLogRepositoryPort downloadLogRepository;
+
+    public PresentationService(PresentationRepositoryPort presentationRepository,
+                                PresentationVersionRepositoryPort versionRepository,
+                                PresentationDownloadLogRepositoryPort downloadLogRepository) {
+        this.presentationRepository = presentationRepository;
+        this.versionRepository = versionRepository;
+        this.downloadLogRepository = downloadLogRepository;
+    }
+
+    @Override
+    public List<SprintPresentation> listByTeam(Long teamId) {
+        return presentationRepository.findByTeamId(teamId);
+    }
+
+    @Override
+    public SprintPresentation getById(Long id) {
+        return presentationRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Sunum bulunamadi: id=" + id));
+    }
+
+    @Override
+    public List<SprintPresentation> listByTeamReadOnly(Long teamId) {
+        return presentationRepository.findByTeamIdReadOnly(teamId);
+    }
+
+    @Override
+    public SprintPresentation getByIdReadOnly(Long id) {
+        return presentationRepository.findByIdReadOnly(id)
+                .orElseThrow(() -> new NotFoundException("Sunum bulunamadi: id=" + id));
+    }
+
+    @Override
+    @Transactional
+    public SprintPresentation upsert(Long teamId, String sprintNo, String dateRange, Map<String, Object> content, String updatedBySicil) {
+        SprintPresentation presentation = presentationRepository.findByTeamIdAndSprintNo(teamId, sprintNo)
+                .orElseGet(() -> {
+                    SprintPresentation created = new SprintPresentation();
+                    created.setTeamId(teamId);
+                    created.setSprintNo(sprintNo);
+                    created.setCurrentVersion(0);
+                    return created;
+                });
+        // Bir sonraki surum numarasi currentVersion+1 DEGIL, versions tablosundaki
+        // GERCEK en yuksek numaradan hesaplanir - rollback() artik currentVersion'i
+        // GERIYE (ornegin v3'ten v2'ye) dusurebildigi icin, "checkout edilmis" bir
+        // eski surumden sonra kaydedince zaten var olan bir versiyon numarasiyla
+        // (orn. eski v3) CAKISMAMASI gerekir (uq_presentation_versions_presentation_version).
+        int nextVersion = presentation.getId() == null ? 1 : nextVersionNumber(presentation.getId());
+        presentation.setDateRange(dateRange);
+        presentation.setContent(content);
+        presentation.setUpdatedBy(updatedBySicil);
+        presentation.setCurrentVersion(nextVersion);
+        SprintPresentation saved = presentationRepository.save(presentation);
+
+        versionRepository.save(new PresentationVersion(null, saved.getId(), nextVersion,
+                content, updatedBySicil, Instant.now()));
+        return saved;
+    }
+
+    private int nextVersionNumber(Long presentationId) {
+        return versionRepository.findByPresentationId(presentationId).stream()
+                .mapToInt(PresentationVersion::getVersion).max().orElse(0) + 1;
+    }
+
+    @Override
+    public List<PresentationVersion> listVersions(Long presentationId) {
+        getById(presentationId);
+        return versionRepository.findByPresentationId(presentationId);
+    }
+
+    /**
+     * GERCEK checkout: hedef surumun icerigini/numarasini dogrudan head'e
+     * (sprint_presentations satirina) yazar - versions tablosuna HIC
+     * DOKUNULMAZ (ne silme ne yeni satir ekleme). "v3'ten v2'ye donulunce
+     * v3 SILINMESIN, yeni bir v4 de OLUSMASIN - sadece guncel surum v2 olsun,
+     * onizlemede/Duzenle'de/PPTX indir'de v2 gorunsun" (bkz. kullanici
+     * bildirimi - hem "sonraki surumleri silen" hem "yeni surum ekleyen" iki
+     * onceki deneme de istenmiyordu). Bir sonraki Kaydet'te upsert() zaten
+     * versions tablosundaki GERCEK max'a gore numara uretir (currentVersion'a
+     * DEGIL) - boylece checkout SONRASI kaydetmek eski bir versiyon numarasiyla
+     * CAKISMAZ.
+     */
+    @Override
+    @Transactional
+    public SprintPresentation rollback(Long presentationId, int version, String updatedBySicil) {
+        SprintPresentation presentation = getById(presentationId);
+        PresentationVersion target = versionRepository.findByPresentationIdAndVersion(presentationId, version)
+                .orElseThrow(() -> new NotFoundException("Versiyon bulunamadi: presentationId=" + presentationId + ", version=" + version));
+
+        presentation.setContent(target.getContent());
+        presentation.setCurrentVersion(version);
+        presentation.setUpdatedBy(updatedBySicil);
+        return presentationRepository.save(presentation);
+    }
+
+    @Override
+    public List<SprintPresentation> listLatestPerTeamReadOnly(List<Long> teamIds) {
+        return presentationRepository.findLatestPerTeamReadOnly(teamIds);
+    }
+
+    @Override
+    public PresentationDownloadLog recordDownload(PresentationDownloadLog.DownloadType downloadType, List<Long> teamIds, String downloadedBy) {
+        return downloadLogRepository.save(new PresentationDownloadLog(null, downloadType, teamIds, downloadedBy, null));
+    }
+}

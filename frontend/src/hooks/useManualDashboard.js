@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { computeStatelessDashboard } from "../lib/apiClient";
 import { riskLevelToLabel } from "../lib/format";
 import { validateDateOrder } from "../lib/dateValidation";
+import { hasFteTracking } from "../lib/teamTypes";
 
 let clientIdSeq = 1;
 const nextClientId = () => clientIdSeq++;
@@ -28,7 +29,7 @@ const DEFAULT_STATUSES = [
  * doner. addedDate/closedDate girilirse Donem Kapanan/Yeni Eklenen/Net Degisim
  * backend tarafindan otomatik hesaplanir (elle girilmez).
  */
-export function useManualDashboard(team, setTeam, sprintNo, setSprintNo) {
+export function useManualDashboard(team, setTeam, sprintNo, setSprintNo, teamType) {
   const [period, setPeriod] = useState(defaultPeriod);
   const [previousSnapshotDate, setPreviousSnapshotDate] = useState("");
   const [maintenanceAllocationPercent, setMaintenanceAllocationPercent] = useState("0.2");
@@ -61,6 +62,12 @@ export function useManualDashboard(team, setTeam, sprintNo, setSprintNo) {
   const updateWorkItem = (clientId, patch) =>
     setWorkItems((prev) => prev.map((wi) => (wi.clientId === clientId ? { ...wi, ...patch } : wi)));
   const removeWorkItem = (clientId) => setWorkItems((prev) => prev.filter((wi) => wi.clientId !== clientId));
+  // Yeni bir Excel yuklendiginde daha once elle girilmis uye/is kalemi
+  // verisini temizlemek icin - bkz. App.jsx handleExcelFile.
+  const clearEntries = () => {
+    setMembers([]);
+    setWorkItems([]);
+  };
 
   const addStatus = () => setStatuses((prev) => [...prev, { code: "", label: "", countsAsCompleted: false }]);
   const updateStatus = (index, patch) => setStatuses((prev) => prev.map((s, i) => (i === index ? { ...s, ...patch } : s)));
@@ -131,6 +138,14 @@ export function useManualDashboard(team, setTeam, sprintNo, setSprintNo) {
             closedDate: wi.closedDate || null,
           })),
         statuses: statuses.filter((s) => s.code.trim()),
+        // Kisiye ozel izin gunleri (bkz. LeaveDaysField/MemberCard) - clientId'ye
+        // gore anahtarlanir (backend'de de gecici id, DB id'si degil, bkz.
+        // StatelessDashboardRequest.MemberInput yorumu). CapacityCalculationService
+        // bunu targetWorkDays'ten dusup net kapasiteyi yeniden hesaplar.
+        personalLeaveDaysByMemberId: members.reduce((acc, m) => {
+          if (m.leaveDays) acc[m.clientId] = m.leaveDays;
+          return acc;
+        }, {}),
       };
 
       const result = await computeStatelessDashboard(request);
@@ -149,10 +164,11 @@ export function useManualDashboard(team, setTeam, sprintNo, setSprintNo) {
     maintenanceAllocationPercent, setMaintenanceAllocationPercent,
     alertMessage, alertTitle, clearAlert: () => setAlertMessage(null),
     members, addMember, updateMember, removeMember,
-    workItems, workItemsByMember, addWorkItem, updateWorkItem, removeWorkItem,
+    workItems, workItemsByMember, addWorkItem, updateWorkItem, removeWorkItem, clearEntries,
     statuses, addStatus, updateStatus, removeStatus,
     customKpis, addCustomKpi, updateCustomKpi, removeCustomKpi,
     dashData, loading, error, compute,
+    hasFte: hasFteTracking(teamType),
   };
 }
 

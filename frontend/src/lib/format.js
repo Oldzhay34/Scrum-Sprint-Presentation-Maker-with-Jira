@@ -77,6 +77,56 @@ export function num(v) {
   return isFinite(n) ? n : 0;
 }
 
+/**
+ * Sayisal input alanlarinda yazarken gecersiz karakterleri (harf, sembol vb.)
+ * aninda siler - kullanici string yazamaz, sadece rakam (ve istenirse tek bir
+ * ondalik ayiraci / bastaki eksi) girebilir. Turkce virgul VE nokta ondalik
+ * ayiraci olarak kabul edilir (mevcut num() de ayni sekilde virgulu noktaya
+ * cevirip parse ediyor).
+ */
+export function sanitizeDecimalInput(value, allowNegative = false) {
+  let v = String(value).replace(allowNegative ? /[^0-9,.\-]/g : /[^0-9,.]/g, "");
+  if (allowNegative) {
+    const neg = v.startsWith("-");
+    v = v.replace(/-/g, "");
+    if (neg) v = "-" + v;
+  }
+  let sepSeen = false;
+  v = v.replace(/[.,]/g, (m) => {
+    if (sepSeen) return "";
+    sepSeen = true;
+    return m;
+  });
+  return v;
+}
+
+/**
+ * Bakim/SR orani gibi 0-1 arasi bir KESIR (yuzdelik dilim, orn. 0.2 = %20)
+ * bekleyen alanlar icin sanitizeDecimalInput'un uzerine 1'i (%100) gecemeyecek
+ * sekilde bir tavan ekler - yoksa kullanici yanlislikla "20" (yani %2000)
+ * gibi anlamsiz bir deger yazabiliyordu (sadece karakter filtrelemek yeterli
+ * degildi, "0.2" yerine "20" yazmak da sayisal olarak gecerli bir ondalik
+ * sayidir).
+ */
+export function sanitizeRatioInput(value) {
+  const cleaned = sanitizeDecimalInput(value);
+  if (cleaned === "" || cleaned === "." || cleaned === ",") return cleaned;
+  const n = parseFloat(cleaned.replace(",", "."));
+  if (isFinite(n) && n > 1) return "1";
+  return cleaned;
+}
+
+/** sanitizeDecimalInput'un ondalik ayiraci olmayan (tam sayi) hali. */
+export function sanitizeIntegerInput(value, allowNegative = false) {
+  let v = String(value).replace(allowNegative ? /[^0-9\-]/g : /[^0-9]/g, "");
+  if (allowNegative) {
+    const neg = v.startsWith("-");
+    v = v.replace(/-/g, "");
+    if (neg) v = "-" + v;
+  }
+  return v;
+}
+
 export function autoRange(rd) {
   if (!rd) return "";
   const st = new Date(rd.getTime() - 14 * 86400000);

@@ -3,6 +3,7 @@ package com.aksa.capacityplanner.team.adapter.out.persistence;
 import com.aksa.capacityplanner.team.domain.TeamMember;
 import com.aksa.capacityplanner.team.port.out.TeamMemberRepositoryPort;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashMap;
 import java.util.List;
@@ -18,6 +19,7 @@ public class TeamMemberPersistenceAdapter implements TeamMemberRepositoryPort {
     }
 
     @Override
+    @Transactional
     public TeamMember save(TeamMember member) {
         TeamMemberJpaEntity entity = toEntity(member);
         TeamMemberJpaEntity saved = jpaRepository.save(entity);
@@ -25,11 +27,18 @@ public class TeamMemberPersistenceAdapter implements TeamMemberRepositoryPort {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Optional<TeamMember> findById(Long id) {
         return jpaRepository.findById(id).map(this::toDomain);
     }
 
+    // customFieldValues (@ElementCollection) varsayilan olarak LAZY - repository
+    // cagrisi kendi transaction'iyla doner ve kapanir, .stream().map(toDomain)
+    // o noktada session'suz kalip LazyInitializationException atardi (bkz.
+    // kullanici bildirimi - /api/teams/{id}/members 401/500 donuyordu).
+    // @Transactional session'i toDomain tamamlanana kadar acik tutar.
     @Override
+    @Transactional(readOnly = true)
     public List<TeamMember> findByTeamId(Long teamId) {
         return jpaRepository.findByTeamId(teamId).stream().map(this::toDomain).toList();
     }

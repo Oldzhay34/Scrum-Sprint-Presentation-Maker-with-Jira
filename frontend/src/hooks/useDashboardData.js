@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { parseDashboardExcel } from "../lib/excelParsers";
 import { num, autoRange, nfmt1 } from "../lib/format";
+import { hasFteTracking } from "../lib/teamTypes";
 
 const DEFAULT_META = { team: "", dateRange: "01 Haziran – 31 Aralık 2026", reportDate: "", reportObj: null };
 
@@ -9,7 +10,7 @@ const DEFAULT_META = { team: "", dateRange: "01 Haziran – 31 Aralık 2026", re
  * duzenledigi kisi/rol/tamamlanan + son 2 hafta delta alanlari) yonetir ve
  * dashSlideHTML'in JSX karsiligi icin gereken `dashData` nesnesini uretir.
  */
-export function useDashboardData(dTeam, setDTeam, dSprint, setDSprint) {
+export function useDashboardData(dTeam, setDTeam, dSprint, setDSprint, teamType) {
   const [loaded, setLoaded] = useState(false);
   const [persons, setPersons] = useState([]);
   const [kpis, setKpis] = useState(null);
@@ -27,7 +28,7 @@ export function useDashboardData(dTeam, setDTeam, dSprint, setDSprint) {
   const [error, setError] = useState(null);
   const BASE_INFO = "Excel yükleyin — Kapasite Takip dosyasındaki Rapor sayfası okunur. Sprint modundan farklı olarak burada tüm sayılar Excel'den gelir.";
 
-  const loadFile = (file) => {
+  const loadFile = (file, onParsed) => {
     setLoading(true);
     setError(null);
     const reader = new FileReader();
@@ -39,7 +40,11 @@ export function useDashboardData(dTeam, setDTeam, dSprint, setDSprint) {
         setKpis(parsed.kpis);
         setMeta(parsed.meta);
         setTotalFte(parsed.totalFte);
-        if (!dTeam.trim()) setDTeam(parsed.meta.team);
+        // Her yeni Excel yuklendiginde ekip adi da o dosyadan gelenle
+        // guncellensin - "sadece bossa doldur" mantigi, alan zaten dolu
+        // (varsayilan) oldugu icin hicbir zaman tetiklenmiyordu.
+        setDTeam(parsed.meta.team);
+        onParsed?.({ teamType: parsed.teamType, sprintNo: parsed.sprintNo, range: parsed.range });
       } catch (err) {
         setError('Excel okunamadı: ' + (err?.message || "bilinmeyen hata") + ' — dosyanın "Rapor" sayfasını içerdiğinden emin olun.');
       } finally {
@@ -60,7 +65,14 @@ export function useDashboardData(dTeam, setDTeam, dSprint, setDSprint) {
     const team = dTeam.trim() || meta.team || "Ekip";
     const mappedPersons = persons.map((p) => {
       const tam = num(p.tamamlanan);
-      return { name: p.name, role: p.role, initials: p.initials, toplam: p.toplam, tamamlanan: tam, acik: p.toplam - tam, kapasite: num(p.kapasite), doluluk: p.doluluk, durum: p.durum };
+      // İzin günleri (LeaveDaysField/PersonMappingTable ile eklenir) Excel'in
+      // kendi "Kapasite" sayfasinda YER ALMAZ (Excel'den SONRA, uygulama
+      // icinde eklenir) - bu yuzden "Kullanılabilir Kapasite"den burada
+      // dusulmesi gerekir (bkz. kullanici bildirimi: izin eklenince
+      // kapasiteden dusmuyordu). Backend'deki CapacityCalculationService
+      // (manuel giris akisi) ile AYNI mantik: kapasite negatife duşmez.
+      const kapasite = Math.max(0, num(p.kapasite) - num(p.leaveDays || 0));
+      return { name: p.name, role: p.role, initials: p.initials, toplam: p.toplam, tamamlanan: tam, acik: p.toplam - tam, kapasite, doluluk: p.doluluk, durum: p.durum };
     });
     const k0 = kpis || { toplam: 0, doluluk: 0, durum: "" };
     const toplam = k0.toplam;
@@ -75,7 +87,7 @@ export function useDashboardData(dTeam, setDTeam, dSprint, setDSprint) {
         kapanan: dKapanan,
         eklenen: dEklenen,
         fte: dFte,
-        net: dNet !== "" ? num(dNet) : -tamamlanan,
+        net: dNet !== "" ? num(dNet) : num(dKapanan) - num(dEklenen),
         range: autoRange(meta.reportObj),
       };
     }
@@ -109,5 +121,6 @@ export function useDashboardData(dTeam, setDTeam, dSprint, setDSprint) {
     dTeam, setDTeam, dSprint, setDSprint,
     dKapanan, setDKapanan, dEklenen, setDEklenen, dFte, setDFte, dNet, setDNet,
     loadFile, updatePerson, dashData,
+    hasFte: hasFteTracking(teamType),
   };
 }

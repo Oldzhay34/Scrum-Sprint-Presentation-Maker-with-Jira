@@ -55,6 +55,7 @@ public class LeaveCalendarSeeder implements CommandLineRunner {
         add("Kurban Bayrami Arifesi", LeaveType.RESMI_TATIL, d(2026, 5, 26), d(2026, 5, 26), 0.5);
         add("Ortak Sirket Izni", LeaveType.SIRKET_TATILI, d(2026, 8, 17), d(2026, 8, 22), 1);
         add("Cumhuriyet Bayrami Arifesi", LeaveType.RESMI_TATIL, d(2026, 10, 28), d(2026, 10, 28), 0.5);
+        add("Cumhuriyet Bayrami sonrasi kopru gunu", LeaveType.SIRKET_TATILI, d(2026, 10, 30), d(2026, 10, 30), 1);
     }
 
     private void add(String name, LeaveType type, LocalDate start, LocalDate end, double fraction) {

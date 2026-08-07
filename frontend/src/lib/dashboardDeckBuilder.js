@@ -1,6 +1,14 @@
 import { nfmtInt } from "./format";
 import { dStatus, barColor, DAV_COLORS } from "./format";
 import { logoPositions } from "./geometry";
+import { resolveTableHeaders } from "./dashboardTableHeaders";
+
+// Onizlemedeki koyu tema paleti (bkz. theme.css .theme-dark .slidecanvas.tab-dashboard)
+// ile birebir ayni degerler - "PPTX koyu temada da onizlemeyle eslessin" istegi.
+const DASH_PALETTE = {
+  light: { PANEL: "F1F5F7", CARDBG: "FFFFFF", INK: "1F2937", MUT: "6B7280", LINE: "E5E7EB", TITLE: "1F2937", DELTA_HL_BG: "FEF2F2", DELTA_HL_BORDER: "FCA5A5", DELTA_HL_TXT: "B91C1C" },
+  dark: { PANEL: "131C27", CARDBG: "1C2733", INK: "E7EDF5", MUT: "9CB0C6", LINE: "3A4756", TITLE: "4A9FE0", DELTA_HL_BG: "3A1F22", DELTA_HL_BORDER: "FCA5A5", DELTA_HL_TXT: "FCA5A5" },
+};
 
 /**
  * Kapasite dashboard slaydini verilen pptx'e ekler - buildFullDeck tarafindan
@@ -9,12 +17,13 @@ import { logoPositions } from "./geometry";
  * team, sprintNo, dateRange, reportDate, kpis{toplam,tamamlanan,acik,kapasite,doluluk,acikFazla,durum},
  * persons[{name,role,initials,toplam,tamamlanan,acik,kapasite,doluluk,durum}], delta, deltaRange.
  */
-export function addDashboardSlide(pptx, dd, assets) {
-  const INK = "1F2937", MUT = "6B7280", LINE = "E5E7EB", CARDBG = "FFFFFF", PANEL = "F1F5F7";
+export function addDashboardSlide(pptx, dd, assets, theme = "light") {
+  const P = DASH_PALETTE[theme] || DASH_PALETTE.light;
+  const INK = P.INK, MUT = P.MUT, LINE = P.LINE, CARDBG = P.CARDBG, PANEL = P.PANEL;
 
   const s = pptx.addSlide();
   s.background = { color: PANEL };
-  s.addText((dd.team || "") + " Kapasite Planı", { x: 0.4, y: 0.26, w: 9, h: 0.5, fontFace: "Calibri", fontSize: 24, bold: true, color: INK, margin: 0 });
+  s.addText((dd.team || "") + " Kapasite Planı", { x: 0.4, y: 0.26, w: 9, h: 0.5, fontFace: "Calibri", fontSize: 24, bold: true, color: P.TITLE, margin: 0 });
   s.addText((dd.sprintNo ? "Sprint " + dd.sprintNo + "   •   " : "") + dd.dateRange + "   •   Rapor Tarihi: " + dd.reportDate, { x: 0.42, y: 0.76, w: 9, h: 0.3, fontFace: "Calibri", fontSize: 11, color: MUT, margin: 0 });
   // Onizlemedeki .dlogos (right:24px, top:22px, flex row, img height:30px) ile
   // birebir ayni konumlandirma - bkz. geometry.js/logoPositions.
@@ -56,8 +65,8 @@ export function addDashboardSlide(pptx, dd, assets) {
     const DX = 2.4, DW = 13.333 - 0.4 - DX, DGAP = 0.18, DH = 0.72, dw = (DW - (dcards.length - 1) * DGAP) / dcards.length;
     dcards.forEach((c, i) => {
       const x = DX + i * (dw + DGAP);
-      s.addShape(pptx.ShapeType.roundRect, { x, y: curY, w: dw, h: DH, rectRadius: 0.05, fill: { color: c[2] ? "FEF2F2" : CARDBG }, line: { color: c[2] ? "FCA5A5" : LINE, width: 1 } });
-      s.addText(c[0], { x: x + 0.1, y: curY + 0.08, w: dw - 0.2, h: 0.26, fontFace: "Calibri", fontSize: 8, color: c[2] ? "B91C1C" : MUT, margin: 0, fit: "shrink" });
+      s.addShape(pptx.ShapeType.roundRect, { x, y: curY, w: dw, h: DH, rectRadius: 0.05, fill: { color: c[2] ? P.DELTA_HL_BG : CARDBG }, line: { color: c[2] ? P.DELTA_HL_BORDER : LINE, width: 1 } });
+      s.addText(c[0], { x: x + 0.1, y: curY + 0.08, w: dw - 0.2, h: 0.26, fontFace: "Calibri", fontSize: 8, color: c[2] ? P.DELTA_HL_TXT : MUT, margin: 0, fit: "shrink" });
       s.addText(String(c[1]), { x: x + 0.1, y: curY + 0.32, w: dw - 0.2, h: 0.34, fontFace: "Calibri", fontSize: 15, bold: true, color: INK, margin: 0, valign: "middle", fit: "shrink" });
     });
     curY += DH + 0.28;
@@ -69,14 +78,15 @@ export function addDashboardSlide(pptx, dd, assets) {
   const HH = 0.52;
   const AGP = (t) => [{ text: t, options: { fontSize: 8.3, color: MUT, bold: false } }, { text: "\n(AG)", options: { fontSize: 6.6, color: "9AA3AF" } }];
   const plain = (t) => [{ text: t, options: { fontSize: 8.3, color: MUT, bold: false } }];
+  const th = resolveTableHeaders(dd.tableHeaders);
   [
-    [plain("Kişi"), cols.kisi, "left"],
-    [AGP("Toplam İş Yükü"), cols.toplam, "center"],
-    [AGP("Tamamlanan"), cols.tam, "center"],
-    [AGP("Açık İş Yükü"), cols.acik, "center"],
-    [AGP("Kullanılabilir Kapasite"), cols.kap, "center"],
-    [plain("Bakımlı Doluluk %"), cols.dol, "left"],
-    [plain("Durum"), cols.durum, "center"],
+    [plain(th.kisi), cols.kisi, "left"],
+    [AGP(th.toplam), cols.toplam, "center"],
+    [AGP(th.tamamlanan), cols.tam, "center"],
+    [AGP(th.acik), cols.acik, "center"],
+    [AGP(th.kapasite), cols.kap, "center"],
+    [plain(th.doluluk), cols.dol, "left"],
+    [plain(th.durum), cols.durum, "center"],
   ].forEach(([t, col, al]) => s.addText(t, { x: col[0], y: TY, w: col[1], h: HH, fontFace: "Calibri", align: al, valign: "bottom", margin: 0, lineSpacingMultiple: 0.95 }));
   s.addShape(pptx.ShapeType.line, { x: 0.4, y: TY + HH, w: 12.53, h: 0, line: { color: LINE, width: 1 } });
 

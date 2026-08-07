@@ -3,6 +3,7 @@ package com.aksa.capacityplanner.team.usecase;
 import com.aksa.capacityplanner.common.domain.NotFoundException;
 import com.aksa.capacityplanner.team.domain.Team;
 import com.aksa.capacityplanner.team.domain.TeamCustomFieldDefinition;
+import com.aksa.capacityplanner.team.domain.TeamType;
 import com.aksa.capacityplanner.team.port.in.TeamUseCase;
 import com.aksa.capacityplanner.team.port.out.TeamCustomFieldDefinitionRepositoryPort;
 import com.aksa.capacityplanner.team.port.out.TeamRepositoryPort;
@@ -27,6 +28,9 @@ public class TeamService implements TeamUseCase {
         if (team.getMaintenanceAllocationPercent() == null) {
             team.setMaintenanceAllocationPercent(BigDecimal.ZERO);
         }
+        if (team.getTeamType() == null) {
+            team.setTeamType(TeamType.GENEL);
+        }
         return teamRepository.save(team);
     }
 
@@ -37,6 +41,7 @@ public class TeamService implements TeamUseCase {
         existing.setDescription(team.getDescription());
         existing.setMaintenanceAllocationPercent(team.getMaintenanceAllocationPercent());
         existing.setDefaultTargetWorkDays(team.getDefaultTargetWorkDays());
+        existing.setTeamType(team.getTeamType() == null ? existing.getTeamType() : team.getTeamType());
         return teamRepository.save(existing);
     }
 
