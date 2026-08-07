@@ -63,15 +63,26 @@ public class PresentationService implements PresentationUseCase {
                     created.setCurrentVersion(0);
                     return created;
                 });
+        // Bir sonraki surum numarasi currentVersion+1 DEGIL, versions tablosundaki
+        // GERCEK en yuksek numaradan hesaplanir - rollback() artik currentVersion'i
+        // GERIYE (ornegin v3'ten v2'ye) dusurebildigi icin, "checkout edilmis" bir
+        // eski surumden sonra kaydedince zaten var olan bir versiyon numarasiyla
+        // (orn. eski v3) CAKISMAMASI gerekir (uq_presentation_versions_presentation_version).
+        int nextVersion = presentation.getId() == null ? 1 : nextVersionNumber(presentation.getId());
         presentation.setDateRange(dateRange);
         presentation.setContent(content);
         presentation.setUpdatedBy(updatedBySicil);
-        presentation.setCurrentVersion(presentation.getCurrentVersion() + 1);
+        presentation.setCurrentVersion(nextVersion);
         SprintPresentation saved = presentationRepository.save(presentation);
 
-        versionRepository.save(new PresentationVersion(null, saved.getId(), saved.getCurrentVersion(),
+        versionRepository.save(new PresentationVersion(null, saved.getId(), nextVersion,
                 content, updatedBySicil, Instant.now()));
         return saved;
+    }
+
+    private int nextVersionNumber(Long presentationId) {
+        return versionRepository.findByPresentationId(presentationId).stream()
+                .mapToInt(PresentationVersion::getVersion).max().orElse(0) + 1;
     }
 
     @Override
@@ -81,11 +92,16 @@ public class PresentationService implements PresentationUseCase {
     }
 
     /**
-     * GERCEK geri sarma: hedef versiyonu YENI bir surum olarak head'e EKLEMEZ
-     * (onceki davranis buydu) - bunun yerine head'in kendisini hedef versiyonun
-     * icerigine/numarasina DUSURUR ve hedeften SONRAKI tum surum kayitlarini
-     * SILER. "v6'ya donunce v6 yazsin, v7+ kalici olarak gitsin" (bkz. kullanici
-     * bildirimi) - versiyon gecmisi bu noktadan sonra KISALIR, geri alinamaz.
+     * GERCEK checkout: hedef surumun icerigini/numarasini dogrudan head'e
+     * (sprint_presentations satirina) yazar - versions tablosuna HIC
+     * DOKUNULMAZ (ne silme ne yeni satir ekleme). "v3'ten v2'ye donulunce
+     * v3 SILINMESIN, yeni bir v4 de OLUSMASIN - sadece guncel surum v2 olsun,
+     * onizlemede/Duzenle'de/PPTX indir'de v2 gorunsun" (bkz. kullanici
+     * bildirimi - hem "sonraki surumleri silen" hem "yeni surum ekleyen" iki
+     * onceki deneme de istenmiyordu). Bir sonraki Kaydet'te upsert() zaten
+     * versions tablosundaki GERCEK max'a gore numara uretir (currentVersion'a
+     * DEGIL) - boylece checkout SONRASI kaydetmek eski bir versiyon numarasiyla
+     * CAKISMAZ.
      */
     @Override
     @Transactional
@@ -97,10 +113,7 @@ public class PresentationService implements PresentationUseCase {
         presentation.setContent(target.getContent());
         presentation.setCurrentVersion(version);
         presentation.setUpdatedBy(updatedBySicil);
-        SprintPresentation saved = presentationRepository.save(presentation);
-
-        versionRepository.deleteByPresentationIdAndVersionGreaterThan(presentationId, version);
-        return saved;
+        return presentationRepository.save(presentation);
     }
 
     @Override

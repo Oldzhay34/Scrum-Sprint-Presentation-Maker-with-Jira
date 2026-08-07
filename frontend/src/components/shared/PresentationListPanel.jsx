@@ -165,7 +165,7 @@ export default function PresentationListPanel({ teamId, teamName, canManage, sho
                 </span>
               </div>
               <div className="presentation-row-actions" onClick={(e) => e.stopPropagation()}>
-                <Button variant="soft" onClick={() => setHistoryFor({ id: p.id, sprintNo: p.sprintNo })}>
+                <Button variant="soft" onClick={() => setHistoryFor({ id: p.id, sprintNo: p.sprintNo, currentVersion: p.currentVersion })}>
                   <IconHistory style={{ width: 15, height: 15 }} />
                   Sürüm Geçmişi
                 </Button>
@@ -260,15 +260,16 @@ function VersionHistoryModal({ open, presentation, canRollback, onClose, onRolle
       .finally(() => setLoading(false));
   }, [open, presentation]);
 
-  // En yuksek versiyon numarasi = zaten aktif olan (head) surum - bu satir
-  // icin "Bu sürüme dön" butonu gosterilmez (zaten o surumdeyken donmenin
-  // anlami yok, bkz. kullanici bildirimi).
-  const currentVersion = versions.length ? Math.max(...versions.map((v) => v.version)) : null;
+  // Guncel (head) surum, versions listesindeki en yuksek numara DEGIL -
+  // "Bu sürüme dön" artik gercek bir checkout (bkz. PresentationService.
+  // rollback yorumu): head GERIYE de donebilir, bu yuzden asil kaynak
+  // presentation.currentVersion (liste satirindan gelir).
+  const currentVersion = presentation?.currentVersion ?? null;
 
   const handleRollback = async (version) => {
     if (
       !window.confirm(
-        `Sürüm ${version}'e dönülsün mü?\n\nBu işlem GERİ ALINAMAZ: sürüm ${version}'den sonraki tüm sürümler kalıcı olarak silinecek, güncel sürüm tekrar v${version} olacak.`
+        `Sürüm ${version}'e dönülsün mü?\n\nGüncel sürüm v${version} olacak - hiçbir sürüm silinmeyecek/eklenmeyecek, geçmişteki tüm sürümler (v${version} dahil) aynen kalacak.`
       )
     )
       return;

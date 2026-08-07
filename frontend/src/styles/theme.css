@@ -2128,6 +2128,15 @@ header.topbar .btn:hover {
   overflow-y: auto;
 }
 .presentations-page {
+  /* app.css'teki genel "main{display:grid; grid-template-columns:minmax(360px,1fr)
+     minmax(520px,1.15fr)}" kurali sihirbaz editoru (form|onizleme) icindir -
+     bu sayfa da bir <main> oldugu icin AYNI kurali miras aliyordu, icerigi
+     1. sutuna sikistirip 2. sutunu bos birakiyordu. Bu yuzden
+     .presentation-panel-layout'un KENDI yan-yana (liste|onizleme) flex
+     duzeni, aslinda genis bir ekranda bile dar bir sutuna sikisip alt alta
+     kaymak zorunda kaliyordu (bkz. kullanici bildirimi). display:block bu
+     mirasi keser, tam genislik .presentation-panel-layout'a kalir. */
+  display: block;
   padding: 26px 30px;
   min-height: calc(100vh - 90px);
   background: var(--page-gradient);

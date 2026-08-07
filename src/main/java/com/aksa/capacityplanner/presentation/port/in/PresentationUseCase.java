@@ -24,7 +24,13 @@ public interface PresentationUseCase {
 
     List<PresentationVersion> listVersions(Long presentationId);
 
-    /** Hedef versiyonun icerigini YENI bir versiyon olarak head'e kopyalar - gecmisi silmez. */
+    /**
+     * "Checkout": guncel surumu (head) dogrudan hedef surumun icerigine/
+     * numarasina dusurur - versions gecmisindeki HICBIR kayit silinmez veya
+     * eklenmez. Bir sonraki upsert() zaten versions tablosundaki gercek
+     * max'a gore numara ureteceginden, checkout sonrasi kaydetme eski bir
+     * versiyon numarasiyla cakismaz.
+     */
     SprintPresentation rollback(Long presentationId, int version, String updatedBySicil);
 
     /** Ortak (coklu takim) sunum ozelligi: her takimin en son sunumunu dondurur - bkz. PresentationRepositoryPort. */
