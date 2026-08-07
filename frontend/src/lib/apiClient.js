@@ -223,6 +223,18 @@ export async function savePresentation({ teamId, sprintNo, dateRange, content })
   });
 }
 
+/**
+ * "Güncelle": savePresentation'ın aksine YENİ bir sürüm OLUŞTURMAZ, mevcut
+ * güncel içeriği yerinde değiştirir (bkz. backend PresentationService.
+ * updateInPlace). Ortak Sunum ekranından "Düzenle" ile gelindiğinde kullanılır.
+ */
+export async function updatePresentationInPlace(id, dateRange, content) {
+  return requestJson(`/api/presentations/${id}/content`, {
+    method: "PUT",
+    body: JSON.stringify({ dateRange, content }),
+  });
+}
+
 /** Bir sunumun versiyon (audit log) geçmişini döner. */
 export async function fetchPresentationVersions(id) {
   return requestJson(`/api/presentations/${id}/versions`);

@@ -22,6 +22,17 @@ public interface PresentationUseCase {
     /** Yoksa olusturur (version=1), varsa yeni bir versiyon olarak gunceller. */
     SprintPresentation upsert(Long teamId, String sprintNo, String dateRange, Map<String, Object> content, String updatedBySicil);
 
+    /**
+     * "Güncelle": YENI bir surum OLUSTURMADAN, mevcut guncel (head) icerigi
+     * dogrudan degistirir - versions gecmisindeki karsilik gelen (currentVersion)
+     * kaydi da AYNI icerikle senkronize edilir (aksi halde Sürüm Geçmişi o
+     * numara icin artik yanlis/eski bir kayit gosterirdi). Ortak Sunum
+     * ekranindan "Düzenle" ile gelindiginde kullanilir (bkz. kullanici
+     * bildirimi) - normal sihirbaz Kaydet'i (upsert) HER ZAMAN yeni bir
+     * surum ekler, bu metod HICBIR ZAMAN eklemez.
+     */
+    SprintPresentation updateInPlace(Long presentationId, String dateRange, Map<String, Object> content, String updatedBySicil);
+
     List<PresentationVersion> listVersions(Long presentationId);
 
     /**

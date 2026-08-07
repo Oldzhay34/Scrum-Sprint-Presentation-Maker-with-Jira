@@ -3,7 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes, useNavigate, useParams, useSear
 import "./styles/app.css";
 import "./styles/theme.css";
 
-import { fetchCurrentUser, fetchUserProfile, fetchPresentation, logout, savePresentation, recordPresentationDownload } from "./lib/apiClient";
+import { fetchCurrentUser, fetchUserProfile, fetchPresentation, logout, savePresentation, updatePresentationInPlace, recordPresentationDownload } from "./lib/apiClient";
 import LoginPage from "./components/shared/LoginPage";
 import ProfilePage from "./components/shared/ProfilePage";
 import AdminHomePage from "./components/shared/AdminHomePage";
@@ -173,10 +173,25 @@ export default function App() {
   );
 }
 
-/** `/editor/:id` - var olan bir sunumu yukleyip duzenlemeye acar. */
+/**
+ * `/editor/:id` - var olan bir sunumu yukleyip duzenlemeye acar.
+ * "?fromJoint=1" ise Ortak Sunum ekranindaki "Düzenle"den gelindigini
+ * isaretler (bkz. JointPresentationPage.handleEditTeam) - MainApp bu durumda
+ * normal "Kaydet" (yeni surum ekler) yaninda bir de "Güncelle" (mevcut
+ * surumu YERINDE degistirir) butonu gosterir.
+ */
 function EditorForExisting({ theme, toggleTheme, personnel }) {
   const { id } = useParams();
-  return <MainApp theme={theme} toggleTheme={toggleTheme} personnel={personnel} presentationId={Number(id)} />;
+  const [params] = useSearchParams();
+  return (
+    <MainApp
+      theme={theme}
+      toggleTheme={toggleTheme}
+      personnel={personnel}
+      presentationId={Number(id)}
+      fromJoint={params.get("fromJoint") === "1"}
+    />
+  );
 }
 
 /** `/editor/new?teamId=X` - admin'in "Yeni Sunum" ile actigi bos sihirbaz. */
@@ -186,7 +201,7 @@ function EditorForNew({ theme, toggleTheme, personnel }) {
   return <MainApp theme={theme} toggleTheme={toggleTheme} personnel={personnel} newForTeamId={teamId ? Number(teamId) : null} />;
 }
 
-function MainApp({ theme, toggleTheme, personnel, presentationId, newForTeamId }) {
+function MainApp({ theme, toggleTheme, personnel, presentationId, newForTeamId, fromJoint }) {
   // "mode/step" ayni degisken: hem ust nav hem sihirbaz adimi olarak kullanilir.
   const [mode, setMode] = useState("cover");
   const navigate = useNavigate();
@@ -305,6 +320,16 @@ function MainApp({ theme, toggleTheme, personnel, presentationId, newForTeamId }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [presentationId]);
 
+  const buildSaveContent = () => ({
+    teamType: sprintForm.teamType,
+    sprint: sprintForm.sprint,
+    range: sprintForm.range,
+    sections: sprintForm.sections,
+    band: { show: band.show, bars: band.bars },
+    dashSource,
+    dashData: activeDashData,
+  });
+
   const handleSave = async () => {
     if (!saveTeamId) {
       setWizardAlert("Kaydetmek için bir takım belirlenemedi.");
@@ -316,22 +341,28 @@ function MainApp({ theme, toggleTheme, personnel, presentationId, newForTeamId }
     }
     setSaveStatus({ loading: true, error: null });
     try {
-      const content = {
-        teamType: sprintForm.teamType,
-        sprint: sprintForm.sprint,
-        range: sprintForm.range,
-        sections: sprintForm.sections,
-        band: { show: band.show, bars: band.bars },
-        dashSource,
-        dashData: activeDashData,
-      };
       const saved = await savePresentation({
-        teamId: saveTeamId, sprintNo: sprintForm.sprint, dateRange: sprintForm.range, content,
+        teamId: saveTeamId, sprintNo: sprintForm.sprint, dateRange: sprintForm.range, content: buildSaveContent(),
       });
       setPresentationMeta({ id: saved.id, teamId: saved.teamId, sprintNo: saved.sprintNo, currentVersion: saved.currentVersion });
       setSaveStatus({ loading: false, error: null });
     } catch (err) {
       setSaveStatus({ loading: false, error: err?.message || "Kaydedilemedi." });
+    }
+  };
+
+  // "Güncelle": Ortak Sunum ekranindan (?fromJoint=1) gelindiginde gosterilir
+  // - handleSave'in aksine YENI bir surum EKLEMEZ, mevcut guncel surumu
+  // YERINDE degistirir (bkz. apiClient.updatePresentationInPlace).
+  const handleUpdateInPlace = async () => {
+    if (!presentationMeta?.id) return;
+    setSaveStatus({ loading: true, error: null });
+    try {
+      const saved = await updatePresentationInPlace(presentationMeta.id, sprintForm.range, buildSaveContent());
+      setPresentationMeta({ id: saved.id, teamId: saved.teamId, sprintNo: saved.sprintNo, currentVersion: saved.currentVersion });
+      setSaveStatus({ loading: false, error: null });
+    } catch (err) {
+      setSaveStatus({ loading: false, error: err?.message || "Güncellenemedi." });
     }
   };
 
@@ -396,7 +427,7 @@ function MainApp({ theme, toggleTheme, personnel, presentationId, newForTeamId }
     setExcelFileName(file.name);
   };
 
-  const handleGenerateFullDeck = () =>
+  const handleGenerateFullDeck = (cornerMesh) =>
     fullExport.run(async () => {
       if (!activeDashData || !activeDashData.kpis) {
         throw new Error(
@@ -406,7 +437,7 @@ function MainApp({ theme, toggleTheme, personnel, presentationId, newForTeamId }
         );
       }
       const data = { ...sprintForm.data, showBand: band.show, targets: band.bars };
-      const pptx = buildFullDeck(data, activeDashData, assets, pptxTheme);
+      const pptx = buildFullDeck(data, activeDashData, assets, pptxTheme, cornerMesh);
       const sp = (sprintForm.sprint.trim() || "X").replace(/[^\w]/g, "");
       await pptx.writeFile({ fileName: `Sprint_Kapasite_${sp}.pptx` });
       if (saveTeamId) {
@@ -444,6 +475,8 @@ function MainApp({ theme, toggleTheme, personnel, presentationId, newForTeamId }
               generating={fullExport.loading}
               onSave={canEdit ? handleSave : null}
               saving={saveStatus.loading}
+              onUpdate={canEdit && fromJoint && presentationMeta ? handleUpdateInPlace : null}
+              updating={saveStatus.loading}
             />
           ) : (
             <DashboardTopActions
@@ -453,6 +486,8 @@ function MainApp({ theme, toggleTheme, personnel, presentationId, newForTeamId }
               generating={fullExport.loading}
               onSave={canEdit ? handleSave : null}
               saving={saveStatus.loading}
+              onUpdate={canEdit && fromJoint && presentationMeta ? handleUpdateInPlace : null}
+              updating={saveStatus.loading}
             />
           )
         }
@@ -561,8 +596,8 @@ function MainApp({ theme, toggleTheme, personnel, presentationId, newForTeamId }
         previewTheme={pptxTheme}
         onPreviewThemeChange={setPptxTheme}
         downloading={fullExport.loading}
-        onConfirmDownload={async () => {
-          const ok = await handleGenerateFullDeck();
+        onConfirmDownload={async (cornerMesh) => {
+          const ok = await handleGenerateFullDeck(cornerMesh);
           if (ok) setExportPreviewOpen(false);
         }}
       />

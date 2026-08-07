@@ -1,15 +1,16 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import TopBar from "./TopBar";
 import Button from "./Button";
 import ZoomModal from "./ZoomModal";
-import SectionEditor from "../sprint/SectionEditor";
+import PptxTemplateModal from "./PptxTemplateModal";
 import SlideCanvas from "../sprint/SlideCanvas";
 import DashboardSlideCanvas from "../dashboard/DashboardSlideCanvas";
 import { IconUsers, IconCheckCircle, IconLayers, IconDownload } from "./icons";
-import { fetchTeams, fetchLatestPresentationsByTeams, savePresentation, recordPresentationDownload } from "../../lib/apiClient";
+import { fetchTeams, fetchLatestPresentationsByTeams, recordPresentationDownload } from "../../lib/apiClient";
 import { sprintDataFromContent } from "../../lib/presentationContent";
 import { buildJointDeck } from "../../lib/jointDeckBuilder";
-import { sectionDefs, SECTION_KEYS, linesOf } from "../../lib/geometry";
+import { SECTION_KEYS, linesOf } from "../../lib/geometry";
 import { ASSETS } from "../../assets/pptxAssets";
 import { resolveIsAdmin } from "../../lib/teamTypes";
 import { DAV_COLORS } from "../../lib/format";
@@ -87,19 +88,22 @@ function CompletionRing({ counts, accent, size = 64, stroke = 6 }) {
  * erisebilir: takimlari sec (veya "Tum takimlari sec"), her takimin EN SON
  * sunumunu tek bir kapak + tekil slaytlar halinde onizle/indir. Yetki modeli
  * backend'deki (PresentationFacade.requireEditAccess) ile BIREBIR AYNI:
- * PO sadece kendi takiminin sayfalarini (icerik bolumlerini) duzenleyebilir,
- * admin hepsini duzenleyebilir, digerleri salt-okunur kalir ("marklanmis
- * sayfalar" = her takim bloğunun kendi duzenlenebilirlik rozeti).
+ * PO sadece kendi takiminin sunumunu duzenleyebilir, admin hepsini
+ * duzenleyebilir, digerleri salt-okunur kalir ("marklanmis sayfalar" = her
+ * takim bloğunun kendi duzenlenebilirlik rozeti).
  *
- * Kapsam notu: bu ekranda duzenlenebilen tek alan icerik bolumleridir
- * (Tamamlanan/Yapilacak/Riskler/Bekleyen) - hedefler bandi ve kapasite
- * dashboard'u burada salt-okunur kalir, degisiklik gerekiyorsa mevcut tekil
- * /editor/:id sayfasindan yapilir.
+ * "Düzenle" burada ARTIK inline bir bolum editoru DEGIL (bkz. kullanici
+ * bildirimi) - o takimin GUNCEL sprintinin tam sihirbaz editorune
+ * (/editor/:id) yonlendirir, "?fromJoint=1" ile isaretlenir ki App.jsx orada
+ * normal "Kaydet" (yeni surum ekler) yaninda bir de "Güncelle" (mevcut
+ * surumu YERINDE degistirir, bkz. apiClient.updatePresentationInPlace)
+ * butonu gostersin - kullanici boylece buradan geldigini bilerek daha
+ * rahat, TAM sihirbazla guncelleyebilir.
  */
 export default function JointPresentationPage({ personnel, theme, onToggleTheme }) {
+  const navigate = useNavigate();
   const isAdmin = resolveIsAdmin(personnel);
   const assets = ASSETS;
-  const SEC = sectionDefs(assets);
 
   const [teams, setTeams] = useState([]);
   const [selectedIds, setSelectedIds] = useState(() => new Set());
@@ -110,7 +114,6 @@ export default function JointPresentationPage({ personnel, theme, onToggleTheme 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [exporting, setExporting] = useState(false);
-  const [editingTeamId, setEditingTeamId] = useState(null);
   // Coklu takim ızgarasinda bir takimin sunumunu tek basina, buyultulmus
   // incelemek icin - { teamId, tab } | null. tab, hangi mini-slide'a
   // tiklandiysa onunla baslar, modal icinde sekmeler arasi gecilebilir.
@@ -119,8 +122,6 @@ export default function JointPresentationPage({ personnel, theme, onToggleTheme 
   const zoomTabs = zoomResult
     ? [{ key: "content", label: "İçerik Slaytı" }, ...(zoomResult.dashData?.kpis ? [{ key: "dashboard", label: "Kapasite Dashboard" }] : [])]
     : null;
-  const [editedSections, setEditedSections] = useState({}); // { [teamId]: { done, active, risk, pending } }
-  const [saveStatus, setSaveStatus] = useState({}); // { [teamId]: { loading, error } }
 
   useEffect(() => {
     fetchTeams()
@@ -182,52 +183,21 @@ export default function JointPresentationPage({ personnel, theme, onToggleTheme 
     }
   };
 
-  const startEdit = (r) => {
-    setEditedSections((prev) => ({ ...prev, [r.teamId]: { ...(r.content.sections || {}) } }));
-    setEditingTeamId(r.teamId);
+  /** "Düzenle" - o takimin sunumunu tam sihirbaz editorunde acar, "Güncelle" butonunu göstermesi icin isaretlenir (bkz. üstteki modül yorumu). */
+  const handleEditTeam = (r) => {
+    navigate(`/editor/${r.presentationId}?fromJoint=1`);
   };
 
-  const handleSectionChange = (teamId, key, text) => {
-    setEditedSections((prev) => ({ ...prev, [teamId]: { ...prev[teamId], [key]: text } }));
-  };
+  // "PPTX İndir (Ortak)" tiklaninca hemen indirmez - once sablon secim
+  // popup'u acilir (bkz. kullanici bildirimi).
+  const [pptxTemplateOpen, setPptxTemplateOpen] = useState(false);
 
-  /** SectionEditor'un "+ Ekle" (manuel madde) ve chip akisi onTextChange DEGIL onChipUse cagirir - bkz. SectionEditor.jsx addManualLine. */
-  const handleSectionAppend = (teamId, key, line) => {
-    setEditedSections((prev) => {
-      const current = prev[teamId]?.[key] || "";
-      const next = (current.trim() ? current.trim() + "\n" : "") + line;
-      return { ...prev, [teamId]: { ...prev[teamId], [key]: next } };
-    });
-  };
-
-  const handleSaveTeam = async (r) => {
-    setSaveStatus((prev) => ({ ...prev, [r.teamId]: { loading: true, error: null } }));
-    try {
-      const newSections = editedSections[r.teamId];
-      const newContent = { ...r.content, sections: newSections };
-      const saved = await savePresentation({
-        teamId: r.teamId, sprintNo: r.content.sprint, dateRange: r.content.range, content: newContent,
-      });
-      setResults((prev) =>
-        prev.map((x) =>
-          x.teamId === r.teamId
-            ? { ...x, presentationId: saved.id, content: newContent, sprintData: sprintDataFromContent(newContent) }
-            : x
-        )
-      );
-      setSaveStatus((prev) => ({ ...prev, [r.teamId]: { loading: false, error: null } }));
-      setEditingTeamId(null);
-    } catch (err) {
-      setSaveStatus((prev) => ({ ...prev, [r.teamId]: { loading: false, error: err?.message || "Kaydedilemedi." } }));
-    }
-  };
-
-  const handleJointExport = async () => {
+  const handleJointExport = async (cornerMesh) => {
     if (!results || results.length === 0) return;
     setExporting(true);
     setError(null);
     try {
-      const pptx = buildJointDeck(results, assets, theme === "dark" ? "dark" : "light");
+      const pptx = buildJointDeck(results, assets, theme === "dark" ? "dark" : "light", cornerMesh);
       await pptx.writeFile({ fileName: "Ortak_Sprint_Sunumu.pptx" });
       await recordPresentationDownload("BATCH", results.map((r) => r.teamId)).catch(() => {
         // indirme kaydi best-effort - basarisiz olsa da kullaniciyi engellemez
@@ -329,7 +299,7 @@ export default function JointPresentationPage({ personnel, theme, onToggleTheme 
                   Önizle
                 </Button>
                 {results && (
-                  <Button variant="soft" loading={exporting} loadingLabel="Hazırlanıyor…" onClick={handleJointExport}>
+                  <Button variant="soft" loading={exporting} loadingLabel="Hazırlanıyor…" onClick={() => setPptxTemplateOpen(true)}>
                     PPTX İndir (Ortak)
                   </Button>
                 )}
@@ -344,8 +314,6 @@ export default function JointPresentationPage({ personnel, theme, onToggleTheme 
 
         <div className="joint-team-grid">
           {results?.map((r) => {
-            const status = saveStatus[r.teamId];
-            const isEditing = editingTeamId === r.teamId;
             const idx = teams.findIndex((t) => t.id === r.teamId);
             const accent = "#" + DAV_COLORS[(idx < 0 ? 0 : idx) % DAV_COLORS.length];
             return (
@@ -363,66 +331,36 @@ export default function JointPresentationPage({ personnel, theme, onToggleTheme 
                     ) : (
                       <span className="joint-badge joint-badge-readonly">🔒 Salt okunur</span>
                     )}
-                    {r.canEdit && !isEditing && (
-                      <button type="button" className="addbar" onClick={() => startEdit(r)}>
+                    {r.canEdit && (
+                      <button type="button" className="addbar" onClick={() => handleEditTeam(r)}>
                         Düzenle
                       </button>
                     )}
-                    {r.canEdit && isEditing && (
-                      <>
-                        <Button variant="primary" loading={status?.loading} loadingLabel="Kaydediliyor…" onClick={() => handleSaveTeam(r)}>
-                          Kaydet
-                        </Button>
-                        <button type="button" className="delbar" onClick={() => setEditingTeamId(null)}>
-                          Vazgeç
-                        </button>
-                      </>
-                    )}
                   </span>
                 </div>
-                {status?.error && <div className="login-error" style={{ margin: "8px 0" }}>{status.error}</div>}
 
-                {isEditing ? (
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 10 }}>
-                    {SECTION_KEYS.map((key) => (
-                      <SectionEditor
-                        key={key}
-                        sectionKey={key}
-                        def={SEC[key]}
-                        text={editedSections[r.teamId]?.[key] || ""}
-                        onTextChange={(text) => handleSectionChange(r.teamId, key, text)}
-                        count={(editedSections[r.teamId]?.[key] || "").split("\n").filter((l) => l.trim()).length}
-                        chips={[]}
-                        onChipUse={(line) => handleSectionAppend(r.teamId, key, line)}
-                        onExpand={() => {}}
-                        teamType={r.content.teamType}
-                      />
-                    ))}
-                  </div>
-                ) : (
-                  <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 10 }}>
-                    <div className="joint-summary">
-                      <CompletionRing counts={sectionCounts(r.content)} accent={accent} />
-                      <span className="joint-summary-caption">Tamamlanma Oranı</span>
-                      <div className="joint-summary-breakdown">
-                        {["done", "active"].map((key) => (
-                          <span key={key} className="joint-summary-row">
-                            <span className="joint-summary-dot" style={{ background: SECTION_COLORS[key] }} />
-                            {sectionCounts(r.content)[key]} {SECTION_LABELS[key]}
-                          </span>
-                        ))}
-                      </div>
+                <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 10 }}>
+                  <div className="joint-summary">
+                    <CompletionRing counts={sectionCounts(r.content)} accent={accent} />
+                    <span className="joint-summary-caption">Tamamlanma Oranı</span>
+                    <div className="joint-summary-breakdown">
+                      {["done", "active"].map((key) => (
+                        <span key={key} className="joint-summary-row">
+                          <span className="joint-summary-dot" style={{ background: SECTION_COLORS[key] }} />
+                          {sectionCounts(r.content)[key]} {SECTION_LABELS[key]}
+                        </span>
+                      ))}
                     </div>
-                    <MiniSlideBox onZoom={() => setZoom({ teamId: r.teamId, tab: "content" })}>
-                      {(scale) => <SlideCanvas data={r.sprintData} tab="content" assets={assets} scale={scale} />}
-                    </MiniSlideBox>
-                    {r.dashData?.kpis && (
-                      <MiniSlideBox onZoom={() => setZoom({ teamId: r.teamId, tab: "dashboard" })}>
-                        {(scale) => <DashboardSlideCanvas dd={r.dashData} assets={assets} scale={scale} />}
-                      </MiniSlideBox>
-                    )}
                   </div>
-                )}
+                  <MiniSlideBox onZoom={() => setZoom({ teamId: r.teamId, tab: "content" })}>
+                    {(scale) => <SlideCanvas data={r.sprintData} tab="content" assets={assets} scale={scale} />}
+                  </MiniSlideBox>
+                  {r.dashData?.kpis && (
+                    <MiniSlideBox onZoom={() => setZoom({ teamId: r.teamId, tab: "dashboard" })}>
+                      {(scale) => <DashboardSlideCanvas dd={r.dashData} assets={assets} scale={scale} />}
+                    </MiniSlideBox>
+                  )}
+                </div>
               </div>
             );
           })}
@@ -442,6 +380,16 @@ export default function JointPresentationPage({ personnel, theme, onToggleTheme 
             <SlideCanvas data={zoomResult?.sprintData} tab="content" assets={assets} scale={scale} />
           )
         }
+      />
+
+      <PptxTemplateModal
+        open={pptxTemplateOpen}
+        onClose={() => setPptxTemplateOpen(false)}
+        onConfirm={(customImage) => {
+          setPptxTemplateOpen(false);
+          handleJointExport(customImage || undefined);
+        }}
+        downloading={exporting}
       />
     </>
   );

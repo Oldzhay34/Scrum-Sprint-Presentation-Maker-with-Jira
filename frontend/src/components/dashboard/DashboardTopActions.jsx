@@ -1,9 +1,9 @@
 import { useRef } from "react";
 import Button from "../shared/Button";
-import { IconUpload, IconDownload, IconSave } from "../shared/icons";
+import { IconUpload, IconDownload, IconSave, IconRefresh } from "../shared/icons";
 
 export default function DashboardTopActions({
-  onExcelFile, excelLoading, onGenerate, generating, onSave, saving,
+  onExcelFile, excelLoading, onGenerate, generating, onSave, saving, onUpdate, updating,
 }) {
   const fileInputRef = useRef(null);
 
@@ -27,6 +27,12 @@ export default function DashboardTopActions({
         <Button variant="ghost" loading={saving} loadingLabel="Kaydediliyor…" onClick={onSave}>
           <IconSave className="navbar-icon" />
           Kaydet
+        </Button>
+      )}
+      {onUpdate && (
+        <Button variant="ghost" loading={updating} loadingLabel="Güncelleniyor…" onClick={onUpdate} title="Ortak Sunum'dan geldiniz - mevcut sürümü yerinde günceller, yeni sürüm eklemez">
+          <IconRefresh className="navbar-icon" />
+          Güncelle
         </Button>
       )}
       <Button variant="primary" loading={generating} loadingLabel="Hazırlanıyor…" onClick={onGenerate}>

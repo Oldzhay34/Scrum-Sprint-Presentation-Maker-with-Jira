@@ -5,6 +5,7 @@ import com.aksa.capacityplanner.auth.security.JwtTokenProvider;
 import com.aksa.capacityplanner.presentation.api.dto.PresentationDetailDto;
 import com.aksa.capacityplanner.presentation.api.dto.PresentationDownloadRequest;
 import com.aksa.capacityplanner.presentation.api.dto.PresentationSummaryDto;
+import com.aksa.capacityplanner.presentation.api.dto.PresentationUpdateInPlaceRequest;
 import com.aksa.capacityplanner.presentation.api.dto.PresentationUpsertRequest;
 import com.aksa.capacityplanner.presentation.api.dto.PresentationVersionDto;
 import com.aksa.capacityplanner.presentation.domain.PresentationDownloadLog;
@@ -62,6 +63,16 @@ public class PresentationController {
     public void recordDownload(@Valid @RequestBody PresentationDownloadRequest request, Authentication authentication) {
         JwtTokenProvider.AccessTokenClaims claims = requireClaims(authentication);
         presentationFacade.recordDownload(PresentationDownloadLog.DownloadType.valueOf(request.downloadType()), request.teamIds(), claims.sicil());
+    }
+
+    /** "Güncelle": yeni surum eklemeden mevcut sunumu yerinde gunceller - bkz. PresentationFacade.updateInPlace. */
+    @PutMapping("/{id}/content")
+    public PresentationDetailDto updateInPlace(@PathVariable Long id, @Valid @RequestBody PresentationUpdateInPlaceRequest request,
+                                                Authentication authentication) {
+        JwtTokenProvider.AccessTokenClaims claims = requireClaims(authentication);
+        SprintPresentation saved = presentationFacade.updateInPlace(id, request.dateRange(), request.content(),
+                claims.sicil(), claims.teamId(), claims.role() == Role.ADMIN);
+        return toDetailDto(saved);
     }
 
     @GetMapping("/{id}/versions")

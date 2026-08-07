@@ -86,6 +86,23 @@ public class PresentationService implements PresentationUseCase {
     }
 
     @Override
+    @Transactional
+    public SprintPresentation updateInPlace(Long presentationId, String dateRange, Map<String, Object> content, String updatedBySicil) {
+        SprintPresentation presentation = getById(presentationId);
+        presentation.setDateRange(dateRange);
+        presentation.setContent(content);
+        presentation.setUpdatedBy(updatedBySicil);
+        SprintPresentation saved = presentationRepository.save(presentation);
+
+        // currentVersion'a karsilik gelen versions kaydini da senkron tutar -
+        // yeni bir surum EKLENMEZ, sadece VAR OLAN guncellenir (id korunarak).
+        versionRepository.findByPresentationIdAndVersion(presentationId, saved.getCurrentVersion())
+                .ifPresent(v -> versionRepository.save(new PresentationVersion(
+                        v.getId(), presentationId, v.getVersion(), content, updatedBySicil, Instant.now())));
+        return saved;
+    }
+
+    @Override
     public List<PresentationVersion> listVersions(Long presentationId) {
         getById(presentationId);
         return versionRepository.findByPresentationId(presentationId);

@@ -4,8 +4,34 @@ import {
   extractPriority, extractComment, PRIORITY_COLORS, PRIORITY_ORDER, PRIORITY_UNSET_LABEL, PRIORITY_UNSET_COLOR, hasPriorityTags,
   segmentWidths,
 } from "../../lib/geometry";
+import { DEFAULT_CORNER_MESH } from "../../assets/cornerMesh";
 
 const S = 96; // px per inch - orijinal ile birebir ayni olcek
+// Resim1 sablon dekorasyonu - PPTX'teki (sprintDeckBuilder.js) AYNI inc
+// koordinatlariyla, S carpani ile piksele cevrilir ki onizleme/PPTX birebir
+// eslessin (bkz. kullanici bildirimi: "her sayfada olsun").
+const CORNER_MESH_RATIO = 658 / 960;
+function CornerMesh({ w, x, y, opacity, flip }) {
+  const h = w / CORNER_MESH_RATIO;
+  return (
+    <img
+      className="corner-mesh-deco"
+      src={DEFAULT_CORNER_MESH}
+      alt=""
+      aria-hidden="true"
+      style={{
+        position: "absolute", left: x * S, top: y * S, width: w * S, height: h * S, opacity, pointerEvents: "none",
+        // PPTX'te blur desteklenmedigi icin oradaki denk gorunumu yuksek
+        // transparency ile taklit ediyoruz - web onizlemede ekstra bir
+        // yumusaklik bonus olarak eklenebilir (bkz. kullanici bildirimi:
+        // "gerekirse blur vs falan ekle"). flip: PPTX tarafindaki flipH ile
+        // AYNI - "sivri uc" disariya degil slaytin icine dogru baksin diye.
+        filter: "blur(1.5px)",
+        transform: flip ? "scaleX(-1)" : undefined,
+      }}
+    />
+  );
+}
 
 function BulletText({ text }) {
   return (
@@ -112,6 +138,7 @@ export default function SlideCanvas({ data, tab, assets, scale }) {
     content = (
       <div className="cov" style={{ backgroundImage: `url(${assets.cover_bg || ""})` }}>
         <div className="wash" />
+        <CornerMesh w={1.7} x={-0.15} y={5.169} opacity={0.45} />
         <div className="clogos">
           <img className="a" src={assets.logo_a} alt="" />
           <img className="b" src={assets.logo_b} alt="" />
@@ -135,6 +162,19 @@ export default function SlideCanvas({ data, tab, assets, scale }) {
           <img src={assets.logo_a} alt="" />
         </div>
         <div className="s-rule" />
+        {/* Riskler kartinin (alt-sol) SOLUNDA, kartin GERCEK (icerige gore
+            degisen) konum/yuksekligiyle hizali - bkz. kullanici bildirimi:
+            "tam olarak yer alacağı yer riskler kartının sol tarafı" +
+            "hala kayık" (sabit y kullanildiginda kart kisa/uzun oldukca
+            hizasi kayiyordu). sprintDeckBuilder.addContentSlide ile AYNI
+            hesap (botH*0.92, dikey ortalanmis). */}
+        <CornerMesh
+          w={(botH * 0.92) * CORNER_MESH_RATIO}
+          x={-((botH * 0.92) * CORNER_MESH_RATIO) * 0.42}
+          y={yBot + (botH - botH * 0.92) / 2}
+          opacity={0.55}
+          flip
+        />
         <Band bars={bars} />
         <Card x={G.X_L} y={cardsTop} w={G.COL_W} h={topH} items={sections.done} sec={SEC.done} fontSize={fsByKey.done} />
         <Card x={G.X_L} y={yBot} w={G.COL_W} h={botH} items={sections.risk} sec={SEC.risk} fontSize={fsByKey.risk} />

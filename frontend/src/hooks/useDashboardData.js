@@ -62,6 +62,14 @@ export function useDashboardData(dTeam, setDTeam, dSprint, setDSprint, teamType)
     setPersons((prev) => prev.map((p, i) => (i === index ? { ...p, ...patch } : p)));
 
   const dashData = useMemo(() => {
+    // Excel bu oturumda HENUZ yuklenmediyse (loaded=false) kesinlikle null
+    // donulmeli - aksi halde ASAGIDA "kpis:null" ile birlikte yine de bir
+    // NESNE donuluyordu, App.jsx'teki "dashboard.dashData || loadedDashData"
+    // dusmesi HER ZAMAN bu (bos) nesneyi truthy sayip secıyordu, kayitli bir
+    // sunum Excel yeniden yuklenmeden kaydedilince/guncellenince kapasite
+    // dashboard verisini SESSIZCE SILIYORDU (bkz. kullanici bildirimi: "İş
+    // Zekası'nın dashboardu kaybolmuş").
+    if (!loaded) return null;
     const team = dTeam.trim() || meta.team || "Ekip";
     const mappedPersons = persons.map((p) => {
       const tam = num(p.tamamlanan);

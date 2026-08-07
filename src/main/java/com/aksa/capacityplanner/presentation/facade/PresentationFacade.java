@@ -44,6 +44,13 @@ public class PresentationFacade {
         return presentationUseCase.listVersions(presentationId);
     }
 
+    public SprintPresentation updateInPlace(Long presentationId, String dateRange, Map<String, Object> content,
+                                             String callerSicil, Long callerTeamId, boolean callerIsAdmin) {
+        SprintPresentation presentation = presentationUseCase.getById(presentationId);
+        requireEditAccess(presentation.getTeamId(), callerTeamId, callerIsAdmin);
+        return presentationUseCase.updateInPlace(presentationId, dateRange, content, callerSicil);
+    }
+
     public SprintPresentation rollback(Long presentationId, int version, String callerSicil, Long callerTeamId, boolean callerIsAdmin) {
         SprintPresentation presentation = presentationUseCase.getById(presentationId);
         requireEditAccess(presentation.getTeamId(), callerTeamId, callerIsAdmin);

@@ -3,14 +3,29 @@ import {
   extractComment, PRIORITY_COLORS, PRIORITY_ORDER, PRIORITY_UNSET_LABEL, PRIORITY_UNSET_COLOR, hasPriorityTags, logoPositions,
   segmentWidths,
 } from "./geometry";
+import { DEFAULT_CORNER_MESH } from "../assets/cornerMesh";
 
-/** Kapak slaydini verilen pptx'e ekler - buildFullDeck tarafindan kullanilir. */
-export function addCoverSlide(pptx, data, assets) {
+// Resim1 kose-mesh dekorasyonunun gercek en-boy orani (658x960 kaynak PNG) -
+// hangi boyutta cizilirse cizilsin bu oranla hesaplanir ki gorsel gerilmesin.
+const CORNER_MESH_RATIO = 658 / 960;
+
+/** Kapak slaydini verilen pptx'e ekler - buildFullDeck tarafindan kullanilir. cornerMesh: sablon gorseli, verilmezse varsayilan Resim1 temasi kullanilir. */
+export function addCoverSlide(pptx, data, assets, cornerMesh = DEFAULT_CORNER_MESH) {
   const TEAL = "164E63", ORANGE = "E67514", INK = "1F2937";
   const s1 = pptx.addSlide();
   s1.background = { color: "FFFFFF" };
   if (assets.cover_bg) s1.addImage({ data: assets.cover_bg, x: 0, y: 0, w: 13.333, h: 7.5 });
   s1.addShape(pptx.ShapeType.rect, { x: 0, y: 0, w: 6.4, h: 7.5, fill: { color: "FFFFFF", transparency: 22 } });
+  // Sablon (Resim1) dekorasyonu - sol (beyaz) panelin alt-sol kosesinde, metnin
+  // ARKASINDA (once cizilir) ince bir marka dokusu olarak durur (bkz. kullanici
+  // bildirimi: "her sayfada olsun - kapak-içerik-kapasite"). Kucuk boyut + yuksek
+  // transparency: SADECE bir arka plan dokusu, hicbir metne/ogeye MUDAHALE
+  // etmemeli (bkz. kullanici bildirimi: "yanlış yere yüklemişsin ... arka
+  // plan olarak olacak, hiçbir yazıya müdahale etmeyecek").
+  if (cornerMesh) {
+    const cmW = 1.7, cmH = cmW / CORNER_MESH_RATIO;
+    s1.addImage({ data: cornerMesh, x: -0.15, y: 7.5 - cmH + 0.15, w: cmW, h: cmH, transparency: 55 });
+  }
   s1.addImage({ data: assets.logo_a, x: 0.55, y: 0.42, w: 1.35, h: 1.35 * (63 / 308) });
   s1.addImage({ data: assets.logo_b, x: 2.15, y: 0.36, w: 1.05, h: 1.05 * (83 / 227) });
   s1.addText(data.teamName || "Yapay Zeka Ekibi", { x: 0.55, y: 5.15, w: 8.0, h: 0.9, fontFace: "Calibri", fontSize: 40, bold: true, color: TEAL, margin: 0 });
@@ -26,21 +41,33 @@ const CONTENT_PALETTE = {
   dark: { PAGE_BG: "131C27", CARD_BG: "1C2733", HEADER: "4A9FE0", CARD_LINE: "3A4756", TXT_BOLD: "E7EDF5", TXT_NORMAL: "B7C4D3" },
 };
 
-/** Icerik slaydini verilen pptx'e ekler - buildFullDeck tarafindan kullanilir. */
-export function addContentSlide(pptx, data, assets, theme = "light") {
+/** Icerik slaydini verilen pptx'e ekler - buildFullDeck tarafindan kullanilir. cornerMesh: sablon gorseli, verilmezse varsayilan Resim1 temasi kullanilir. */
+export function addContentSlide(pptx, data, assets, theme = "light", cornerMesh = DEFAULT_CORNER_MESH) {
   const P = CONTENT_PALETTE[theme] || CONTENT_PALETTE.light;
   const TEAL = "164E63", ORANGE = "E67514";
   const SEC = sectionDefs(assets);
 
   const s2 = pptx.addSlide();
   s2.background = { color: P.PAGE_BG };
+  // Hafif, dikkat dagitmayan arka plan cilasi - iki buyuk, cok saydam marka
+  // rengi daire (aksa mavi/yesil), koselerde. Onizlemedeki (theme.css
+  // --page-gradient) radyal gecis hissiyle AYNI fikir; pptxgenjs gercek CSS
+  // gradient fill desteklemedigi icin (surumler arasi guvenilmez) bunun
+  // yerine cok yuksek transparency'li duz renk sekillerle taklit edilir -
+  // "PPTX'lere güzel yakışır bir arka tema" (bkz. kullanici bildirimi).
+  s2.addShape(pptx.ShapeType.ellipse, { x: 10.6, y: -2.6, w: 6.5, h: 6.5, fill: { color: "4A9FE0", transparency: 93 }, line: { type: "none" } });
+  s2.addShape(pptx.ShapeType.ellipse, { x: -3.2, y: 4.6, w: 6.5, h: 6.5, fill: { color: "8DC63F", transparency: 94 }, line: { type: "none" } });
   s2.addText(data.subtitle, { x: 0.4, y: 0.24, w: 9.8, h: 0.6, fontFace: "Calibri", fontSize: 25, bold: true, color: P.HEADER, margin: 0, valign: "middle" });
   // Onizlemedeki .s-logos (right:24px, top:14px, flex row, img height:34px) ile
   // birebir ayni konumlandirma - bkz. geometry.js/logoPositions.
   const contentLogos = logoPositions({ rightEdge: 13.195, top: 0.147, height: 0.357, gap: 0.084 });
   s2.addImage({ data: assets.logo_b, ...contentLogos.b });
   s2.addImage({ data: assets.logo_a, ...contentLogos.a });
-  s2.addShape(pptx.ShapeType.rect, { x: 0, y: 1.02, w: 13.333, h: 0.035, fill: { color: ORANGE } });
+  // Takim bilgisi (baslik) altindaki serit - marka renklerinde iki parcali
+  // "bayrak" cizgisi (bkz. kullanici bildirimi: "takım bilgisi altına bir
+  // şerit istiyorum"), eskiden tek duz turuncu cizgiydi.
+  s2.addShape(pptx.ShapeType.rect, { x: 0, y: 1.0, w: 3.4, h: 0.05, fill: { color: TEAL } });
+  s2.addShape(pptx.ShapeType.rect, { x: 3.4, y: 1.0, w: 13.333 - 3.4, h: 0.05, fill: { color: ORANGE } });
 
   const bars = bandBars(data);
   function drawBand() {
@@ -177,6 +204,25 @@ export function addContentSlide(pptx, data, assets, theme = "light") {
   }
 
   const yBot = CARDS_TOP + topH + G.GAP_Y;
+
+  // Sablon (Resim1) dekorasyonu - Riskler kartinin (alt-sol) SOLUNDA, kartin
+  // ARKASINDA (kartlardan ONCE cizilir). yBot/botH burada (CARDS_TOP/
+  // fitContent'ten SONRA) kullanilir ki konum, Riskler kartinin GERCEK
+  // (icerige gore degisen) konumuyla HER ZAMAN eslessin - eskiden sabit bir
+  // y degeri kullanilinca kart kisa/uzun oldukca "kayık" gorunuyordu (bkz.
+  // kullanici bildirimi). flipH ile "sivri uc" sol kenara degil slaytin
+  // icine dogru baksin diye yatay olarak aynalanir.
+  if (cornerMesh) {
+    const cmH = botH * 0.92, cmW = cmH * CORNER_MESH_RATIO;
+    // x: eskiden neredeyse tamami slayt disina taşiyordu (bkz. kullanici
+    // bildirimi: "hala sayfa dışında kalıyor") - artik gorselin yaklasik
+    // yarisi slayt icinde gorunur kalacak sekilde saga kaydirildi.
+    s2.addImage({
+      data: cornerMesh, x: -cmW * 0.42, y: yBot + (botH - cmH) / 2, w: cmW, h: cmH,
+      transparency: 45, flipH: true,
+    });
+  }
+
   drawCard(G.X_L, CARDS_TOP, sections.done, SEC.done, fsByKey.done, topH);
   drawCard(G.X_L, yBot, sections.risk, SEC.risk, fsByKey.risk, botH);
   drawCard(G.X_R, CARDS_TOP, sections.active, SEC.active, fsByKey.active, topH);

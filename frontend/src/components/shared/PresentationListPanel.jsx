@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Button from "./Button";
 import Modal from "./Modal";
+import PptxTemplateModal from "./PptxTemplateModal";
 import ZoomModal from "./ZoomModal";
 import UnifiedPreviewPane from "./UnifiedPreviewPane";
 import SlideCanvas from "../sprint/SlideCanvas";
@@ -10,6 +11,7 @@ import { IconPresentation, IconHistory, IconEdit, IconCalendar, IconDownload } f
 import { fetchPresentations, fetchPresentation, fetchPresentationVersions, rollbackPresentation, recordPresentationDownload } from "../../lib/apiClient";
 import { sprintDataFromContent } from "../../lib/presentationContent";
 import { buildFullDeck } from "../../lib/fullDeckBuilder";
+import { buildTeamAllSprintsDeck } from "../../lib/teamDeckBuilder";
 import { ASSETS } from "../../assets/pptxAssets";
 
 function formatDateTime(iso) {
@@ -42,6 +44,7 @@ export default function PresentationListPanel({ teamId, teamName, canManage, sho
   const [previewTab, setPreviewTab] = useState("cover");
   const [zoomOpen, setZoomOpen] = useState(false);
   const [downloadingId, setDownloadingId] = useState(null);
+  const [downloadingAll, setDownloadingAll] = useState(false);
   // Onizleme icerigi useEffect'i sadece selectedId degisince tetiklenir -
   // rollback SONRASI ayni sunum secili kalirsa (id degismez, sadece icerigi
   // degisir) bu effect tetiklenmez ve onizleme ESKI (rollback oncesi)
@@ -92,11 +95,16 @@ export default function PresentationListPanel({ teamId, teamName, canManage, sho
   const previewSprintData = previewContent ? sprintDataFromContent(previewContent) : null;
   const previewDashData = previewContent?.dashData || null;
 
+  // "PPTX İndir" tiklaninca hemen indirmez - once sablon secim popup'u acilir
+  // (bkz. kullanici bildirimi: "her pptx indirme buttonlarından bahsediyorum").
+  // pptxRequest: { type: "single", p } | { type: "all" } | null.
+  const [pptxRequest, setPptxRequest] = useState(null);
+
   // Liste satirindan dogrudan PPTX indirme - editoru acmadan, o sunumun
   // KAYITLI (son kaydedilmis) icerigini indirir. handleGenerateFullDeck
   // (App.jsx) ile ayni kural: kapasite dashboard verisi (kpis) olmadan
   // slayt uretilemez, buildFullDeck bunu kontrol etmiyor (bkz. kod yorumu).
-  const handleDownloadPptx = async (p) => {
+  const handleDownloadPptx = async (p, cornerMesh) => {
     setDownloadingId(p.id);
     try {
       const full = await fetchPresentation(p.id);
@@ -106,7 +114,7 @@ export default function PresentationListPanel({ teamId, teamName, canManage, sho
         throw new Error("Bu sunumda kapasite dashboard verisi yok, PPTX indirilemedi.");
       }
       const sprintData = sprintDataFromContent(content);
-      const pptx = buildFullDeck(sprintData, dashData, ASSETS, "light");
+      const pptx = buildFullDeck(sprintData, dashData, ASSETS, "light", cornerMesh);
       const sp = (p.sprintNo || "X").toString().replace(/[^\w]/g, "");
       await pptx.writeFile({ fileName: `Sprint_Kapasite_${sp}.pptx` });
       recordPresentationDownload("INDIVIDUAL", [teamId]).catch(() => {});
@@ -117,15 +125,64 @@ export default function PresentationListPanel({ teamId, teamName, canManage, sho
     }
   };
 
+  // "+ Yeni Sunum" yanindaki toplu indirme - takimin TUM kayitli sprintlerini
+  // (kapak+icerik+varsa kapasite dashboard'u, sprint numarasina gore siralı)
+  // TEK bir PPTX'te birlestirir (bkz. kullanici bildirimi).
+  const handleDownloadAllSprints = async (cornerMesh) => {
+    if (!presentations.length) return;
+    setDownloadingAll(true);
+    setError(null);
+    try {
+      const fulls = await Promise.all(presentations.map((p) => fetchPresentation(p.id)));
+      const sorted = [...fulls].sort((a, b) => {
+        const na = parseInt(a.sprintNo, 10), nb = parseInt(b.sprintNo, 10);
+        if (!Number.isNaN(na) && !Number.isNaN(nb)) return na - nb;
+        return (a.sprintNo || "").localeCompare(b.sprintNo || "");
+      });
+      const sprints = sorted.map((p) => ({
+        sprintData: sprintDataFromContent(p.content || {}),
+        dashData: p.content?.dashData || null,
+      }));
+      const pptx = buildTeamAllSprintsDeck(sprints, ASSETS, "light", cornerMesh);
+      const fileTeam = (teamName || "Takim").replace(/[^\w]/g, "_");
+      await pptx.writeFile({ fileName: `${fileTeam}_Tum_Sprintler.pptx` });
+      recordPresentationDownload("BATCH", [teamId]).catch(() => {});
+    } catch (err) {
+      setError(err?.message || "PPTX indirilemedi.");
+    } finally {
+      setDownloadingAll(false);
+    }
+  };
+
+  const handlePptxTemplateConfirm = (customImage) => {
+    const req = pptxRequest;
+    setPptxRequest(null);
+    if (!req) return;
+    if (req.type === "single") handleDownloadPptx(req.p, customImage || undefined);
+    else handleDownloadAllSprints(customImage || undefined);
+  };
+
   return (
     <div className="presentation-panel-layout">
       <div className="presentation-list-panel">
         <div className="presentation-list-header">
           <h2>{teamName ? `${teamName} — Sprint Sunumları` : "Sprint Sunumları"}</h2>
           {showNewButton && teamId && (
-            <Button variant="primary" onClick={() => navigate(`/editor/new?teamId=${teamId}`)}>
-              + Yeni Sunum
-            </Button>
+            <div style={{ display: "flex", gap: 8 }}>
+              <Button
+                variant="soft"
+                loading={downloadingAll}
+                loadingLabel="Hazırlanıyor…"
+                disabled={presentations.length === 0}
+                onClick={() => setPptxRequest({ type: "all" })}
+              >
+                <IconDownload style={{ width: 15, height: 15 }} />
+                Tüm Sprintler PPTX İndir
+              </Button>
+              <Button variant="primary" onClick={() => navigate(`/editor/new?teamId=${teamId}`)}>
+                + Yeni Sunum
+              </Button>
+            </div>
           )}
         </div>
 
@@ -177,7 +234,7 @@ export default function PresentationListPanel({ teamId, teamName, canManage, sho
                   variant="soft"
                   loading={downloadingId === p.id}
                   loadingLabel="Hazırlanıyor…"
-                  onClick={() => handleDownloadPptx(p)}
+                  onClick={() => setPptxRequest({ type: "single", p })}
                 >
                   <IconDownload style={{ width: 15, height: 15 }} />
                   PPTX İndir
@@ -200,6 +257,13 @@ export default function PresentationListPanel({ teamId, teamName, canManage, sho
             reload(true);
             setPreviewRefreshKey((k) => k + 1);
           }}
+        />
+
+        <PptxTemplateModal
+          open={!!pptxRequest}
+          onClose={() => setPptxRequest(null)}
+          onConfirm={handlePptxTemplateConfirm}
+          downloading={downloadingId !== null || downloadingAll}
         />
       </div>
 

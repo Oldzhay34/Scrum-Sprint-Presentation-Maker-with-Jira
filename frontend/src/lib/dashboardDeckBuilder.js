@@ -2,6 +2,10 @@ import { nfmtInt } from "./format";
 import { dStatus, barColor, DAV_COLORS } from "./format";
 import { logoPositions } from "./geometry";
 import { resolveTableHeaders } from "./dashboardTableHeaders";
+import { DEFAULT_CORNER_MESH } from "../assets/cornerMesh";
+
+// Resim1 kose-mesh dekorasyonunun gercek en-boy orani (658x960 kaynak PNG).
+const CORNER_MESH_RATIO = 658 / 960;
 
 // Onizlemedeki koyu tema paleti (bkz. theme.css .theme-dark .slidecanvas.tab-dashboard)
 // ile birebir ayni degerler - "PPTX koyu temada da onizlemeyle eslessin" istegi.
@@ -17,12 +21,30 @@ const DASH_PALETTE = {
  * team, sprintNo, dateRange, reportDate, kpis{toplam,tamamlanan,acik,kapasite,doluluk,acikFazla,durum},
  * persons[{name,role,initials,toplam,tamamlanan,acik,kapasite,doluluk,durum}], delta, deltaRange.
  */
-export function addDashboardSlide(pptx, dd, assets, theme = "light") {
+export function addDashboardSlide(pptx, dd, assets, theme = "light", cornerMesh = DEFAULT_CORNER_MESH) {
   const P = DASH_PALETTE[theme] || DASH_PALETTE.light;
   const INK = P.INK, MUT = P.MUT, LINE = P.LINE, CARDBG = P.CARDBG, PANEL = P.PANEL;
 
   const s = pptx.addSlide();
   s.background = { color: PANEL };
+  // Hafif, dikkat dagitmayan arka plan cilasi - bkz. sprintDeckBuilder.
+  // addContentSlide'daki AYNI teknik/yorum ("PPTX'lere güzel yakışır bir arka
+  // tema" - kullanici bildirimi), kapasite dashboard slaydina da uygulanir.
+  s.addShape(pptx.ShapeType.ellipse, { x: 10.6, y: -2.6, w: 6.5, h: 6.5, fill: { color: "4A9FE0", transparency: 93 }, line: { type: "none" } });
+  s.addShape(pptx.ShapeType.ellipse, { x: -3.2, y: 4.6, w: 6.5, h: 6.5, fill: { color: "8DC63F", transparency: 94 }, line: { type: "none" } });
+  // Sablon (Resim1) dekorasyonu - sol kenar boşluğunda (KPI kartlari x=0.4'te,
+  // "Kişi" kolonu da x=0.4'te baslar - x=0..0.4 arasi HER ZAMAN bos kalir,
+  // satir sayisindan bagimsiz), tablo/kartlarin ARKASINDA. Eskiden sag-altta
+  // "Durum" kolonunun ustune biniyordu (bkz. kullanici bildirimi: "kapasite
+  // sayfasında ise çok yanlış bir yerde") - icerik slaytiyla AYNI sol-alt
+  // yerlesime tasindi, flipH ile "sivri uc" slaytin icine dogru baksin.
+  if (cornerMesh) {
+    const cmW = 1.9, cmH = cmW / CORNER_MESH_RATIO;
+    // x: eskiden neredeyse tamami slayt disina taşiyordu (bkz. kullanici
+    // bildirimi: "hala sayfa dışında kalıyor") - artik gorselin yaklasik
+    // yarisi slayt icinde gorunur kalacak sekilde saga kaydirildi.
+    s.addImage({ data: cornerMesh, x: -cmW * 0.42, y: 7.5 - cmH + 0.15, w: cmW, h: cmH, transparency: 45, flipH: true });
+  }
   s.addText((dd.team || "") + " Kapasite Planı", { x: 0.4, y: 0.26, w: 9, h: 0.5, fontFace: "Calibri", fontSize: 24, bold: true, color: P.TITLE, margin: 0 });
   s.addText((dd.sprintNo ? "Sprint " + dd.sprintNo + "   •   " : "") + dd.dateRange + "   •   Rapor Tarihi: " + dd.reportDate, { x: 0.42, y: 0.76, w: 9, h: 0.3, fontFace: "Calibri", fontSize: 11, color: MUT, margin: 0 });
   // Onizlemedeki .dlogos (right:24px, top:22px, flex row, img height:30px) ile
@@ -30,6 +52,11 @@ export function addDashboardSlide(pptx, dd, assets, theme = "light") {
   const dashLogos = logoPositions({ rightEdge: 13.196, top: 0.231, height: 0.315, gap: 0.084 });
   s.addImage({ data: assets.logo_b, ...dashLogos.b });
   s.addImage({ data: assets.logo_a, ...dashLogos.a });
+  // Takim bilgisi (baslik+alt satir) altindaki serit - icerik slaydiyla AYNI
+  // marka renkli "bayrak" cizgisi (bkz. kullanici bildirimi), bu slaytta
+  // eskiden hic yoktu.
+  s.addShape(pptx.ShapeType.rect, { x: 0, y: 1.1, w: 3.4, h: 0.045, fill: { color: "164E63" } });
+  s.addShape(pptx.ShapeType.rect, { x: 3.4, y: 1.1, w: 13.333 - 3.4, h: 0.045, fill: { color: "E67514" } });
 
   const k = dd.kpis, dur = dStatus(k.durum, k.doluluk);
   const cards = [

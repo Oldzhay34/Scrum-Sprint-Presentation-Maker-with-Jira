@@ -1,5 +1,9 @@
 import { DAV_COLORS, barColor, dStatus, nfmt1, nfmtInt, npct } from "../../lib/format";
 import { resolveTableHeaders } from "../../lib/dashboardTableHeaders";
+import { DEFAULT_CORNER_MESH } from "../../assets/cornerMesh";
+
+const S = 96; // px per inch - dashboardDeckBuilder.js ile AYNI inc koordinatlari
+const CORNER_MESH_RATIO = 658 / 960;
 
 /**
  * Kapasite dashboard slaydini (KPI kartlari + son 2 hafta delta + kisi tablosu)
@@ -41,9 +45,37 @@ export default function DashboardSlideCanvas({ dd, assets, scale }) {
       ].filter((c) => c[1] !== null)
     : [];
 
+  // PPTX'teki (dashboardDeckBuilder.js) ile AYNI inc koordinatlari - sol kenar
+  // boşluğunda (x=0..0.4 HER ZAMAN bos, KPI kartlari da "Kişi" kolonu da
+  // x=0.4'te baslar). Eskiden sag-altta "Durum" kolonunun ustune biniyordu
+  // (bkz. kullanici bildirimi: "kapasite sayfasında ise çok yanlış bir yerde").
+  const cmW = 1.9, cmH = cmW / CORNER_MESH_RATIO;
+  // eskiden neredeyse tamami slayt disina taşiyordu (bkz. kullanici
+  // bildirimi: "hala sayfa dışında kalıyor") - saga kaydirildi.
+  const cmX = -cmW * 0.42, cmY = 7.5 - cmH + 0.15;
+
   return (
     <div className="slidecanvas tab-dashboard" style={{ transform: `scale(${scale})` }}>
       <div className="dash">
+        {/* .dash kendi (opak PANEL rengi) arka planini tasidigi icin sablon
+            gorseli BUNUN UZERINDE (ilk cocuk), ama kpi kartlari/tablo gibi
+            geri kalan icerigin ALTINDA olmali - bkz. pptx katman sirasi
+            (dashboardDeckBuilder.js: panel bg -> daireler -> mesh -> icerik). */}
+        <img
+          className="corner-mesh-deco"
+          src={DEFAULT_CORNER_MESH}
+          alt=""
+          aria-hidden="true"
+          style={{ position: "absolute", left: cmX * S, top: cmY * S, width: cmW * S, height: cmH * S, opacity: 0.55, pointerEvents: "none", filter: "blur(1.5px)", transform: "scaleX(-1)" }}
+        />
+        {/* .dkpis/.dcard/.dtable normal akista (position verilmemis) -
+            konumlandirilmis elemanlar DOM sirasindan bagimsiz olarak HER
+            ZAMAN statik akis icerigin USTUNDE boyanir; bu wrapper'a
+            position:relative vermek onu mesh img ile AYNI seviyeye getirip
+            DOM sirasina (mesh -> wrapper) gore dogru sekilde USTTE
+            boyanmasini saglar - aksi halde mesh, kartlarin/tablonun
+            USTUNE cikardi. */}
+        <div style={{ position: "relative" }}>
         <div className="dlogos">
           <img src={assets.logo_b} alt="" />
           <img src={assets.logo_a} alt="" />
@@ -119,6 +151,7 @@ export default function DashboardSlideCanvas({ dd, assets, scale }) {
               </div>
             );
           })}
+        </div>
         </div>
       </div>
     </div>

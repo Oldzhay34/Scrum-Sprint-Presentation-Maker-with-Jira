@@ -113,7 +113,6 @@ export default function TopBar({ actions, theme, onToggleTheme, excelFileName, p
           </button>
           <div>
             <h1>Dijital Uygulamalar ve Ürün Geliştirme Agile Sistemi</h1>
-            <div className="sub">Sprint sunumu ve kapasite dashboard'unu üret · canlı önizle · markalı PPTX indir</div>
           </div>
         </div>
         <div className="spacer" />
