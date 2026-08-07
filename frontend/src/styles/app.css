@@ -75,7 +75,7 @@
   .card ul{margin:2px 0 0;padding:0 14px 0 44px;list-style:none}
   .card li{position:relative;margin-bottom:5px;color:#374151;line-height:1.28}
   .card li .dot{position:absolute;left:-15px;top:0.5em;width:8px;height:8px;margin-top:-4px;border-radius:50%;background:var(--bullet-color, #1F2937)}
-  .card li b{color:var(--ink)}
+  .card li b{display:inline;padding:1px 5px;border-radius:4px;background:#D1FAE5;color:#166534;font-weight:700;box-decoration-break:clone;-webkit-box-decoration-break:clone}
   .priority-label{display:inline-block;margin-right:5px;padding:0 5px;border-radius:4px;font-size:.72em;font-weight:700;color:#fff;letter-spacing:.2px;vertical-align:1px;white-space:nowrap}
   .item-comment{margin:2px 0 0;padding:3px 8px;font-size:.86em;font-style:italic;color:#166534;background:linear-gradient(90deg,rgba(22,163,74,.14),rgba(22,163,74,.04));border-left:2px solid #16A34A;border-radius:0 6px 6px 0;line-height:1.25}
   /* cover */

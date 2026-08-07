@@ -768,6 +768,19 @@ header.topbar {
   background: linear-gradient(115deg, var(--aksa-blue-dark) 0%, var(--aksa-blue) 55%, #12699f 100%);
   position: relative;
 }
+/* Uygulama adi (Odyssey) - eskiden uzun bir aciklama cumlesiydi, tek
+   kelimeye inince daha buyuk/belirgin bir marka yazisi (wordmark) olarak
+   ele alindi: degrade dolgu + hafif parlama. */
+header.topbar h1 {
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  background: linear-gradient(90deg, #ffffff, #dff3ff 55%, var(--aksa-green));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.2);
+}
 
 .topbar-logo-btn {
   width: 104px;
@@ -1650,6 +1663,13 @@ header.topbar .btn:hover {
   box-sizing: border-box;
   animation: login-icon-spin 3.2s linear infinite;
 }
+/* SVG bilesen tabanli yuzen rozetler (bkz. FLOAT_ICONS "Icon" girdileri) -
+   PNG asset'li img yerine ortalanmis bir ikon tasiyan daire. */
+.login-float-icon-svg {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 @keyframes login-icon-spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
@@ -1713,9 +1733,14 @@ header.topbar .btn:hover {
 .login-title {
   margin: 0;
   text-align: center;
-  font-size: 18px;
+  font-size: 34px;
   font-weight: 800;
-  color: var(--ink);
+  letter-spacing: 0.05em;
+  background: linear-gradient(90deg, var(--aksa-blue-light), #eaf6ff 45%, var(--aksa-green));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: 0 2px 18px rgba(74, 159, 224, 0.35);
 }
 .login-sub {
   margin: -6px 0 8px;
