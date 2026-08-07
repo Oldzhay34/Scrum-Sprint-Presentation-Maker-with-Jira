@@ -138,6 +138,14 @@ export function useManualDashboard(team, setTeam, sprintNo, setSprintNo, teamTyp
             closedDate: wi.closedDate || null,
           })),
         statuses: statuses.filter((s) => s.code.trim()),
+        // Kisiye ozel izin gunleri (bkz. LeaveDaysField/MemberCard) - clientId'ye
+        // gore anahtarlanir (backend'de de gecici id, DB id'si degil, bkz.
+        // StatelessDashboardRequest.MemberInput yorumu). CapacityCalculationService
+        // bunu targetWorkDays'ten dusup net kapasiteyi yeniden hesaplar.
+        personalLeaveDaysByMemberId: members.reduce((acc, m) => {
+          if (m.leaveDays) acc[m.clientId] = m.leaveDays;
+          return acc;
+        }, {}),
       };
 
       const result = await computeStatelessDashboard(request);

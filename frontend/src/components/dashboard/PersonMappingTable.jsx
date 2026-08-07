@@ -1,12 +1,15 @@
 import { DAV_COLORS, nfmtInt, num, sanitizeDecimalInput } from "../../lib/format";
+import LeaveDaysField from "./LeaveDaysField";
 
 /**
- * Kisi eslestirme tablosu: Excel'den gelen ad/toplam sabit, rol/kisaltma/
- * tamamlanan kullanici tarafindan duzenlenebilir. Acik = Toplam - Tamamlanan
- * otomatik hesaplanip gosterilir (Pressman - User Help Facilities: kullanici
- * hesaplamayi elle yapmak zorunda kalmaz, sonucu aninda gorur).
+ * Kisi eslestirme tablosu: Excel'den gelen ad/rol/kisaltma/tamamlanan/toplam
+ * kullanici tarafindan duzenlenebilir (Toplam da dahil - Excel'in verdigi
+ * deger baslangic degeridir, kullanici gerekirse elle duzeltebilir, bkz.
+ * kullanici bildirimi). Acik = Toplam - Tamamlanan otomatik hesaplanip
+ * gosterilir (Pressman - User Help Facilities: kullanici hesaplamayi elle
+ * yapmak zorunda kalmaz, sonucu aninda gorur).
  */
-export default function PersonMappingTable({ persons, onUpdate }) {
+export default function PersonMappingTable({ persons, onUpdate, teamId }) {
   if (!persons.length) {
     return <div className="mhint">Önce Excel yükleyin.</div>;
   }
@@ -14,14 +17,16 @@ export default function PersonMappingTable({ persons, onUpdate }) {
   return (
     <div id="personMap">
       <div className="pmhead">
+        <span style={{ width: 30, flex: "none" }} />
         <span style={{ flex: 2 }}>Ad Soyad</span>
         <span style={{ flex: 1.5 }}>Rol</span>
         <span style={{ width: 60, textAlign: "center" }}>Kısa</span>
-        <span style={{ width: 92, textAlign: "center" }}>Tamamlanan</span>
-        <span style={{ width: 110, textAlign: "right" }}>Toplam→Açık</span>
+        <span style={{ width: 76, textAlign: "center" }}>Toplam</span>
+        <span style={{ width: 76, textAlign: "center" }}>Tamamlanan</span>
+        <span style={{ width: 70, textAlign: "right" }}>Açık</span>
       </div>
       {persons.map((p, i) => {
-        const acik = p.toplam - num(p.tamamlanan);
+        const acik = num(p.toplam) - num(p.tamamlanan);
         return (
           <div className="pmrow" key={i}>
             <div className="av" style={{ background: "#" + DAV_COLORS[i % DAV_COLORS.length] }}>
@@ -32,13 +37,31 @@ export default function PersonMappingTable({ persons, onUpdate }) {
             <input className="pmini" placeholder="Kısa" maxLength={3} value={p.initials} onChange={(e) => onUpdate(i, { initials: e.target.value })} />
             <input
               className="pmtam"
+              style={{ width: 76 }}
+              placeholder="0"
+              title="Toplam planlanan iş yükü (AG) — Excel'den gelir, gerekirse düzeltebilirsiniz"
+              inputMode="decimal"
+              value={p.toplam}
+              onChange={(e) => onUpdate(i, { toplam: sanitizeDecimalInput(e.target.value) })}
+            />
+            <input
+              className="pmtam"
+              style={{ width: 76 }}
               placeholder="0"
               title="Tamamlanan iş yükü (AG)"
               inputMode="decimal"
               value={p.tamamlanan}
               onChange={(e) => onUpdate(i, { tamamlanan: sanitizeDecimalInput(e.target.value) })}
             />
-            <div className="pmmeta">{nfmtInt(p.toplam)} → {nfmtInt(acik)}</div>
+            <div className="pmmeta" style={{ width: 70 }}>{nfmtInt(acik)}</div>
+            <LeaveDaysField
+              teamId={teamId}
+              fullName={p.name}
+              role={p.role}
+              onTotalChange={(total) => {
+                if (total !== (p.leaveDays || 0)) onUpdate(i, { leaveDays: total });
+              }}
+            />
           </div>
         );
       })}

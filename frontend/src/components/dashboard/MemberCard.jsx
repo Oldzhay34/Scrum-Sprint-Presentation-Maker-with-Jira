@@ -1,11 +1,12 @@
 import { sanitizeDecimalInput, sanitizeIntegerInput, sanitizeRatioInput } from "../../lib/format";
+import LeaveDaysField from "./LeaveDaysField";
 
 /**
  * Tek bir ekip uyesi karti: kisi bilgileri + o kisiye ait is kalemleri.
  * Pressman - User Help Facilities: startDate icin "1 Haziran'dan once ise
  * hedef 145 gun olur" bilgisini hint olarak veririz.
  */
-export default function MemberCard({ member, statuses, items, onUpdateMember, onRemoveMember, onAddItem, onUpdateItem, onRemoveItem }) {
+export default function MemberCard({ member, statuses, items, onUpdateMember, onRemoveMember, onAddItem, onUpdateItem, onRemoveItem, teamId }) {
   return (
     <div className="bar">
       <div className="barrow" style={{ flexWrap: "wrap" }}>
@@ -60,6 +61,14 @@ export default function MemberCard({ member, statuses, items, onUpdateMember, on
           inputMode="decimal"
           value={member.maintenanceAllocationPercent || ""}
           onChange={(e) => onUpdateMember({ maintenanceAllocationPercent: sanitizeRatioInput(e.target.value) })}
+        />
+        <LeaveDaysField
+          teamId={teamId}
+          fullName={member.fullName}
+          role={member.role}
+          onTotalChange={(total) => {
+            if (total !== (member.leaveDays || 0)) onUpdateMember({ leaveDays: total });
+          }}
         />
         <button type="button" className="delbar" onClick={onRemoveMember}>
           Kişiyi sil

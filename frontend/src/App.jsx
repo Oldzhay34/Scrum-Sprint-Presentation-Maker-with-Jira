@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { BrowserRouter, Navigate, Route, Routes, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import "./styles/app.css";
 import "./styles/theme.css";
@@ -39,6 +39,7 @@ import { useManualDashboard } from "./hooks/useManualDashboard";
 import { useTheme } from "./hooks/useTheme";
 import { useCoverImage } from "./hooks/useCoverImage";
 
+import { autoApplyCompanyHolidays } from "./lib/autoApplyCompanyHolidays";
 import { sectionDefs, SECTION_KEYS } from "./lib/geometry";
 import { buildFullDeck } from "./lib/fullDeckBuilder";
 import { ASSETS } from "./assets/pptxAssets";
@@ -240,7 +241,14 @@ function MainApp({ theme, toggleTheme, personnel, presentationId, newForTeamId }
   // effect'i doldurur). Yeni Excel yuklenir yuklenmez dashboard.dashData
   // devreye girip bunun onune gecer.
   const [loadedDashData, setLoadedDashData] = useState(null);
-  const activeDashData = dashSource === "manual" ? manual.dashData : (dashboard.dashData || loadedDashData);
+  // "Kişi Bazlı Kapasite Özeti" tablosunun kolon basliklari (bkz.
+  // DashboardTableHeadersEditor) - Excel/Manuel kaynagindan BAGIMSIZ, tek
+  // bir yerde tutulur ve activeDashData icine gomulur ki hem onizleme hem
+  // PPTX export (buildFullDeck) hem de kayit/yukleme (handleSave/
+  // fetchPresentation hidrasyonu, asagida) AYNI degeri gorsun.
+  const [tableHeaders, setTableHeaders] = useState(null);
+  const activeDashDataBase = dashSource === "manual" ? manual.dashData : (dashboard.dashData || loadedDashData);
+  const activeDashData = activeDashDataBase ? { ...activeDashDataBase, tableHeaders } : activeDashDataBase;
 
   // ---- Kayitli sunum yukleme (/editor/:id) + kaydetme hedefi ----
   // Ham state'i birebir yansitan "content" sekli (bkz. plan dokumani) hem
@@ -250,6 +258,29 @@ function MainApp({ theme, toggleTheme, personnel, presentationId, newForTeamId }
   const [loadError, setLoadError] = useState(null);
   const [saveStatus, setSaveStatus] = useState({ loading: false, error: null });
   const saveTeamId = presentationMeta?.teamId ?? newForTeamId ?? personnel?.teamId ?? null;
+
+  // Excel'deki Toplam/Tamamlanan sayilari sirket tatilleri ZATEN dusulmus
+  // sekilde hazirlaniyor (bkz. kullanici bildirimi) - bu yuzden Excel
+  // yuklendiginde, her kisi icin sirket takvimindeki tatil gunleri otomatik
+  // izin kaydi olarak eklenir (kullanicinin her satirda "İzin Ekle" acip
+  // tek tek secmesine gerek kalmaz). "Manuel Gir" kaynaginda tetiklenmez -
+  // orada kullanici zaten kendi girdigi kisiler icin isterse ekler.
+  // autoHolidaysKeyRef: ayni kisi listesi icin (orn. render sirasinda persons
+  // referansi degisse bile ad listesi ayniysa) TEKRAR calismasini engeller.
+  const autoHolidaysKeyRef = useRef(null);
+  useEffect(() => {
+    if (dashSource !== "excel" || !dashboard.loaded || !saveTeamId || !dashboard.persons.length) return;
+    const key = saveTeamId + "|" + dashboard.persons.map((p) => p.name).join("|");
+    if (autoHolidaysKeyRef.current === key) return;
+    autoHolidaysKeyRef.current = key;
+    autoApplyCompanyHolidays(dashboard.persons, saveTeamId).then((totals) => {
+      if (!totals.size) return;
+      dashboard.persons.forEach((p, i) => {
+        const total = totals.get(p.name);
+        if (total != null && total !== (p.leaveDays || 0)) dashboard.updatePerson(i, { leaveDays: total });
+      });
+    });
+  }, [dashSource, dashboard.loaded, dashboard.persons, saveTeamId]);
 
   useEffect(() => {
     if (!presentationId) return;
@@ -267,6 +298,7 @@ function MainApp({ theme, toggleTheme, personnel, presentationId, newForTeamId }
         if (c.band && c.band.show === false) band.toggleShow(false);
         if (c.dashSource) setDashSource(c.dashSource);
         if (c.dashData) setLoadedDashData(c.dashData);
+        if (c.dashData?.tableHeaders) setTableHeaders(c.dashData.tableHeaders);
         setPresentationMeta({ id: p.id, teamId: p.teamId, sprintNo: p.sprintNo, currentVersion: p.currentVersion });
       })
       .catch((err) => setLoadError(err?.message || "Sunum yüklenemedi."));
@@ -468,7 +500,15 @@ function MainApp({ theme, toggleTheme, personnel, presentationId, newForTeamId }
           )}
           {mode === "dash" && (
             canEdit ? (
-              <DashboardPage source={dashSource} onSourceChange={setDashSource} dashboard={dashboard} manual={manual} />
+              <DashboardPage
+                source={dashSource}
+                onSourceChange={setDashSource}
+                dashboard={dashboard}
+                manual={manual}
+                teamId={saveTeamId}
+                tableHeaders={tableHeaders}
+                setTableHeaders={setTableHeaders}
+              />
             ) : (
               <ReadOnlyNotice teamType={sprintForm.teamType} />
             )

@@ -1,6 +1,7 @@
 import { nfmtInt } from "./format";
 import { dStatus, barColor, DAV_COLORS } from "./format";
 import { logoPositions } from "./geometry";
+import { resolveTableHeaders } from "./dashboardTableHeaders";
 
 // Onizlemedeki koyu tema paleti (bkz. theme.css .theme-dark .slidecanvas.tab-dashboard)
 // ile birebir ayni degerler - "PPTX koyu temada da onizlemeyle eslessin" istegi.
@@ -77,14 +78,15 @@ export function addDashboardSlide(pptx, dd, assets, theme = "light") {
   const HH = 0.52;
   const AGP = (t) => [{ text: t, options: { fontSize: 8.3, color: MUT, bold: false } }, { text: "\n(AG)", options: { fontSize: 6.6, color: "9AA3AF" } }];
   const plain = (t) => [{ text: t, options: { fontSize: 8.3, color: MUT, bold: false } }];
+  const th = resolveTableHeaders(dd.tableHeaders);
   [
-    [plain("Kişi"), cols.kisi, "left"],
-    [AGP("Toplam İş Yükü"), cols.toplam, "center"],
-    [AGP("Tamamlanan"), cols.tam, "center"],
-    [AGP("Açık İş Yükü"), cols.acik, "center"],
-    [AGP("Kullanılabilir Kapasite"), cols.kap, "center"],
-    [plain("Bakımlı Doluluk %"), cols.dol, "left"],
-    [plain("Durum"), cols.durum, "center"],
+    [plain(th.kisi), cols.kisi, "left"],
+    [AGP(th.toplam), cols.toplam, "center"],
+    [AGP(th.tamamlanan), cols.tam, "center"],
+    [AGP(th.acik), cols.acik, "center"],
+    [AGP(th.kapasite), cols.kap, "center"],
+    [plain(th.doluluk), cols.dol, "left"],
+    [plain(th.durum), cols.durum, "center"],
   ].forEach(([t, col, al]) => s.addText(t, { x: col[0], y: TY, w: col[1], h: HH, fontFace: "Calibri", align: al, valign: "bottom", margin: 0, lineSpacingMultiple: 0.95 }));
   s.addShape(pptx.ShapeType.line, { x: 0.4, y: TY + HH, w: 12.53, h: 0, line: { color: LINE, width: 1 } });
 

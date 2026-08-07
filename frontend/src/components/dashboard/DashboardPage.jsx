@@ -2,13 +2,14 @@ import DashboardMetaForm from "./DashboardMetaForm";
 import PersonMappingTable from "./PersonMappingTable";
 import DeltaForm from "./DeltaForm";
 import ManualDashboardForm from "./ManualDashboardForm";
+import DashboardTableHeadersEditor from "./DashboardTableHeadersEditor";
 import ErrorBanner from "../shared/ErrorBanner";
 
 /**
  * Sihirbazin 2. adimi: Kapasite Dashboard veri girisi (Excel'den Yukle veya
  * Manuel Gir). Onizleme artik UnifiedPreviewPane icinde ayri olarak yonetiliyor.
  */
-export default function DashboardPage({ source, onSourceChange, dashboard, manual }) {
+export default function DashboardPage({ source, onSourceChange, dashboard, manual, teamId, tableHeaders, setTableHeaders }) {
   return (
     <section>
       <div className="tabs">
@@ -20,6 +21,8 @@ export default function DashboardPage({ source, onSourceChange, dashboard, manua
         </button>
       </div>
 
+      <DashboardTableHeadersEditor tableHeaders={tableHeaders} setTableHeaders={setTableHeaders} />
+
       {source === "excel" ? (
         <>
           <div className="bandpanel">
@@ -28,7 +31,7 @@ export default function DashboardPage({ source, onSourceChange, dashboard, manua
           {dashboard.error && <ErrorBanner error={dashboard.error} />}
           <DashboardMetaForm dTeam={dashboard.dTeam} setDTeam={dashboard.setDTeam} dSprint={dashboard.dSprint} setDSprint={dashboard.setDSprint} />
           <p className="panelttl">Kişi eşleme — ad / rol / kısaltma</p>
-          <PersonMappingTable persons={dashboard.persons} onUpdate={dashboard.updatePerson} />
+          <PersonMappingTable persons={dashboard.persons} onUpdate={dashboard.updatePerson} teamId={teamId} />
           <DeltaForm
             dKapanan={dashboard.dKapanan} setDKapanan={dashboard.setDKapanan}
             dEklenen={dashboard.dEklenen} setDEklenen={dashboard.setDEklenen}
@@ -38,7 +41,7 @@ export default function DashboardPage({ source, onSourceChange, dashboard, manua
           />
         </>
       ) : (
-        <ManualDashboardForm m={manual} />
+        <ManualDashboardForm m={manual} teamId={teamId} />
       )}
     </section>
   );

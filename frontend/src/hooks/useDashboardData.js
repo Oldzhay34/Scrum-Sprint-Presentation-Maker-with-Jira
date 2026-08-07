@@ -65,7 +65,14 @@ export function useDashboardData(dTeam, setDTeam, dSprint, setDSprint, teamType)
     const team = dTeam.trim() || meta.team || "Ekip";
     const mappedPersons = persons.map((p) => {
       const tam = num(p.tamamlanan);
-      return { name: p.name, role: p.role, initials: p.initials, toplam: p.toplam, tamamlanan: tam, acik: p.toplam - tam, kapasite: num(p.kapasite), doluluk: p.doluluk, durum: p.durum };
+      // İzin günleri (LeaveDaysField/PersonMappingTable ile eklenir) Excel'in
+      // kendi "Kapasite" sayfasinda YER ALMAZ (Excel'den SONRA, uygulama
+      // icinde eklenir) - bu yuzden "Kullanılabilir Kapasite"den burada
+      // dusulmesi gerekir (bkz. kullanici bildirimi: izin eklenince
+      // kapasiteden dusmuyordu). Backend'deki CapacityCalculationService
+      // (manuel giris akisi) ile AYNI mantik: kapasite negatife duşmez.
+      const kapasite = Math.max(0, num(p.kapasite) - num(p.leaveDays || 0));
+      return { name: p.name, role: p.role, initials: p.initials, toplam: p.toplam, tamamlanan: tam, acik: p.toplam - tam, kapasite, doluluk: p.doluluk, durum: p.durum };
     });
     const k0 = kpis || { toplam: 0, doluluk: 0, durum: "" };
     const toplam = k0.toplam;

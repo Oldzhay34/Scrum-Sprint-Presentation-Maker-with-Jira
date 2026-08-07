@@ -147,6 +147,31 @@
   .pmrow .pmname{flex:2} .pmrow .pmrole{flex:1.5} .pmrow .pmini{width:60px;text-align:center} .pmrow .pmtam{width:92px;text-align:center;font-weight:600}
   .pmrow .pmmeta{width:110px;text-align:right;font-size:12px;color:var(--mut);white-space:nowrap}
   .pmhead{display:flex;gap:8px;align-items:center;padding:0 8px 2px;color:var(--mut);font-size:11px;font-weight:700}
+  .leave-days-field{position:relative;flex:none}
+  .leave-days-btn{border:1px dashed var(--teal2);background:#EFF6F8;color:var(--teal2);border-radius:999px;padding:5px 10px;font-size:11.5px;font-weight:700;cursor:pointer;white-space:nowrap}
+  .leave-days-btn:hover{border-style:solid}
+  /* position/top/bottom/right artik LeaveDaysField.jsx'ten inline gelir (bkz.
+     bilesendeki yorum) - popover document.body'ye PORTAL edildigi icin
+     .pmrow/.bar'in "backdrop-filter" nedeniyle olusturdugu stacking context'in
+     disina cikar, satirlarin arkasinda kaybolmaz. */
+  .leave-days-popover{z-index:60;width:300px;max-height:min(420px, calc(100vh - 24px));overflow-y:auto;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 28px rgba(0,0,0,.18);padding:12px;color-scheme:light;color:var(--ink);isolation:isolate;backdrop-filter:none;-webkit-backdrop-filter:none}
+  .leave-days-popover-title{font-size:12.5px;font-weight:700;color:var(--ink);margin-bottom:6px}
+  .leave-days-popover-subtitle{font-size:10.5px;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:.03em;margin:10px 0 5px}
+  .leave-days-list{display:flex;flex-direction:column;gap:4px;max-height:110px;overflow-y:auto}
+  .leave-days-row{display:flex;align-items:center;gap:6px;background:#F8FAFB;border-radius:7px;padding:5px 7px;font-size:11.5px}
+  .leave-days-row-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .leave-days-row-range{color:var(--mut);white-space:nowrap}
+  .leave-days-row-fraction{font-weight:700;color:var(--teal2)}
+  .leave-days-row-del{border:0;background:transparent;color:#B91C1C;font-weight:700;cursor:pointer;padding:0 2px}
+  .leave-days-calendar-list{display:flex;flex-direction:column;gap:4px;max-height:130px;overflow-y:auto}
+  .leave-days-calendar-item{display:flex;flex-direction:column;align-items:flex-start;gap:1px;border:1px solid var(--line);background:#fff;border-radius:7px;padding:5px 8px;font-size:11.5px;cursor:pointer;text-align:left;width:100%}
+  .leave-days-calendar-item:hover{border-color:var(--teal2);background:#EFF6F8}
+  .leave-days-calendar-item.added{opacity:.45;cursor:not-allowed}
+  .leave-days-calendar-item-meta{color:var(--mut);font-size:10.5px}
+  .leave-days-manual-form{display:flex;flex-direction:column;gap:6px}
+  .leave-days-manual-form input[type=text],.leave-days-manual-form input:not([type]){border:1px solid var(--line);border-radius:7px;padding:6px 8px;font-size:12px;font-family:inherit;background:#fff;color:var(--ink);color-scheme:light}
+  .leave-days-manual-dates{display:flex;gap:5px}
+  .leave-days-manual-dates input,.leave-days-manual-dates select{flex:1;min-width:0;border:1px solid var(--line);border-radius:7px;padding:5px 6px;font-size:11.5px;font-family:inherit;background:#fff;color:var(--ink);color-scheme:light}
   .opt{font-weight:400;color:var(--mut);font-size:11px}
   .req{font-weight:600;color:#B45309;font-size:11px;background:#FEF3C7;padding:1px 6px;border-radius:6px}
   /* dashboard slide (1280x720) */

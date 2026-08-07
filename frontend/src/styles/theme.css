@@ -572,6 +572,35 @@
   border-color: var(--line);
 }
 
+/* İzin Günleri popover (LeaveDaysField) - app.css'te sabit beyaz zemin ile
+   tanimli, koyu modda metin rengi (var(--ink)) acik renge donusup beyaz
+   zemin uzerinde okunmuyordu (bkz. kullanici bildirimi). */
+.theme-dark .leave-days-popover {
+  background: var(--card);
+  border-color: var(--line);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+}
+.theme-dark .leave-days-row {
+  background: rgba(255, 255, 255, 0.05);
+}
+.theme-dark .leave-days-calendar-item {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: var(--line);
+  color: var(--ink);
+}
+.theme-dark .leave-days-calendar-item:hover {
+  background: rgba(74, 159, 224, 0.14);
+  border-color: var(--aksa-blue-light);
+}
+.theme-dark .leave-days-manual-form input,
+.theme-dark .leave-days-manual-dates input,
+.theme-dark .leave-days-manual-dates select {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--ink);
+  border-color: var(--line);
+  color-scheme: dark;
+}
+
 /* app.css'te .addseg/.addbar acik mavi (#EFF6F8) sabit - karanlik modda
    goze batiyordu, marka mavisiyle uyumlu koyu varyanta ceviriyoruz. */
 .theme-dark .addseg,
@@ -648,7 +677,6 @@ body {
 /* ---------------------------------------------------------------------- */
 .sec,
 .bandpanel,
-.pmrow,
 .meta {
   position: relative;
   overflow: hidden;
@@ -656,15 +684,49 @@ body {
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
+/* .pmrow, digerlerinden farkli olarak, "overflow:hidden" ALAMAZ: icinde
+   LeaveDaysField'in mutlak konumlu izin-gunleri popover'i var, satirin
+   disina tasarak acilmasi gerekiyor (bkz. kullanici bildirimi - Excel
+   yukleme akisinda "İzin Ekle" takvimi hic acilmiyormus gibi gorunuyordu,
+   aslinda aciliyordu ama satir tarafindan gorunmez kesiliyordu). LED sirit
+   efekti bu yuzden kendi border-radius'unu (::before'da) tasiyor, parent'in
+   overflow:hidden'ina guvenmiyor.
+   "isolation:isolate" DE YOK (digerlerinden farkli) - her .pmrow kendi
+   stacking context'i olursa DOM sirasindaki SONRAKI satirlar (2., 3., 4.
+   kisi) kendi context'lerini tek parca halinde ONCEKI satirin UZERINE
+   boyar - bu da tasan popover'i (z-index:60 olsa bile, sadece KENDI
+   izole context'i icinde gecerli) sonraki satirlarin ALTINDA birakip
+   "aciliyor ama hemen kayboluyor" hissi yaratiyordu (bkz. kullanici
+   bildirimi). Isolation olmadan popover'in z-index:60'i sayfanin genel
+   stacking sirasinda gecerli olur ve position'suz (z-index:auto) tum
+   satirlarin ustunde kalir. */
+.pmrow {
+  position: relative;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
 .sec::before,
 .bandpanel::before,
-.pmrow::before,
 .meta::before {
   content: "";
   position: absolute;
   inset: 0;
   z-index: 2;
   pointer-events: none;
+  background: linear-gradient(100deg, transparent 30%, var(--led-color) 48%, rgba(255, 255, 255, 0.85) 50%, var(--led-color) 52%, transparent 70%);
+  background-size: 220% 100%;
+  background-position: 140% 0;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.pmrow::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  border-radius: 9px;
   background: linear-gradient(100deg, transparent 30%, var(--led-color) 48%, rgba(255, 255, 255, 0.85) 50%, var(--led-color) 52%, transparent 70%);
   background-size: 220% 100%;
   background-position: 140% 0;

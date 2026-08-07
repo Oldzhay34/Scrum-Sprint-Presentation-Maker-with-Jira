@@ -12,7 +12,7 @@ import { sanitizeIntegerInput, sanitizeRatioInput } from "../../lib/format";
  * Hicbir sey kaydedilmez (Pressman - System Response Time: hesaplama sirasinda
  * "Hesapla" butonu disable olup "Hesaplanıyor…" gosterir).
  */
-export default function ManualDashboardForm({ m }) {
+export default function ManualDashboardForm({ m, teamId }) {
   return (
     <>
       <div className="bandpanel">
@@ -75,6 +75,7 @@ export default function ManualDashboardForm({ m }) {
           onAddItem={() => m.addWorkItem(member.clientId)}
           onUpdateItem={m.updateWorkItem}
           onRemoveItem={m.removeWorkItem}
+          teamId={teamId}
         />
       ))}
       <Button variant="soft" onClick={m.addMember} style={{ marginTop: 8 }}>

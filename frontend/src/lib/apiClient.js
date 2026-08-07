@@ -299,3 +299,50 @@ export async function uploadCoverImage(file) {
 
   return response.json();
 }
+
+/** Bir takımın (persisted) üye listesini döner - izin günü kaydı için gerçek bir team_member_id bulmak/oluşturmak üzere kullanılır. */
+export async function fetchTeamMembers(teamId) {
+  return requestJson(`/api/teams/${teamId}/members`);
+}
+
+/** Yeni bir (persisted) takım üyesi oluşturur. */
+export async function createTeamMember(teamId, { fullName, role }) {
+  return requestJson(`/api/teams/${teamId}/members`, {
+    method: "POST",
+    body: JSON.stringify({ fullName, role: role || null }),
+  });
+}
+
+/**
+ * Ad Soyad'a göre (case-insensitive) bir takımda mevcut bir üyeyi bulur, yoksa
+ * oluşturur. Manuel/Excel akışlarındaki kişiler geçici (clientId) olduğu için,
+ * izin günü kayıtlarını (leave_periods.team_member_id FK'si) gerçek bir
+ * team_members satırına bağlamak için kullanılır.
+ */
+export async function ensureTeamMember(teamId, fullName, role) {
+  const trimmed = (fullName || "").trim();
+  if (!trimmed) throw new Error("Ad Soyad boş olamaz.");
+  const members = await fetchTeamMembers(teamId);
+  const existing = members.find((m) => m.fullName.trim().toLowerCase() === trimmed.toLowerCase());
+  if (existing) return existing;
+  return createTeamMember(teamId, { fullName: trimmed, role });
+}
+
+/** Şirket geneli (COMPANY_WIDE) izin/tatil takvimi - resmi bayram (RESMI_TATIL) ve ortak şirket izni (SIRKET_TATILI) kayıtları karışık döner. */
+export async function fetchCompanyWideLeaves() {
+  return requestJson("/api/leave-periods/company-wide");
+}
+
+/** Bir takım üyesinin kayıtlı (TEAM_MEMBER scope) izin günü kayıtları. */
+export async function fetchMemberLeaves(teamMemberId) {
+  return requestJson(`/api/leave-periods/members/${teamMemberId}`);
+}
+
+/** Yeni bir izin/tatil kaydı oluşturur (kişiye özel ya da şirket geneli). */
+export async function createLeavePeriod(period) {
+  return requestJson("/api/leave-periods", { method: "POST", body: JSON.stringify(period) });
+}
+
+export async function deleteLeavePeriod(id) {
+  return requestJson(`/api/leave-periods/${id}`, { method: "DELETE" });
+}
