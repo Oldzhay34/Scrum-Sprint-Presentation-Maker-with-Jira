@@ -13,6 +13,9 @@ RUN npm run build
 # --- run stage ---
 FROM nginx:1.27-alpine
 COPY --from=build /app/dist /usr/share/nginx/html
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# nginx'in resmi entrypoint script'i /etc/nginx/templates/*.template dosyalarini
+# baslangicta envsubst ile isleyip conf.d/'ye yazar - Railway private network
+# hostname'i (BACKEND_INTERNAL_URL) build-time'da bilinmedigi icin bu gerekli.
+COPY nginx.conf /etc/nginx/templates/default.conf.template
 
 EXPOSE 80

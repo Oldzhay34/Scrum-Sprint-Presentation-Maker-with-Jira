@@ -2,9 +2,12 @@ package com.aksa.capacityplanner.auth.api;
 
 import com.aksa.capacityplanner.auth.api.dto.LoginRequest;
 import com.aksa.capacityplanner.auth.api.dto.ProfileResponse;
+import com.aksa.capacityplanner.auth.api.dto.ProfileUpdateRequest;
 import com.aksa.capacityplanner.auth.api.dto.UserResponse;
 import com.aksa.capacityplanner.auth.domain.InvalidCredentialsException;
-import com.aksa.capacityplanner.auth.port.in.AuthUseCase;
+import com.aksa.capacityplanner.auth.facade.AuthFacade;
+import com.aksa.capacityplanner.auth.port.in.ProfileUseCase;
+import com.aksa.capacityplanner.auth.port.in.SessionUseCase;
 import com.aksa.capacityplanner.auth.port.out.UserRepositoryPort;
 import com.aksa.capacityplanner.auth.security.AuthCookieFactory;
 import com.aksa.capacityplanner.auth.security.CookieNames;
@@ -16,6 +19,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -28,19 +32,19 @@ import java.util.Optional;
 @RequestMapping("/api/auth")
 public class AuthController {
 
-    private final AuthUseCase authUseCase;
+    private final AuthFacade authFacade;
     private final AuthCookieFactory cookieFactory;
     private final UserRepositoryPort userRepository;
 
-    public AuthController(AuthUseCase authUseCase, AuthCookieFactory cookieFactory, UserRepositoryPort userRepository) {
-        this.authUseCase = authUseCase;
+    public AuthController(AuthFacade authFacade, AuthCookieFactory cookieFactory, UserRepositoryPort userRepository) {
+        this.authFacade = authFacade;
         this.cookieFactory = cookieFactory;
         this.userRepository = userRepository;
     }
 
     @PostMapping("/login")
     public ResponseEntity<UserResponse> login(@Valid @RequestBody LoginRequest request) {
-        AuthUseCase.TokenPair tokens = authUseCase.login(request.sicil(), request.password());
+        SessionUseCase.TokenPair tokens = authFacade.login(request.sicil(), request.password());
         return withAuthCookies(tokens);
     }
 
@@ -48,13 +52,13 @@ public class AuthController {
     public ResponseEntity<UserResponse> refresh(HttpServletRequest request) {
         String refreshToken = findCookie(request, CookieNames.REFRESH_TOKEN)
                 .orElseThrow(() -> new InvalidCredentialsException("Oturum bulunamadı, tekrar giriş yapın."));
-        AuthUseCase.TokenPair tokens = authUseCase.refresh(refreshToken);
+        SessionUseCase.TokenPair tokens = authFacade.refresh(refreshToken);
         return withAuthCookies(tokens);
     }
 
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(HttpServletRequest request) {
-        findCookie(request, CookieNames.REFRESH_TOKEN).ifPresent(authUseCase::logout);
+        findCookie(request, CookieNames.REFRESH_TOKEN).ifPresent(authFacade::logout);
         return ResponseEntity.noContent()
                 .header(HttpHeaders.SET_COOKIE, cookieFactory.expiredAccessTokenCookie().toString())
                 .header(HttpHeaders.SET_COOKIE, cookieFactory.expiredRefreshTokenCookie().toString())
@@ -80,7 +84,19 @@ public class AuthController {
                 .orElseGet(() -> ResponseEntity.status(401).build());
     }
 
-    private ResponseEntity<UserResponse> withAuthCookies(AuthUseCase.TokenPair tokens) {
+    @PutMapping("/profile")
+    public ResponseEntity<ProfileResponse> updateProfile(Authentication authentication,
+                                                           @RequestBody ProfileUpdateRequest request) {
+        if (authentication == null || !(authentication.getDetails() instanceof JwtTokenProvider.AccessTokenClaims claims)) {
+            return ResponseEntity.status(401).build();
+        }
+        ProfileUseCase.ProfileUpdateResult result = authFacade.updateProfile(claims.sicil(), request);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, cookieFactory.accessTokenCookie(result.accessToken()).toString())
+                .body(ProfileResponse.from(result.user()));
+    }
+
+    private ResponseEntity<UserResponse> withAuthCookies(SessionUseCase.TokenPair tokens) {
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, cookieFactory.accessTokenCookie(tokens.accessToken()).toString())
                 .header(HttpHeaders.SET_COOKIE, cookieFactory.refreshTokenCookie(tokens.refreshToken()).toString())

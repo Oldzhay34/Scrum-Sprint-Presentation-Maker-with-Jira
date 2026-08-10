@@ -35,7 +35,7 @@ public class AuthCookieFactory {
         return ResponseCookie.from(CookieNames.XSRF_TOKEN, UUID.randomUUID().toString())
                 .httpOnly(false)
                 .secure(properties.isCookieSecure())
-                .sameSite("Lax")
+                .sameSite(properties.getSameSite())
                 .path("/")
                 .maxAge(properties.getRefreshTokenTtlDays() * 24 * 60 * 60)
                 .build();
@@ -53,7 +53,7 @@ public class AuthCookieFactory {
         return ResponseCookie.from(CookieNames.XSRF_TOKEN, "")
                 .httpOnly(false)
                 .secure(properties.isCookieSecure())
-                .sameSite("Lax")
+                .sameSite(properties.getSameSite())
                 .path("/")
                 .maxAge(0)
                 .build();
@@ -63,7 +63,7 @@ public class AuthCookieFactory {
         return ResponseCookie.from(name, value)
                 .httpOnly(true)
                 .secure(properties.isCookieSecure())
-                .sameSite("Lax")
+                .sameSite(properties.getSameSite())
                 .path(path);
     }
 }

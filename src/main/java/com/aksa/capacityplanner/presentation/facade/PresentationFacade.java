@@ -35,8 +35,8 @@ public class PresentationFacade {
     }
 
     public SprintPresentation upsert(Long teamId, String sprintNo, String dateRange, Map<String, Object> content,
-                                      String callerSicil, Long callerTeamId, boolean callerIsAdmin) {
-        requireEditAccess(teamId, callerTeamId, callerIsAdmin);
+                                      String callerSicil, List<Long> callerTeamIds, boolean callerIsAdmin) {
+        requireEditAccess(teamId, callerTeamIds, callerIsAdmin);
         return presentationUseCase.upsert(teamId, sprintNo, dateRange, content, callerSicil);
     }
 
@@ -45,15 +45,15 @@ public class PresentationFacade {
     }
 
     public SprintPresentation updateInPlace(Long presentationId, String dateRange, Map<String, Object> content,
-                                             String callerSicil, Long callerTeamId, boolean callerIsAdmin) {
+                                             String callerSicil, List<Long> callerTeamIds, boolean callerIsAdmin) {
         SprintPresentation presentation = presentationUseCase.getById(presentationId);
-        requireEditAccess(presentation.getTeamId(), callerTeamId, callerIsAdmin);
+        requireEditAccess(presentation.getTeamId(), callerTeamIds, callerIsAdmin);
         return presentationUseCase.updateInPlace(presentationId, dateRange, content, callerSicil);
     }
 
-    public SprintPresentation rollback(Long presentationId, int version, String callerSicil, Long callerTeamId, boolean callerIsAdmin) {
+    public SprintPresentation rollback(Long presentationId, int version, String callerSicil, List<Long> callerTeamIds, boolean callerIsAdmin) {
         SprintPresentation presentation = presentationUseCase.getById(presentationId);
-        requireEditAccess(presentation.getTeamId(), callerTeamId, callerIsAdmin);
+        requireEditAccess(presentation.getTeamId(), callerTeamIds, callerIsAdmin);
         return presentationUseCase.rollback(presentationId, version, callerSicil);
     }
 
@@ -71,11 +71,11 @@ public class PresentationFacade {
         return presentationUseCase.recordDownload(downloadType, teamIds, downloadedBy);
     }
 
-    private void requireEditAccess(Long targetTeamId, Long callerTeamId, boolean callerIsAdmin) {
+    private void requireEditAccess(Long targetTeamId, List<Long> callerTeamIds, boolean callerIsAdmin) {
         if (callerIsAdmin) {
             return;
         }
-        if (callerTeamId == null || !callerTeamId.equals(targetTeamId)) {
+        if (callerTeamIds == null || !callerTeamIds.contains(targetTeamId)) {
             throw new AccessDeniedException("Bu takimin sunumlarini duzenleme yetkiniz yok.");
         }
     }

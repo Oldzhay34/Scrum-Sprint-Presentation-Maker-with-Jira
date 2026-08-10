@@ -162,7 +162,7 @@ export default function JointPresentationPage({ personnel, theme, onToggleTheme 
           return {
             teamId,
             teamName: team?.name || p.content?.teamType || "Takım",
-            canEdit: isAdmin || personnel?.teamId === teamId,
+            canEdit: isAdmin || (personnel?.teamIds || (personnel?.teamId != null ? [personnel.teamId] : [])).includes(teamId),
             presentationId: p.id,
             content: p.content || {},
             sprintData: sprintDataFromContent(p.content || {}),

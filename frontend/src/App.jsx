@@ -101,7 +101,27 @@ export default function App() {
           path="/profile"
           element={
             personnel ? (
-              <ProfilePage personnel={personnel} theme={theme} onToggleTheme={toggleTheme} onLogout={handleLogout} />
+              <ProfilePage
+                personnel={personnel}
+                theme={theme}
+                onToggleTheme={toggleTheme}
+                onLogout={handleLogout}
+                onProfileUpdated={(updated) =>
+                  setPersonnel((prev) =>
+                    prev
+                      ? {
+                          ...prev,
+                          fullName: updated.fullName,
+                          teamId: updated.teamId,
+                          department: updated.department,
+                          // Profil ekrani tek takim secimi sundugu icin kaydedince
+                          // coklu takim listesi (varsa) teke duser - bkz. backend ProfileService.
+                          teamIds: updated.teamId != null ? [updated.teamId] : [],
+                        }
+                      : prev
+                  )
+                }
+              />
             ) : (
               <Navigate to="/" replace />
             )

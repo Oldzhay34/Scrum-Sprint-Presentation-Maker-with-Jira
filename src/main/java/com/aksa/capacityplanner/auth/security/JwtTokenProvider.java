@@ -12,6 +12,7 @@ import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Date;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -25,6 +26,7 @@ public class JwtTokenProvider {
 
     private static final String CLAIM_ROLE = "role";
     private static final String CLAIM_TEAM_ID = "teamId";
+    private static final String CLAIM_TEAM_IDS = "teamIds";
     private static final String CLAIM_FULL_NAME = "fullName";
     private static final String CLAIM_DEPARTMENT = "department";
 
@@ -48,6 +50,9 @@ public class JwtTokenProvider {
         if (user.getTeamId() != null) {
             builder.claim(CLAIM_TEAM_ID, user.getTeamId());
         }
+        if (user.getTeamIds() != null && !user.getTeamIds().isEmpty()) {
+            builder.claim(CLAIM_TEAM_IDS, user.getTeamIds());
+        }
         return builder.signWith(key).compact();
     }
 
@@ -64,12 +69,17 @@ public class JwtTokenProvider {
             String department = claims.get(CLAIM_DEPARTMENT, String.class);
             Number teamIdNumber = claims.get(CLAIM_TEAM_ID, Number.class);
             Long teamId = teamIdNumber != null ? teamIdNumber.longValue() : null;
-            return Optional.of(new AccessTokenClaims(sicil, fullName, role, teamId, department));
+            List<?> rawTeamIds = claims.get(CLAIM_TEAM_IDS, List.class);
+            List<Long> teamIds = rawTeamIds != null
+                    ? rawTeamIds.stream().map(n -> ((Number) n).longValue()).toList()
+                    : (teamId != null ? List.of(teamId) : List.of());
+            return Optional.of(new AccessTokenClaims(sicil, fullName, role, teamId, department, teamIds));
         } catch (JwtException | IllegalArgumentException e) {
             return Optional.empty();
         }
     }
 
-    public record AccessTokenClaims(String sicil, String fullName, Role role, Long teamId, String department) {
+    /** teamIds bos ise (eski token/tek takim) callerin duzenleme yetkisi SADECE teamId'de degerlendirilir - bkz. teamIds() derived olustur. */
+    public record AccessTokenClaims(String sicil, String fullName, Role role, Long teamId, String department, List<Long> teamIds) {
     }
 }

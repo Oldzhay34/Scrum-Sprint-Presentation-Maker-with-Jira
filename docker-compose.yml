@@ -1,14 +1,39 @@
 services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: capacity-planner-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-capacity_planner}
+      POSTGRES_USER: ${DB_USERNAME:-capacity_planner}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-capacity_planner}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - capacity-planner-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-capacity_planner} -d ${DB_NAME:-capacity_planner}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # MSSQL'den Postgres'e gecis oncesi kullanilan eski servis - artik backend
+  # buna bagli degil (asagida "postgres" kullaniliyor). SADECE bir kerelik
+  # yerel veri tasima scripti icin (bkz. scripts/migrate-local-mssql-to-postgres.ps1)
+  # gecici olarak "docker-compose up mssql" ile ayaga kaldirilir. Tasima
+  # tamamlandiktan sonra bu servis + capacity-planner-mssql-data volume'u
+  # (docker volume rm) guvenle silinebilir.
   mssql:
     image: mcr.microsoft.com/mssql/server:2022-latest
     container_name: capacity-planner-mssql
     restart: unless-stopped
+    profiles: ["migration"]
     environment:
       ACCEPT_EULA: "Y"
-      MSSQL_SA_PASSWORD: ${DB_PASSWORD:-CapacityPlanner!2024}
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:-CapacityPlanner!2024}
       MSSQL_PID: Developer
     ports:
-      - "${DB_PORT:-1433}:1433"
+      - "1433:1433"
     volumes:
       - capacity-planner-mssql-data:/var/opt/mssql
     healthcheck:
@@ -47,11 +72,6 @@ services:
       timeout: 5s
       retries: 10
 
-  # pgadmin kaldirildi (Postgres'e ozgu bir yonetim araciydi). MSSQL icin
-  # container'lastirilmis basit bir GUI karsiligi yok - yerelde Azure Data
-  # Studio veya SSMS ile localhost:${DB_PORT:-1433} (sa / MSSQL_SA_PASSWORD)
-  # uzerinden baglanilabilir.
-
   minio:
     image: minio/minio:latest
     container_name: capacity-planner-minio
@@ -78,13 +98,11 @@ services:
     container_name: capacity-planner-backend
     restart: unless-stopped
     environment:
-      DB_HOST: mssql
-      DB_PORT: 1433
+      DB_HOST: postgres
+      DB_PORT: 5432
       DB_NAME: ${DB_NAME:-capacity_planner}
-      DB_USERNAME: ${DB_USERNAME:-sa}
-      DB_PASSWORD: ${DB_PASSWORD:-CapacityPlanner!2024}
-      DB_ENCRYPT: ${DB_ENCRYPT:-true}
-      DB_TRUST_SERVER_CERTIFICATE: ${DB_TRUST_SERVER_CERTIFICATE:-true}
+      DB_USERNAME: ${DB_USERNAME:-capacity_planner}
+      DB_PASSWORD: ${DB_PASSWORD:-capacity_planner}
       REDIS_HOST: redis
       REDIS_PORT: 6379
       RABBITMQ_HOST: rabbitmq
@@ -95,10 +113,11 @@ services:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-capacity_planner}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-capacity_planner}
       MINIO_BUCKET: ${MINIO_BUCKET:-capacity-planner-assets}
+      APP_JWT_SECRET: ${APP_JWT_SECRET:?APP_JWT_SECRET .env icinde tanimlanmali}
     ports:
       - "${BACKEND_PORT:-8080}:8080"
     depends_on:
-      mssql:
+      postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -115,11 +134,16 @@ services:
         VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8080}
     container_name: capacity-planner-frontend
     restart: unless-stopped
+    environment:
+      # nginx.conf'taki ${BACKEND_INTERNAL_URL} template degiskeni - Railway'de
+      # private network hostname'i, yerelde docker-compose servis adi+portu.
+      BACKEND_INTERNAL_URL: http://backend:8080
     ports:
       - "${FRONTEND_PORT:-5173}:80"
     depends_on:
       - backend
 
 volumes:
+  capacity-planner-postgres-data:
   capacity-planner-mssql-data:
   capacity-planner-minio-data:

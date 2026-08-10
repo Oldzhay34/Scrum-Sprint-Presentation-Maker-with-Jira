@@ -3,24 +3,28 @@
 -- kullanilamaz, cunku status_options'ta bir kod hem GENEL (team_id IS NULL)
 -- hem de TAKIMA OZGU olabilir (bkz. TeamMemberService.validateStatusCode -
 -- "genel + takima ozgu" kontrolu) - bu OR mantigini tek bir FK ifade edemez.
--- Ayni kurali DB seviyesinde de uygulayan bir skaler fonksiyon + CHECK
--- constraint kullanilir (uygulama katmanindaki kuralin birebir aynisi).
-create function dbo.fn_status_code_valid(@teamId bigint, @statusCode nvarchar(50))
-returns bit
-as
+-- Ayni kurali DB seviyesinde de uygulayan bir fonksiyon + CHECK constraint
+-- kullanilir (uygulama katmanindaki kuralin birebir aynisi).
+create function fn_status_code_valid(p_team_id bigint, p_status_code varchar(50))
+returns boolean
+language plpgsql
+as $$
 begin
-    if @statusCode is null return 1;
+    if p_status_code is null then
+        return true;
+    end if;
     if exists (
         select 1 from status_options
-        where code = @statusCode and (team_id = @teamId or team_id is null)
-    )
-        return 1;
-    return 0;
-end
-go
+        where code = p_status_code and (team_id = p_team_id or team_id is null)
+    ) then
+        return true;
+    end if;
+    return false;
+end;
+$$;
 
 alter table team_members
-    add constraint chk_team_members_status_code check (dbo.fn_status_code_valid(team_id, status_code) = 1);
+    add constraint chk_team_members_status_code check (fn_status_code_valid(team_id, status_code));
 
 alter table work_items
-    add constraint chk_work_items_status_code check (dbo.fn_status_code_valid(team_id, status_code) = 1);
+    add constraint chk_work_items_status_code check (fn_status_code_valid(team_id, status_code));

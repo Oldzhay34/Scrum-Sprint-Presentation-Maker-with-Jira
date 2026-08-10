@@ -15,6 +15,16 @@ public class JwtProperties {
     private long refreshTokenTtlDays = 7;
     /** Cookie'lerde Secure bayragi - lokal http gelistirmede false, https prod'da true olmali. */
     private boolean cookieSecure = false;
+    /**
+     * Cookie SameSite ilkesi - varsayilan "Lax" (ayni site/lokal gelistirme
+     * icin yeterli). Frontend ve backend FARKLI sitelerde (orn. Railway'in
+     * ayri *.up.railway.app alt domainleri, PSL'de her biri KENDI eTLD+1'i
+     * sayilir) yayinlaniyorsa "None" olmali - aksi halde tarayici cross-site
+     * fetch/XHR isteklerinde cookie'leri hic GONDERMEZ (login calismaz).
+     * "None" secilirse Secure=true ile birlikte kullanilmali (tarayicilar
+     * SameSite=None + Secure=false cookie'leri reddeder).
+     */
+    private String sameSite = "Lax";
 
     public String getSecret() {
         return secret;
@@ -46,5 +56,13 @@ public class JwtProperties {
 
     public void setCookieSecure(boolean cookieSecure) {
         this.cookieSecure = cookieSecure;
+    }
+
+    public String getSameSite() {
+        return sameSite;
+    }
+
+    public void setSameSite(String sameSite) {
+        this.sameSite = sameSite;
     }
 }

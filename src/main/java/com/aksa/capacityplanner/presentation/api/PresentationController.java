@@ -43,7 +43,7 @@ public class PresentationController {
     public PresentationDetailDto upsert(@Valid @RequestBody PresentationUpsertRequest request, Authentication authentication) {
         JwtTokenProvider.AccessTokenClaims claims = requireClaims(authentication);
         SprintPresentation saved = presentationFacade.upsert(request.teamId(), request.sprintNo(), request.dateRange(),
-                request.content(), claims.sicil(), claims.teamId(), claims.role() == Role.ADMIN);
+                request.content(), claims.sicil(), claims.teamIds(), claims.role() == Role.ADMIN);
         return toDetailDto(saved);
     }
 
@@ -71,7 +71,7 @@ public class PresentationController {
                                                 Authentication authentication) {
         JwtTokenProvider.AccessTokenClaims claims = requireClaims(authentication);
         SprintPresentation saved = presentationFacade.updateInPlace(id, request.dateRange(), request.content(),
-                claims.sicil(), claims.teamId(), claims.role() == Role.ADMIN);
+                claims.sicil(), claims.teamIds(), claims.role() == Role.ADMIN);
         return toDetailDto(saved);
     }
 
@@ -83,7 +83,7 @@ public class PresentationController {
     @PostMapping("/{id}/versions/{version}/rollback")
     public PresentationDetailDto rollback(@PathVariable Long id, @PathVariable int version, Authentication authentication) {
         JwtTokenProvider.AccessTokenClaims claims = requireClaims(authentication);
-        SprintPresentation saved = presentationFacade.rollback(id, version, claims.sicil(), claims.teamId(), claims.role() == Role.ADMIN);
+        SprintPresentation saved = presentationFacade.rollback(id, version, claims.sicil(), claims.teamIds(), claims.role() == Role.ADMIN);
         return toDetailDto(saved);
     }
 

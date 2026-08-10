@@ -13,14 +13,17 @@ import java.util.List;
  * geriye donuk uyumluluk icin (orn. ProfilePage) korunuyor.
  */
 public record UserResponse(String sicil, String fullName, Role role, Long teamId,
-                            String department, List<String> roles) {
+                            String department, List<String> roles, List<Long> teamIds) {
     public static UserResponse from(AuthUser user) {
+        List<Long> teamIds = user.getTeamIds() != null && !user.getTeamIds().isEmpty()
+                ? user.getTeamIds()
+                : (user.getTeamId() != null ? List.of(user.getTeamId()) : List.of());
         return new UserResponse(user.getSicil(), user.getFullName(), user.getRole(), user.getTeamId(),
-                user.getDepartment(), List.of(user.getRole().name()));
+                user.getDepartment(), List.of(user.getRole().name()), teamIds);
     }
 
     public static UserResponse from(JwtTokenProvider.AccessTokenClaims claims) {
         return new UserResponse(claims.sicil(), claims.fullName(), claims.role(), claims.teamId(),
-                claims.department(), List.of(claims.role().name()));
+                claims.department(), List.of(claims.role().name()), claims.teamIds());
     }
 }

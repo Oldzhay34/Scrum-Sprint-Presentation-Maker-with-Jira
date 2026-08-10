@@ -1,4 +1,8 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
+// "??" kasten kullanilir: prod'da VITE_API_BASE_URL bilerek BOS STRING
+// olarak build edilir (bkz. frontend/nginx.conf same-origin /api proxy'si -
+// cross-site cookie/3rd-party cookie engellemesi sorunlarindan kacinmak icin).
+// "||" olsaydi bos string falsy oldugundan yanlislikla localhost'a duserdi.
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080";
 
 /**
  * Auth cookie'leri (access_token/refresh_token) httpOnly oldugu icin JS'ten
@@ -129,6 +133,16 @@ export async function fetchUserProfile() {
     await parseErrorBody(response, "Profil bilgileri alınamadı (HTTP " + response.status + ")");
   }
   return response.json();
+}
+
+/**
+ * Profil sayfasindaki duzenlenebilir alanlari (ad, takim, sirket/departman/
+ * unvan vb.) kaydeder. teamId degisebildigi icin backend yeni bir access
+ * token cookie'si de yazar (bkz. AuthController.updateProfile) - o yuzden
+ * requestJson'in credentials:"include" davranisi burada da onemli.
+ */
+export async function updateUserProfile(profile) {
+  return requestJson("/api/auth/profile", { method: "PUT", body: JSON.stringify(profile) });
 }
 
 export async function logout() {

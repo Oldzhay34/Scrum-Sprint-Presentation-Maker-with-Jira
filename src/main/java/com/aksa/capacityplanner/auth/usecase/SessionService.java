@@ -2,7 +2,7 @@ package com.aksa.capacityplanner.auth.usecase;
 
 import com.aksa.capacityplanner.auth.domain.AuthUser;
 import com.aksa.capacityplanner.auth.domain.InvalidCredentialsException;
-import com.aksa.capacityplanner.auth.port.in.AuthUseCase;
+import com.aksa.capacityplanner.auth.port.in.SessionUseCase;
 import com.aksa.capacityplanner.auth.port.out.UserRepositoryPort;
 import com.aksa.capacityplanner.auth.security.JwtTokenProvider;
 import com.aksa.capacityplanner.auth.security.RefreshTokenStore;
@@ -10,15 +10,15 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service
-public class AuthService implements AuthUseCase {
+public class SessionService implements SessionUseCase {
 
     private final UserRepositoryPort userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     private final RefreshTokenStore refreshTokenStore;
 
-    public AuthService(UserRepositoryPort userRepository, PasswordEncoder passwordEncoder,
-                        JwtTokenProvider jwtTokenProvider, RefreshTokenStore refreshTokenStore) {
+    public SessionService(UserRepositoryPort userRepository, PasswordEncoder passwordEncoder,
+                           JwtTokenProvider jwtTokenProvider, RefreshTokenStore refreshTokenStore) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtTokenProvider = jwtTokenProvider;

@@ -52,7 +52,7 @@ public class TeamMemberJpaEntity {
     @ElementCollection
     @CollectionTable(name = "team_member_custom_field_values", joinColumns = @JoinColumn(name = "team_member_id"))
     @MapKeyColumn(name = "field_key")
-    @Column(name = "value", columnDefinition = "nvarchar(max)")
+    @Column(name = "value", columnDefinition = "text")
     private Map<String, String> customFieldValues = new HashMap<>();
 
     @CreationTimestamp
