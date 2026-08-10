@@ -2096,6 +2096,12 @@ header.topbar .btn:hover {
   font-size: 13.5px;
   margin-top: 20px;
 }
+/* Alt alta dizilen eylem butonlari ("Şifre Değiştir" + "Çıkış Yap") tek bir
+   blok gibi dursun: ilk butonun detay listesinden ayrilan 20px'lik bosluguna
+   dokunmadan, sonraki butonlar daha dar bir araliga otursun. */
+.profile-action-btn + .profile-action-btn {
+  margin-top: 10px;
+}
 .btn.profile-logout-btn {
   /* .btn'in genel "background 0.15s ease" transition'ini burada iptal
      ediyoruz - aksi halde tema degisince arka plan beyazdan koyuya 150ms
@@ -2200,6 +2206,85 @@ header.topbar .btn:hover {
   font-size: 13px;
   color: var(--mut);
   padding: 6px 0;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Şifre değiştirme ekrani (PasswordChangeModal) - genel amacli ".box"     */
+/* 900px genisliginde ve mhead/mbody duzeni bekliyor; kisa bir form icin   */
+/* cok genis kaliyor, o yuzden burada daraltiliyor. Secici bilerek         */
+/* ".modal .password-modal-box" (tek sinif degil): app.css'teki            */
+/* ".modal .box" ayni ozgullukte oldugundan, tek sinifli bir kural         */
+/* genislik/kose gibi ozelliklerde SESSIZCE ezilirdi. Arka plan ise        */
+/* kasten devralinir - modal kutusunun neredeyse opak olmasi bilincli bir  */
+/* okunabilirlik karari (bkz. ".modal .box" aciklamasi).                   */
+/* Form alanlari profil ekraninin (.profile-field / .profile-input)        */
+/* stillerini yeniden kullanir ki iki ekran arasindaki gecis kopuk         */
+/* hissettirmesin.                                                         */
+/* ---------------------------------------------------------------------- */
+.modal .password-modal-box {
+  width: min(420px, 92vw);
+  border-radius: 18px;
+  padding: 26px 26px 22px;
+  /* Kutu (".modal .box") zaten dikey flex - dusey ritmi tek yerden, gap ile
+     veriyoruz ki hem form hem "şifreniz güncellendi" ekrani ayni araliklara
+     sahip olsun (alt bilesenlerde margin biriktirmeye gerek kalmasin). */
+  gap: 14px;
+  overflow: auto;
+  animation: aksa-pop-in 0.2s cubic-bezier(0.2, 0.9, 0.3, 1.3);
+}
+.password-modal-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.password-modal-icon {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  background: linear-gradient(135deg, var(--aksa-blue), var(--aksa-blue-light));
+  box-shadow: 0 4px 14px rgba(13, 94, 168, 0.32);
+}
+.password-modal-title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--ink);
+}
+.password-modal-desc {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--mut);
+}
+.password-modal-box form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.password-modal-reveal {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--mut);
+  cursor: pointer;
+  user-select: none;
+}
+.password-modal-reveal input {
+  accent-color: var(--aksa-blue);
+  cursor: pointer;
+}
+.password-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 8px;
 }
 
 /* ---------------------------------------------------------------------- */

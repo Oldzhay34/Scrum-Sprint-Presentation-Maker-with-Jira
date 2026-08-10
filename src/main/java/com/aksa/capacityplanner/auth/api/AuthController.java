@@ -1,6 +1,7 @@
 package com.aksa.capacityplanner.auth.api;
 
 import com.aksa.capacityplanner.auth.api.dto.LoginRequest;
+import com.aksa.capacityplanner.auth.api.dto.PasswordChangeRequest;
 import com.aksa.capacityplanner.auth.api.dto.ProfileResponse;
 import com.aksa.capacityplanner.auth.api.dto.ProfileUpdateRequest;
 import com.aksa.capacityplanner.auth.api.dto.UserResponse;
@@ -94,6 +95,24 @@ public class AuthController {
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, cookieFactory.accessTokenCookie(result.accessToken()).toString())
                 .body(ProfileResponse.from(result.user()));
+    }
+
+    /**
+     * Kendi sifresini degistirir. Yeni token yazilmaz: sifre, access token
+     * claim'lerinin hicbirini degistirmez - mevcut oturum aynen devam eder
+     * (kullanicinin DIGER oturumlari ise sunucu tarafinda kapatilir,
+     * bkz. PasswordService).
+     */
+    @PostMapping("/password")
+    public ResponseEntity<Void> changePassword(Authentication authentication,
+                                               @RequestBody PasswordChangeRequest request,
+                                               HttpServletRequest servletRequest) {
+        if (authentication == null || !(authentication.getDetails() instanceof JwtTokenProvider.AccessTokenClaims claims)) {
+            return ResponseEntity.status(401).build();
+        }
+        authFacade.changePassword(claims.sicil(), request,
+                findCookie(servletRequest, CookieNames.REFRESH_TOKEN).orElse(null));
+        return ResponseEntity.noContent().build();
     }
 
     private ResponseEntity<UserResponse> withAuthCookies(SessionUseCase.TokenPair tokens) {

@@ -145,6 +145,24 @@ export async function updateUserProfile(profile) {
   return requestJson("/api/auth/profile", { method: "PUT", body: JSON.stringify(profile) });
 }
 
+/**
+ * Profil ekranindaki "Şifre Değiştir" formunu kaydeder. Backend basarili
+ * durumda 204 (govdesiz) doner - requestJson bunu null'a cevirir. Sifre,
+ * access token claim'lerini degistirmedigi icin yeni cookie yazilmaz:
+ * kullanicinin BU oturumu devam eder, diger cihazlardaki oturumlari ise
+ * sunucu tarafinda kapatilir (bkz. backend PasswordService).
+ *
+ * Hata durumunda backend'in ApiErrorResponse'u (orn. "Mevcut şifreniz
+ * hatalı." / şifre kuralı mesajlari) oldugu gibi firlatilir - cagiran taraf
+ * mesaji dogrudan gosterebilir.
+ */
+export async function changePassword({ currentPassword, newPassword }) {
+  return requestJson("/api/auth/password", {
+    method: "POST",
+    body: JSON.stringify({ currentPassword, newPassword }),
+  });
+}
+
 export async function logout() {
   await fetch(`${API_BASE_URL}/api/auth/logout`, {
     method: "POST",
