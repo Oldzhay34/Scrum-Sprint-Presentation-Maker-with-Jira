@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Button from "./Button";
-import { IconLayers, IconSun, IconMoon, IconLogout } from "./icons";
+import PasswordChangeModal from "./PasswordChangeModal";
+import { IconLayers, IconSun, IconMoon, IconLogout, IconLock } from "./icons";
 import { fetchUserProfile, updateUserProfile, fetchTeams } from "../../lib/apiClient";
 
 const ROLE_LABEL = { ADMIN: "Admin", PO: "Takım PO'su" };
@@ -38,6 +39,7 @@ export default function ProfilePage({ personnel, theme, onToggleTheme, onLogout,
   const [teams, setTeams] = useState([]);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
+  const [passwordModalOpen, setPasswordModalOpen] = useState(false);
 
   useEffect(() => {
     fetchUserProfile()
@@ -192,11 +194,22 @@ export default function ProfilePage({ personnel, theme, onToggleTheme, onLogout,
           </div>
         )}
 
+        {/* Sifre degistirme, profil alanlarini kaydetmekten AYRI bir akis
+            (ayri endpoint, ayri dogrulama) oldugu icin "Profili Düzenle"
+            formunun icine degil, kendi ekranini acan bagimsiz bir eylem
+            olarak duruyor - duzenleme modunda da erisilebilir kalir. */}
+        <Button variant="soft" className="profile-action-btn" onClick={() => setPasswordModalOpen(true)}>
+          <IconLock style={{ width: 16, height: 16 }} />
+          Şifre Değiştir
+        </Button>
+
         <Button variant="soft" className="profile-action-btn profile-logout-btn" onClick={onLogout}>
           <IconLogout style={{ width: 16, height: 16 }} />
           Çıkış Yap
         </Button>
       </div>
+
+      <PasswordChangeModal open={passwordModalOpen} onClose={() => setPasswordModalOpen(false)} />
 
       <div className="profile-brand">
         <IconLayers style={{ width: 16, height: 16 }} />

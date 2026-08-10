@@ -5,6 +5,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -38,5 +39,22 @@ public class RefreshTokenStore {
 
     public void revoke(String refreshToken) {
         tokenToSicil.invalidate(refreshToken);
+    }
+
+    /**
+     * Bir kullanicinin TUM refresh token'larini gecersiz kilar - sifre
+     * degistirildiginde (bkz. PasswordService) eski sifreyle acilmis diger
+     * oturumlarin devam etmesini onlemek icin.
+     *
+     * @param keepToken gecersiz kilinmayacak tek token (istegi yapan tarayicinin
+     *                  kendi oturumu); tum oturumlar kapatilacaksa null verilir.
+     */
+    public void revokeAllForSicil(String sicil, String keepToken) {
+        tokenToSicil.asMap().entrySet().stream()
+                .filter(entry -> entry.getValue().equals(sicil))
+                .map(Map.Entry::getKey)
+                .filter(token -> !token.equals(keepToken))
+                .toList() // once topla: cache uzerinde iterasyon sirasinda invalidate etmemek icin
+                .forEach(tokenToSicil::invalidate);
     }
 }
