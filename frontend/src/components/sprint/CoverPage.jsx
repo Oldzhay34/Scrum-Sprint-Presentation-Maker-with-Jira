@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import Button from "../shared/Button";
 import AlertModal from "../shared/AlertModal";
 import ReadOnlyNotice from "../shared/ReadOnlyNotice";
-import { IconUpload, IconUsers, IconHash, IconCalendar } from "../shared/icons";
+import { IconUpload, IconUsers, IconHash, IconCalendar, IconClock } from "../shared/icons";
 import { isValidNumberInput } from "../../lib/validation";
 import { sanitizeIntegerInput } from "../../lib/format";
 import { TEAM_TYPES } from "../../lib/teamTypes";
@@ -24,7 +24,18 @@ import { TEAM_TYPES } from "../../lib/teamTypes";
  * false ise (bkz. App.jsx/currentUser) geri kalan parametre alanlari yerine
  * ReadOnlyNotice gosterilir.
  */
-export default function CoverPage({ teamType, setTeamType, sprint, setSprint, range, setRange, cover, canEdit = true }) {
+export default function CoverPage({
+  teamType,
+  setTeamType,
+  sprint,
+  setSprint,
+  range,
+  setRange,
+  cover,
+  canEdit = true,
+  timerMinutes,
+  setTimerMinutes,
+}) {
   const fileInputRef = useRef(null);
   const [sprintAlert, setSprintAlert] = useState(false);
 
@@ -66,9 +77,26 @@ export default function CoverPage({ teamType, setTeamType, sprint, setSprint, ra
                 <input value={range} onChange={(e) => setRange(e.target.value)} />
               </div>
             </div>
+            <div className="field">
+              <label>Sunum süresi (dakika)</label>
+              <div className="icon-field">
+                <IconClock className="icon-field-icon" style={{ width: 14, height: 14 }} />
+                <input
+                  inputMode="numeric"
+                  value={timerMinutes}
+                  onChange={(e) => setTimerMinutes(sanitizeIntegerInput(e.target.value))}
+                />
+              </div>
+            </div>
           </>
         )}
       </div>
+
+      {canEdit && (
+        <div className="hint" style={{ marginTop: 8 }}>
+          Sunum süresi kaydetmek için zorunludur - önizleme açıldığında bu süre geri sayım olarak başlar. Dilediğiniz zaman tekrar değiştirip kaydedebilirsiniz.
+        </div>
+      )}
 
       {!canEdit && <ReadOnlyNotice teamType={teamType} />}
 

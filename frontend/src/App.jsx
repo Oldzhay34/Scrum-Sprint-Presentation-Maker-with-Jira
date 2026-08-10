@@ -250,6 +250,9 @@ function MainApp({ theme, toggleTheme, personnel, presentationId, newForTeamId, 
 
   // ---- Sprint (2. adim) durumu ----
   const sprintForm = useSprintForm();
+  // Sunum önizlemesinde geri sayım için - Kapak adımında PO tarafından
+  // girilir, diğer "content" alanlarıyla aynı şekilde kaydedilir/yüklenir.
+  const [timerMinutes, setTimerMinutes] = useState(5);
   const canEdit = currentUser.admin || currentUser.teamType == null || currentUser.teamType === sprintForm.teamType;
   const band = useBandEditor();
   const excel = useExcelSuggestions();
@@ -334,6 +337,7 @@ function MainApp({ theme, toggleTheme, personnel, presentationId, newForTeamId, 
         if (c.dashSource) setDashSource(c.dashSource);
         if (c.dashData) setLoadedDashData(c.dashData);
         if (c.dashData?.tableHeaders) setTableHeaders(c.dashData.tableHeaders);
+        if (c.timerMinutes != null) setTimerMinutes(c.timerMinutes);
         setPresentationMeta({ id: p.id, teamId: p.teamId, sprintNo: p.sprintNo, currentVersion: p.currentVersion });
       })
       .catch((err) => setLoadError(err?.message || "Sunum yüklenemedi."));
@@ -348,17 +352,31 @@ function MainApp({ theme, toggleTheme, personnel, presentationId, newForTeamId, 
     band: { show: band.show, bars: band.bars },
     dashSource,
     dashData: activeDashData,
+    timerMinutes,
   });
 
-  const handleSave = async () => {
+  // "Sunum süresi" kaydetmek için zorunlu (bkz. CoverPage bilgi notu) -
+  // önizleme geri sayımının anlamlı bir baslangic degeri olmadan
+  // kaydedilememesi icin; kullanici sonrasinda istedigi an degistirip
+  // tekrar kaydedebilir, tek seferlik bir kilit degil.
+  const validateBeforeSave = () => {
     if (!saveTeamId) {
       setWizardAlert("Kaydetmek için bir takım belirlenemedi.");
-      return;
+      return false;
     }
     if (!sprintForm.sprint.trim()) {
       setWizardAlert("Kaydetmek için Sprint No boş bırakılamaz.");
-      return;
+      return false;
     }
+    if (!Number(timerMinutes) || Number(timerMinutes) <= 0) {
+      setWizardAlert("Kaydetmek için Kapak adımında Sunum Süresi (dakika) girilmelidir.");
+      return false;
+    }
+    return true;
+  };
+
+  const handleSave = async () => {
+    if (!validateBeforeSave()) return;
     setSaveStatus({ loading: true, error: null });
     try {
       const saved = await savePresentation({
@@ -376,6 +394,7 @@ function MainApp({ theme, toggleTheme, personnel, presentationId, newForTeamId, 
   // YERINDE degistirir (bkz. apiClient.updatePresentationInPlace).
   const handleUpdateInPlace = async () => {
     if (!presentationMeta?.id) return;
+    if (!validateBeforeSave()) return;
     setSaveStatus({ loading: true, error: null });
     try {
       const saved = await updatePresentationInPlace(presentationMeta.id, sprintForm.range, buildSaveContent());
@@ -538,6 +557,8 @@ function MainApp({ theme, toggleTheme, personnel, presentationId, newForTeamId, 
               range={sprintForm.range} setRange={sprintForm.setRange}
               cover={cover}
               canEdit={canEdit}
+              timerMinutes={timerMinutes}
+              setTimerMinutes={setTimerMinutes}
             />
           )}
           {mode === "sprint" && (
@@ -604,6 +625,7 @@ function MainApp({ theme, toggleTheme, personnel, presentationId, newForTeamId, 
         activeTab={previewTab}
         onTabChange={setPreviewTab}
         renderCanvas={renderPreviewCanvas}
+        timerSeconds={Number(timerMinutes) > 0 ? Number(timerMinutes) * 60 : null}
       />
 
       <ExportPreviewModal

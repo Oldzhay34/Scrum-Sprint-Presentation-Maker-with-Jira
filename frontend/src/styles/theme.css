@@ -665,6 +665,87 @@ body {
   border-color: var(--line);
 }
 
+/* ---------------------------------------------------------------------- */
+/* Sunum önizleme timer'ı (ZoomModal + PresentationRunnerModal)            */
+/* ---------------------------------------------------------------------- */
+.timer-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  background: rgba(13, 94, 168, 0.12);
+  color: var(--aksa-blue-dark);
+  border: 1px solid rgba(13, 94, 168, 0.22);
+}
+.theme-dark .timer-badge {
+  background: rgba(74, 159, 224, 0.16);
+  color: var(--aksa-blue-light);
+  border-color: rgba(74, 159, 224, 0.3);
+}
+.timer-critical .timer-badge,
+.timer-badge.timer-critical {
+  background: rgba(220, 38, 38, 0.14);
+  color: #dc2626;
+  border-color: rgba(220, 38, 38, 0.35);
+  animation: aksa-timer-flash 1s ease-in-out infinite;
+}
+.theme-dark .timer-critical .timer-badge,
+.theme-dark .timer-badge.timer-critical {
+  background: rgba(248, 113, 113, 0.18);
+  color: #f87171;
+  border-color: rgba(248, 113, 113, 0.4);
+}
+
+@keyframes aksa-timer-flash {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.55; transform: scale(1.06); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .timer-critical .timer-badge,
+  .timer-badge.timer-critical {
+    animation: none;
+  }
+}
+
+.presentation-runner-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.presentation-runner-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.presentation-runner-team {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--ink);
+}
+.presentation-runner-total {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--mut);
+  white-space: nowrap;
+}
+.presentation-runner-done-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(13, 20, 30, 0.55);
+  color: #fff;
+  font-size: 22px;
+  font-weight: 700;
+  border-radius: inherit;
+}
+
 .pmrow,
 .bar {
   background: rgba(255, 255, 255, 0.55);

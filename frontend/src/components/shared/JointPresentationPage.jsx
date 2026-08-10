@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import TopBar from "./TopBar";
 import Button from "./Button";
 import ZoomModal from "./ZoomModal";
+import PresentationRunnerModal from "./PresentationRunnerModal";
 import PptxTemplateModal from "./PptxTemplateModal";
 import SlideCanvas from "../sprint/SlideCanvas";
 import DashboardSlideCanvas from "../dashboard/DashboardSlideCanvas";
@@ -171,6 +172,11 @@ export default function JointPresentationPage({ personnel, theme, onToggleTheme 
         })
         .filter(Boolean);
       setResults(built);
+      // "Önizle" tekli sunumdaki "⤢ Preview" ile ayni mantikla calisir -
+      // onizleme acmak = sunumu baslatmak (bkz. kullanici bildirimi): sonuc
+      // varsa dogrudan sirali/timerli tam ekran moda gecilir, ayrica bir
+      // "Sunumu Başlat" butonuna basmaya gerek yok.
+      if (built.length > 0) setRunnerOpen(true);
       const missing = teamIds.filter((id) => !byTeamId.has(id));
       if (missing.length) {
         const names = missing.map((id) => teams.find((t) => t.id === id)?.name || id).join(", ");
@@ -191,6 +197,14 @@ export default function JointPresentationPage({ personnel, theme, onToggleTheme 
   // "PPTX İndir (Ortak)" tiklaninca hemen indirmez - once sablon secim
   // popup'u acilir (bkz. kullanici bildirimi).
   const [pptxTemplateOpen, setPptxTemplateOpen] = useState(false);
+
+  // Secilen takimlarin sunumlarini sirayla, her birinin kendi suresi kadar
+  // tam ekran gosteren mod (bkz. PresentationRunnerModal). "Önizle" ile
+  // sonuclar geldiginde OTOMATIK acilir - tekli sunumdaki "⤢ Preview" ile
+  // ayni mantik: onizleme acmak = sunumu baslatmak (bkz. handleFetch).
+  // "Sunumu Tekrar Başlat" butonu, sonuclar zaten yuklu ama modal kapatilmis
+  // durumdayken tekrar acmak icin.
+  const [runnerOpen, setRunnerOpen] = useState(false);
 
   const handleJointExport = async (cornerMesh) => {
     if (!results || results.length === 0) return;
@@ -296,8 +310,13 @@ export default function JointPresentationPage({ personnel, theme, onToggleTheme 
               </div>
               <div style={{ display: "flex", gap: 10 }}>
                 <Button variant="primary" loading={loading} loadingLabel="Getiriliyor…" onClick={handleFetch}>
-                  Önizle
+                  ⤢ Önizle
                 </Button>
+                {results && results.length > 0 && (
+                  <Button variant="soft" onClick={() => setRunnerOpen(true)}>
+                    Sunumu Tekrar Başlat
+                  </Button>
+                )}
                 {results && (
                   <Button variant="soft" loading={exporting} loadingLabel="Hazırlanıyor…" onClick={() => setPptxTemplateOpen(true)}>
                     PPTX İndir (Ortak)
@@ -380,6 +399,14 @@ export default function JointPresentationPage({ personnel, theme, onToggleTheme 
             <SlideCanvas data={zoomResult?.sprintData} tab="content" assets={assets} scale={scale} />
           )
         }
+        timerSeconds={zoomResult?.content?.timerMinutes ? Number(zoomResult.content.timerMinutes) * 60 : null}
+      />
+
+      <PresentationRunnerModal
+        open={runnerOpen}
+        onClose={() => setRunnerOpen(false)}
+        queue={results}
+        assets={assets}
       />
 
       <PptxTemplateModal
