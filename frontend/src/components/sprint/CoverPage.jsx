@@ -20,9 +20,10 @@ import { TEAM_TYPES } from "../../lib/teamTypes";
  * degisir, isim otomatik onu takip eder.
  *
  * Takım Tipi secimi, kullanicinin kendi takimina ait olmayan bir sunumu da
- * (salt-okunur) goruntuleyebilmesi icin HER ZAMAN etkilesimli kalir; canEdit
- * false ise (bkz. App.jsx/currentUser) geri kalan parametre alanlari yerine
- * ReadOnlyNotice gosterilir.
+ * (salt-okunur) goruntuleyebilmesi icin HER ZAMAN etkilesimli kalir; yetkisiz
+ * bir takim secilince App.jsx (bkz. handleTeamTypeChange) o takimin EN SON
+ * sprint sunumunu cekip onizlemeye yukler, geri kalan parametre alanlari
+ * yerine de ReadOnlyNotice gosterilir.
  */
 export default function CoverPage({
   teamType,
@@ -35,6 +36,7 @@ export default function CoverPage({
   canEdit = true,
   timerMinutes,
   setTimerMinutes,
+  readOnlyView = null,
 }) {
   const fileInputRef = useRef(null);
   const [sprintAlert, setSprintAlert] = useState(false);
@@ -98,7 +100,7 @@ export default function CoverPage({
         </div>
       )}
 
-      {!canEdit && <ReadOnlyNotice teamType={teamType} />}
+      {!canEdit && <ReadOnlyNotice teamType={teamType} view={readOnlyView} />}
 
       <AlertModal
         open={sprintAlert}

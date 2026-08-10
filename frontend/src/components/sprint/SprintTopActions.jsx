@@ -5,10 +5,12 @@ import { IconUpload, IconDownload, IconSave, IconRefresh } from "../shared/icons
 /**
  * Sprint modu ust bar eylemleri. Pressman - Command/Menu Labeling: tum
  * etiketler eylem bildiren fiil yapisinda ("Excel Yükle", "PPTX İndir").
- * "Kaydet" (onSave), duzenleme yetkisi olmayan kullanicilar icin gizlenir
- * (App.jsx'te canEdit false ise onSave={null} geciliyor). "Güncelle"
- * (onUpdate) sadece Ortak Sunum ekranindan (?fromJoint=1) gelindiginde
- * gorunur - yeni surum eklemeden mevcut sunumu yerinde gunceller.
+ * "Kaydet" (onSave) ve "Excel Yükle" (onExcelFile), duzenleme yetkisi olmayan
+ * kullanicilar icin gizlenir (App.jsx'te canEdit false ise null geciliyor) -
+ * baska bir takimin salt-okunur sunumu goruntulenirken Excel yuklemek o
+ * onizlemeyi kullanicinin kendi verisiyle ezerdi. "Güncelle" (onUpdate)
+ * sadece Ortak Sunum ekranindan (?fromJoint=1) gelindiginde gorunur - yeni
+ * surum eklemeden mevcut sunumu yerinde gunceller.
  */
 export default function SprintTopActions({
   onExcelFile, excelLoading, onGenerate, generating, onSave, saving, onUpdate, updating,
@@ -17,20 +19,24 @@ export default function SprintTopActions({
 
   return (
     <span style={{ display: "flex", gap: 10, alignItems: "center" }}>
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept=".xlsx"
-        className="hidden"
-        onChange={(e) => {
-          if (e.target.files[0]) onExcelFile(e.target.files[0]);
-          e.target.value = "";
-        }}
-      />
-      <Button variant="ghost" loading={excelLoading} loadingLabel="Okunuyor…" onClick={() => fileInputRef.current?.click()}>
-        <IconUpload className="navbar-icon" />
-        Excel Yükle
-      </Button>
+      {onExcelFile && (
+        <>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".xlsx"
+            className="hidden"
+            onChange={(e) => {
+              if (e.target.files[0]) onExcelFile(e.target.files[0]);
+              e.target.value = "";
+            }}
+          />
+          <Button variant="ghost" loading={excelLoading} loadingLabel="Okunuyor…" onClick={() => fileInputRef.current?.click()}>
+            <IconUpload className="navbar-icon" />
+            Excel Yükle
+          </Button>
+        </>
+      )}
       {onSave && (
         <Button variant="ghost" loading={saving} loadingLabel="Kaydediliyor…" onClick={onSave}>
           <IconSave className="navbar-icon" />

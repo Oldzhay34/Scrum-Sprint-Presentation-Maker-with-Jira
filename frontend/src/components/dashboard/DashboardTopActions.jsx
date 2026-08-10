@@ -2,6 +2,7 @@ import { useRef } from "react";
 import Button from "../shared/Button";
 import { IconUpload, IconDownload, IconSave, IconRefresh } from "../shared/icons";
 
+/** Bkz. SprintTopActions - onExcelFile/onSave null ise ilgili buton gizlenir (salt-okunur goruntuleme). */
 export default function DashboardTopActions({
   onExcelFile, excelLoading, onGenerate, generating, onSave, saving, onUpdate, updating,
 }) {
@@ -9,20 +10,24 @@ export default function DashboardTopActions({
 
   return (
     <span style={{ display: "flex", gap: 10, alignItems: "center" }}>
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept=".xlsx"
-        className="hidden"
-        onChange={(e) => {
-          if (e.target.files[0]) onExcelFile(e.target.files[0]);
-          e.target.value = "";
-        }}
-      />
-      <Button variant="ghost" loading={excelLoading} loadingLabel="Okunuyor…" onClick={() => fileInputRef.current?.click()}>
-        <IconUpload className="navbar-icon" />
-        Excel Yükle
-      </Button>
+      {onExcelFile && (
+        <>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".xlsx"
+            className="hidden"
+            onChange={(e) => {
+              if (e.target.files[0]) onExcelFile(e.target.files[0]);
+              e.target.value = "";
+            }}
+          />
+          <Button variant="ghost" loading={excelLoading} loadingLabel="Okunuyor…" onClick={() => fileInputRef.current?.click()}>
+            <IconUpload className="navbar-icon" />
+            Excel Yükle
+          </Button>
+        </>
+      )}
       {onSave && (
         <Button variant="ghost" loading={saving} loadingLabel="Kaydediliyor…" onClick={onSave}>
           <IconSave className="navbar-icon" />

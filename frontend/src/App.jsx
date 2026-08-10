@@ -3,7 +3,17 @@ import { BrowserRouter, Navigate, Route, Routes, useNavigate, useParams, useSear
 import "./styles/app.css";
 import "./styles/theme.css";
 
-import { fetchCurrentUser, fetchUserProfile, fetchPresentation, logout, savePresentation, updatePresentationInPlace, recordPresentationDownload } from "./lib/apiClient";
+import {
+  fetchCurrentUser,
+  fetchUserProfile,
+  fetchPresentation,
+  fetchTeams,
+  fetchLatestPresentationsByTeams,
+  logout,
+  savePresentation,
+  updatePresentationInPlace,
+  recordPresentationDownload,
+} from "./lib/apiClient";
 import LoginPage from "./components/shared/LoginPage";
 import ProfilePage from "./components/shared/ProfilePage";
 import AdminHomePage from "./components/shared/AdminHomePage";
@@ -52,6 +62,22 @@ const PREVIEW_TABS = [
   { key: "content", label: "İçerik Slaytı" },
   { key: "dashboard", label: "Kapasite Dashboard" },
 ];
+
+/**
+ * Salt-okunur goruntulenen takimin KAYITLI SUNUMU YOKSA onizlemeye
+ * uygulanacak "bos" icerik - onceki takimin icerigi, yeni secilen takimin
+ * adi altinda kalmasin diye (bkz. loadTeamPresentation). buildSaveContent()
+ * ile ayni sekilde, boylece applyContent tek bir bicimi tuketir.
+ */
+const EMPTY_CONTENT = {
+  sprint: "",
+  range: "",
+  sections: { done: "", active: "", risk: "", pending: "" },
+  band: { show: false, bars: [] },
+  dashSource: "excel",
+  dashData: null,
+  timerMinutes: 5,
+};
 
 /**
  * Giris durumunu yonetir - girmeden once sadece LoginPage, girince ana
@@ -242,7 +268,14 @@ function MainApp({ theme, toggleTheme, personnel, presentationId, newForTeamId, 
   const currentUser = useMemo(() => {
     if (!personnel) return { teamType: null, admin: true, department: null };
     const department = personnel.department || "";
-    return { teamType: resolveTeamTypeFromDepartment(department), admin: resolveIsAdmin(personnel), department };
+    return {
+      // department BOS ise teamType da null kalir - "GENEL"e cozumlemek,
+      // yukaridaki fail-open kuralini sessizce bozup (GENEL === secili tip
+      // olmadigi icin) kullaniciyi salt-okunura dusururdu.
+      teamType: department ? resolveTeamTypeFromDepartment(department) : null,
+      admin: resolveIsAdmin(personnel),
+      department,
+    };
   }, [personnel]);
 
   // ---- Kapak (1. adim) durumu ----
@@ -253,7 +286,47 @@ function MainApp({ theme, toggleTheme, personnel, presentationId, newForTeamId, 
   // Sunum önizlemesinde geri sayım için - Kapak adımında PO tarafından
   // girilir, diğer "content" alanlarıyla aynı şekilde kaydedilir/yüklenir.
   const [timerMinutes, setTimerMinutes] = useState(5);
-  const canEdit = currentUser.admin || currentUser.teamType == null || currentUser.teamType === sprintForm.teamType;
+  // Takim tipi -> id eslemesi icin takim listesi (acilista bir kez cekilir,
+  // bkz. loadTeams). null = henuz yuklenmedi.
+  const [teams, setTeams] = useState(null);
+
+  /**
+   * Kullanicinin DUZENLEYEBILECEGI takim tipleri. Kaynak, backend'in yetki
+   * kontrolunde kullandigi listenin (JWT'deki teamIds - bkz.
+   * PresentationFacade.requireEditAccess) ta kendisidir; boylece iki takima
+   * birden bakan PO'lar (orn. Dijital Uygulamalar + CBS) her ikisini de
+   * duzenleyebilir. Takim listesi/teamIds daha gelmediyse null doner ve
+   * asagida tek takimlik department cozumlemesine dusulur.
+   */
+  const editableTeamTypes = useMemo(() => {
+    if (!teams || !personnel?.teamIds?.length) return null;
+    const types = new Set(teams.filter((t) => personnel.teamIds.includes(t.id)).map((t) => t.teamType));
+    return types.size ? types : null;
+  }, [teams, personnel]);
+
+  const canEditTeamType = (type) => {
+    if (currentUser.admin) return true;
+    if (editableTeamTypes) return editableTeamTypes.has(type);
+    return currentUser.teamType == null || currentUser.teamType === type;
+  };
+  const canEdit = canEditTeamType(sprintForm.teamType);
+
+  // ---- Baska bir takimin sunumunu SALT-OKUNUR goruntuleme ----
+  // "Takım tipi" secimi herkes icin acik (bkz. CoverPage): duzenleme yetkisi
+  // OLMAYAN bir takim secilince o takimin EN SON sprint sunumu cekilip
+  // onizlemeye yuklenir (okuma backend'de zaten herkese acik - bkz.
+  // PresentationFacade sinif yorumu). Oncesinde secim sadece kapaktaki ismi
+  // degistiriyordu, icerik kullanicinin kendi verisi olarak kaliyordu.
+  // readOnlyView: {loading|empty|error|teamId,teamName,sprintNo,updatedBy,updatedAt}
+  const [readOnlyView, setReadOnlyView] = useState(null);
+  // Baska takima gecmeden HEMEN once alinan kendi taslagimiz - kullanici
+  // kendi takimina geri dondugunde uzerine yazilan icerik geri yuklenir.
+  const ownDraftRef = useRef(null);
+  // Ust uste hizli takim degistirildiginde geciken yanitin guncel secimi
+  // ezmemesi icin istek sayaci (yalnizca en son istek uygulanir).
+  const readOnlyReqRef = useRef(0);
+  // fetchTeams sonucu (teamType -> takim id eslemesi) tek sefer cekilir.
+  const teamsPromiseRef = useRef(null);
   const band = useBandEditor();
   const excel = useExcelSuggestions();
   const [editorKey, setEditorKey] = useState(null);
@@ -285,8 +358,44 @@ function MainApp({ theme, toggleTheme, personnel, presentationId, newForTeamId, 
   // PPTX export (buildFullDeck) hem de kayit/yukleme (handleSave/
   // fetchPresentation hidrasyonu, asagida) AYNI degeri gorsun.
   const [tableHeaders, setTableHeaders] = useState(null);
-  const activeDashDataBase = dashSource === "manual" ? manual.dashData : (dashboard.dashData || loadedDashData);
+  // Baska takimi salt-okunur goruntulerken SADECE o sunumun kayitli
+  // dashboard'u gosterilir - aksi halde kullanicinin bu oturumda yukledigi
+  // Excel/manuel verisi (dashboard.dashData) baska takimin slaydina sizardi.
+  const viewingOtherTeam = !canEdit && readOnlyView != null;
+  const activeDashDataBase = viewingOtherTeam
+    ? loadedDashData
+    : dashSource === "manual" ? manual.dashData : (dashboard.dashData || loadedDashData);
   const activeDashData = activeDashDataBase ? { ...activeDashDataBase, tableHeaders } : activeDashDataBase;
+
+  /**
+   * Kayitli bir sunumun "content" bicimini (bkz. buildSaveContent) forma
+   * geri yukler - hem /editor/:id acilisinda hem de baska takimin sunumu
+   * salt-okunur goruntulenirken ayni yerden kullanilir.
+   *
+   * replace=false (varsayilan, /editor/:id): yalnizca content'te DOLU olan
+   * alanlar uygulanir - eski/eksik kayitlarda form varsayilanlari korunur.
+   * replace=true (takim degistirme): content NE ISE o uygulanir, eksik
+   * alanlar temizlenir - onceki takimin verisi ekranda kalmasin diye.
+   * applyTeamType=false: takim tipini cagiran taraf zaten belirlemistir,
+   * icerikten gelen deger secimi geri almasin.
+   */
+  const applyContent = (c = {}, { replace = false, applyTeamType = true } = {}) => {
+    if (applyTeamType && c.teamType) sprintForm.setTeamType(c.teamType);
+    if (replace || c.sprint) sprintForm.setSprint(c.sprint || "");
+    if (replace || c.range) sprintForm.setRange(c.range || "");
+    if (replace || c.sections) {
+      SECTION_KEYS.forEach((k) => sprintForm.setSectionText(k, c.sections?.[k] || ""));
+    }
+    if (replace || c.band?.bars?.length) band.setSample(c.band?.bars || []);
+    // setSample(bars) show'u true yapar - kayitta gizliyse hemen geri kapatilir.
+    if (c.band ? c.band.show === false : replace) band.toggleShow(false);
+    if (replace || c.dashSource) setDashSource(c.dashSource || "excel");
+    if (replace || c.dashData) {
+      setLoadedDashData(c.dashData || null);
+      setTableHeaders(c.dashData?.tableHeaders || null);
+    }
+    if (replace || c.timerMinutes != null) setTimerMinutes(c.timerMinutes ?? 5);
+  };
 
   // ---- Kayitli sunum yukleme (/editor/:id) + kaydetme hedefi ----
   // Ham state'i birebir yansitan "content" sekli (bkz. plan dokumani) hem
@@ -325,19 +434,7 @@ function MainApp({ theme, toggleTheme, personnel, presentationId, newForTeamId, 
     setLoadError(null);
     fetchPresentation(presentationId)
       .then((p) => {
-        const c = p.content || {};
-        if (c.teamType) sprintForm.setTeamType(c.teamType);
-        if (c.sprint) sprintForm.setSprint(c.sprint);
-        if (c.range) sprintForm.setRange(c.range);
-        if (c.sections) {
-          Object.entries(c.sections).forEach(([key, text]) => sprintForm.setSectionText(key, text || ""));
-        }
-        if (c.band?.bars?.length) band.setSample(c.band.bars);
-        if (c.band && c.band.show === false) band.toggleShow(false);
-        if (c.dashSource) setDashSource(c.dashSource);
-        if (c.dashData) setLoadedDashData(c.dashData);
-        if (c.dashData?.tableHeaders) setTableHeaders(c.dashData.tableHeaders);
-        if (c.timerMinutes != null) setTimerMinutes(c.timerMinutes);
+        applyContent(p.content || {});
         setPresentationMeta({ id: p.id, teamId: p.teamId, sprintNo: p.sprintNo, currentVersion: p.currentVersion });
       })
       .catch((err) => setLoadError(err?.message || "Sunum yüklenemedi."));
@@ -354,6 +451,110 @@ function MainApp({ theme, toggleTheme, personnel, presentationId, newForTeamId, 
     dashData: activeDashData,
     timerMinutes,
   });
+
+  const loadTeams = () => {
+    if (!teamsPromiseRef.current) {
+      teamsPromiseRef.current = fetchTeams()
+        .then((list) => {
+          setTeams(list);
+          return list;
+        })
+        // hata durumunda cache'i bosalt ki sonraki secim tekrar denesin
+        .catch((err) => {
+          teamsPromiseRef.current = null;
+          throw err;
+        });
+    }
+    return teamsPromiseRef.current;
+  };
+
+  // Takim listesi acilista bir kez cekilir - hem duzenleme yetkisi
+  // cozumlemesi (editableTeamTypes) hem de salt-okunur goruntuleme
+  // (loadTeamPresentation) ayni listeyi kullanir.
+  useEffect(() => {
+    loadTeams().catch(() => setTeams([]));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /** Secilen takim tipinin EN SON sprint sunumunu cekip onizlemeye salt-okunur yukler. */
+  const loadTeamPresentation = async (type) => {
+    const reqId = ++readOnlyReqRef.current;
+    const isStale = () => readOnlyReqRef.current !== reqId;
+    setReadOnlyView({ loading: true });
+    try {
+      const teamList = await loadTeams();
+      if (isStale()) return;
+      // Ayni tipte birden fazla takim tanimliysa ilki kullanilir - takim
+      // tipi (TEAM_TYPES) ile teams tablosu 1-1 eslesecek sekilde kurgulanmis
+      // durumda (bkz. V13__seed_teams.sql).
+      const team = teamList.find((t) => t.teamType === type);
+      if (!team) {
+        applyContent(EMPTY_CONTENT, { replace: true, applyTeamType: false });
+        setReadOnlyView({ empty: true });
+        return;
+      }
+      const list = await fetchLatestPresentationsByTeams([team.id]);
+      if (isStale()) return;
+      const p = list?.[0];
+      if (!p) {
+        applyContent(EMPTY_CONTENT, { replace: true, applyTeamType: false });
+        setReadOnlyView({ empty: true, teamId: team.id, teamName: team.name });
+        return;
+      }
+      applyContent(
+        // sprint no/tarih araligi sunum satirindan da gelir - eski kayitlarda
+        // content icinde bos olabilir, bu durumda kolon degerleri kullanilir.
+        { ...(p.content || {}), sprint: p.content?.sprint || p.sprintNo || "", range: p.content?.range || p.dateRange || "" },
+        { replace: true, applyTeamType: false }
+      );
+      setReadOnlyView({
+        teamId: team.id, teamName: team.name, sprintNo: p.sprintNo, dateRange: p.dateRange,
+        version: p.currentVersion, updatedBy: p.updatedBy, updatedAt: p.updatedAt,
+      });
+    } catch (err) {
+      if (isStale()) return;
+      applyContent(EMPTY_CONTENT, { replace: true, applyTeamType: false });
+      setReadOnlyView({ error: err?.message || "Takımın sunumu yüklenemedi." });
+    }
+  };
+
+  /**
+   * Kapak adimindaki "Takım tipi" secimi. Duzenleyemedigimiz bir takim
+   * secilirse o takimin sunumu salt-okunur yuklenir; kendi takimimiza geri
+   * donuldugunde ise uzerine yazilan kendi taslagimiz geri getirilir.
+   */
+  const handleTeamTypeChange = (nextType) => {
+    if (nextType === sprintForm.teamType) return;
+    const wasEditable = canEditTeamType(sprintForm.teamType);
+    const nextEditable = canEditTeamType(nextType);
+    sprintForm.setTeamType(nextType);
+
+    if (nextEditable) {
+      readOnlyReqRef.current++; // ucusta olan salt-okunur yukleme varsa gecersiz kil
+      setReadOnlyView(null);
+      if (!wasEditable && ownDraftRef.current) {
+        applyContent(ownDraftRef.current, { replace: true, applyTeamType: false });
+        ownDraftRef.current = null;
+      }
+      return;
+    }
+    if (wasEditable) ownDraftRef.current = buildSaveContent();
+    loadTeamPresentation(nextType);
+  };
+
+  // Sihirbaz bos acildiginda (yeni sunum) takim tipi kullanicinin KENDI
+  // takimiyla baslar - aksi halde useSprintForm varsayilani ("RPA") yuzunden
+  // PO'lar kendi takimlarindan baskasinin ekraninda, dogrudan salt-okunur
+  // aciliyordu. /editor/:id ve /editor/new?teamId= akislarinda takim zaten
+  // sunumdan/parametreden belirlenir, dokunulmaz.
+  const teamTypeDefaultedRef = useRef(false);
+  useEffect(() => {
+    if (teamTypeDefaultedRef.current || presentationId || newForTeamId) return;
+    if (currentUser.admin || !currentUser.teamType || currentUser.teamType === "GENEL") return;
+    teamTypeDefaultedRef.current = true;
+    sprintForm.setTeamType(currentUser.teamType);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser.admin, currentUser.teamType, presentationId, newForTeamId]);
 
   // "Sunum süresi" kaydetmek için zorunlu (bkz. CoverPage bilgi notu) -
   // önizleme geri sayımının anlamlı bir baslangic degeri olmadan
@@ -479,8 +680,11 @@ function MainApp({ theme, toggleTheme, personnel, presentationId, newForTeamId, 
       const pptx = buildFullDeck(data, activeDashData, assets, pptxTheme, cornerMesh);
       const sp = (sprintForm.sprint.trim() || "X").replace(/[^\w]/g, "");
       await pptx.writeFile({ fileName: `Sprint_Kapasite_${sp}.pptx` });
-      if (saveTeamId) {
-        recordPresentationDownload("INDIVIDUAL", [saveTeamId]).catch(() => {
+      // Salt-okunur baska bir takimin sunumu indiriliyorsa kayit O takim
+      // icin tutulur - kullanicinin kendi takimi icin degil.
+      const downloadTeamId = viewingOtherTeam ? readOnlyView?.teamId : saveTeamId;
+      if (downloadTeamId) {
+        recordPresentationDownload("INDIVIDUAL", [downloadTeamId]).catch(() => {
           // indirme kaydi best-effort - basarisiz olsa da kullaniciyi engellemez
         });
       }
@@ -508,7 +712,7 @@ function MainApp({ theme, toggleTheme, personnel, presentationId, newForTeamId, 
         actions={
           mode === "cover" || mode === "sprint" ? (
             <SprintTopActions
-              onExcelFile={handleExcelFile}
+              onExcelFile={canEdit ? handleExcelFile : null}
               excelLoading={excel.loading}
               onGenerate={() => setExportPreviewOpen(true)}
               generating={fullExport.loading}
@@ -519,7 +723,7 @@ function MainApp({ theme, toggleTheme, personnel, presentationId, newForTeamId, 
             />
           ) : (
             <DashboardTopActions
-              onExcelFile={handleExcelFile}
+              onExcelFile={canEdit ? handleExcelFile : null}
               excelLoading={dashboard.loading}
               onGenerate={() => setExportPreviewOpen(true)}
               generating={fullExport.loading}
@@ -540,7 +744,7 @@ function MainApp({ theme, toggleTheme, personnel, presentationId, newForTeamId, 
           setSaveStatus((s) => ({ ...s, error: null }));
         }}
       />
-      {presentationMeta && !saveStatus.error && (
+      {presentationMeta && !saveStatus.error && !viewingOtherTeam && (
         <div style={{ margin: "0 22px 10px", fontSize: 12.5, color: "var(--mut)" }}>
           ✓ Kaydedildi (v{presentationMeta.currentVersion})
         </div>
@@ -552,7 +756,8 @@ function MainApp({ theme, toggleTheme, personnel, presentationId, newForTeamId, 
         <div className="wizard-col">
           {mode === "cover" && (
             <CoverPage
-              teamType={sprintForm.teamType} setTeamType={sprintForm.setTeamType}
+              teamType={sprintForm.teamType} setTeamType={handleTeamTypeChange}
+              readOnlyView={readOnlyView}
               sprint={sprintForm.sprint} setSprint={sprintForm.setSprint}
               range={sprintForm.range} setRange={sprintForm.setRange}
               cover={cover}
@@ -571,7 +776,7 @@ function MainApp({ theme, toggleTheme, personnel, presentationId, newForTeamId, 
                 onExpandSection={setEditorKey}
               />
             ) : (
-              <ReadOnlyNotice teamType={sprintForm.teamType} />
+              <ReadOnlyNotice teamType={sprintForm.teamType} view={readOnlyView} />
             )
           )}
           {mode === "dash" && (
@@ -586,7 +791,7 @@ function MainApp({ theme, toggleTheme, personnel, presentationId, newForTeamId, 
                 setTableHeaders={setTableHeaders}
               />
             ) : (
-              <ReadOnlyNotice teamType={sprintForm.teamType} />
+              <ReadOnlyNotice teamType={sprintForm.teamType} view={readOnlyView} />
             )
           )}
           <div className="wizard-nav">
