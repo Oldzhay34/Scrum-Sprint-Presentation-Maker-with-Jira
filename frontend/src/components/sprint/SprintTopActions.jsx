@@ -5,15 +5,18 @@ import { IconUpload, IconDownload, IconSave, IconRefresh, IconJira } from "../sh
 /**
  * Sprint modu ust bar eylemleri. Pressman - Command/Menu Labeling: tum
  * etiketler eylem bildiren fiil yapisinda ("Excel Yükle", "PPTX İndir").
- * "Kaydet" (onSave), duzenleme yetkisi olmayan kullanicilar icin gizlenir
- * (App.jsx'te canEdit false ise onSave={null} geciliyor). "Güncelle"
- * (onUpdate) sadece Ortak Sunum ekranindan (?fromJoint=1) gelindiginde
- * gorunur - yeni surum eklemeden mevcut sunumu yerinde gunceller.
- * "Jira'dan Çek" (onJiraSync) DashboardTopActions ile AYNI eylemi tetikler -
- * kullanici sihirbaza girince ILK gordugu adim burasi (Kapak Sayfasi), bu
- * yuzden buton sadece Kapasite Dashboard adiminda degil burada da gorunur
- * olmali (bkz. kullanici bildirimi: "buton gozukmuyor" - sadece 3. adimda
- * oldugu icin bulunamiyordu).
+ * "Kaydet" (onSave), "Excel Yükle" (onExcelFile) ve "Jira'dan Çek" (onJiraSync),
+ * duzenleme yetkisi olmayan kullanicilar icin gizlenir (App.jsx'te canEdit
+ * false ise null geciliyor) - baska bir takimin salt-okunur sunumu
+ * goruntulenirken Excel yuklemek/Jira'dan cekmek o onizlemeyi kullanicinin
+ * kendi verisiyle ezerdi ya da baska takimin Jira senkronunu tetiklerdi.
+ * "Güncelle" (onUpdate) sadece Ortak Sunum ekranindan (?fromJoint=1)
+ * gelindiginde gorunur - yeni surum eklemeden mevcut sunumu yerinde gunceller.
+ * "Jira'dan Çek" DashboardTopActions ile AYNI eylemi tetikler - kullanici
+ * sihirbaza girince ILK gordugu adim burasi (Kapak Sayfasi), bu yuzden buton
+ * sadece Kapasite Dashboard adiminda degil burada da gorunur olmali (bkz.
+ * kullanici bildirimi: "buton gozukmuyor" - sadece 3. adimda oldugu icin
+ * bulunamiyordu).
  */
 export default function SprintTopActions({
   onExcelFile, excelLoading, onGenerate, generating, onSave, saving, onUpdate, updating,
@@ -23,20 +26,24 @@ export default function SprintTopActions({
 
   return (
     <span style={{ display: "flex", gap: 10, alignItems: "center" }}>
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept=".xlsx"
-        className="hidden"
-        onChange={(e) => {
-          if (e.target.files[0]) onExcelFile(e.target.files[0]);
-          e.target.value = "";
-        }}
-      />
-      <Button variant="ghost" loading={excelLoading} loadingLabel="Okunuyor…" onClick={() => fileInputRef.current?.click()}>
-        <IconUpload className="navbar-icon" />
-        Excel Yükle
-      </Button>
+      {onExcelFile && (
+        <>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".xlsx"
+            className="hidden"
+            onChange={(e) => {
+              if (e.target.files[0]) onExcelFile(e.target.files[0]);
+              e.target.value = "";
+            }}
+          />
+          <Button variant="ghost" loading={excelLoading} loadingLabel="Okunuyor…" onClick={() => fileInputRef.current?.click()}>
+            <IconUpload className="navbar-icon" />
+            Excel Yükle
+          </Button>
+        </>
+      )}
       {onJiraSync && (
         <Button
           variant="ghost"

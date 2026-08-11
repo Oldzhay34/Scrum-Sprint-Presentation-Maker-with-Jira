@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Modal from "./Modal";
 import Button from "./Button";
 import SlideCanvas from "../sprint/SlideCanvas";
+import DashboardSlideCanvas from "../dashboard/DashboardSlideCanvas";
 import { useCanvasFit } from "../../hooks/useCanvasFit";
 import { useCountdown, formatMmSs } from "../../hooks/useCountdown";
 
@@ -16,50 +17,119 @@ function teamSeconds(item) {
 
 /**
  * Ortak Sunum ekraninin "Sunumu Başlat" modu: secilen takimlarin (bkz.
- * JointPresentationPage `results`) sunumlarini SIRAYLA, her birinin kendi
- * (Kapak adiminda PO'nun girdigi) suresi kadar tam ekran gosterir. Bir
- * takimin suresi dolunca otomatik siradaki takima gecer ve toplam kalan
- * sureyi gunceller (bkz. useCountdown). Son takimin suresi de dolunca
- * "Sunum tamamlandı" durumunda kalir - otomatik kapanmaz, kullanici "Kapat"
- * ile cikar.
+ * JointPresentationPage `results`) sunumlarini SIRAYLA tam ekran gosterir.
+ *
+ * Slayt sirasi ortak PPTX ciktisiyla (bkz. jointDeckBuilder.buildJointDeck)
+ * AYNIDIR: her takim icin once icerik slayti, kapasite verisi varsa ardindan
+ * kapasite dashboard'u. Onceden yalnizca icerik slayti gosteriliyordu ve
+ * slaytlar arasinda gecis yapmanin bir yolu yoktu - sunumu yapan kisi
+ * tamamen sayaca bagimliydi (bkz. kullanici bildirimi).
+ *
+ * Iki gecis yolu birlikte calisir:
+ *  - MANUEL: ‹ / › butonlari, noktalar ve klavye (yon tuslari / Space /
+ *    PageUp-PageDown) ile slayt slayt ilerlenir.
+ *  - OTOMATIK: bir takimin suresi dolunca SIRADAKI TAKIMIN ilk slaytina
+ *    gecilir (onceki davranis korundu). Sayac her takim degisiminde bastan
+ *    baslar - manuel gecislerde de.
+ *
+ * Son slayttan sonra "Sunum tamamlandı" durumunda kalir; otomatik kapanmaz,
+ * kullanici "Kapat" ile cikar ya da ‹ ile geri donebilir.
  */
 export default function PresentationRunnerModal({ open, onClose, queue, assets }) {
   const { boxRef, scale } = useCanvasFit();
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [slideIndex, setSlideIndex] = useState(0);
   const [finished, setFinished] = useState(false);
 
+  const slides = useMemo(() => {
+    const out = [];
+    (queue || []).forEach((item, teamIndex) => {
+      out.push({ key: `${teamIndex}-content`, teamIndex, item, kind: "content", label: "İçerik Slaytı" });
+      if (item.dashData?.kpis) {
+        out.push({ key: `${teamIndex}-dashboard`, teamIndex, item, kind: "dashboard", label: "Kapasite Dashboard" });
+      }
+    });
+    return out;
+  }, [queue]);
+
   // Her acilista bastan basla - onceki bir "Sunumu Baslat" turundan kalan
-  // durum (hangi takimda kalindigi, tamamlandi mi) tasinmaz.
+  // durum (hangi slaytta kalindigi, tamamlandi mi) tasinmaz.
   useEffect(() => {
     if (open) {
-      setCurrentIndex(0);
+      setSlideIndex(0);
       setFinished(false);
     }
   }, [open]);
 
-  const current = queue?.[currentIndex] || null;
+  const currentSlide = slides[slideIndex] || null;
+  const current = currentSlide?.item || null;
+  const teamIndex = currentSlide?.teamIndex ?? 0;
   const currentSeconds = current ? teamSeconds(current) : 0;
   const active = open && !finished && !!current;
 
-  const advance = () => {
-    setCurrentIndex((i) => {
-      const next = i + 1;
-      if (!queue || next >= queue.length) {
-        setFinished(true);
-        return i;
-      }
-      return next;
-    });
+  /** Suresi dolan takimdan SIRADAKI TAKIMIN ilk slaytina gecer. */
+  const advanceTeam = () => {
+    const next = slides.findIndex((s) => s.teamIndex === teamIndex + 1);
+    if (next === -1) {
+      setFinished(true);
+      return;
+    }
+    setSlideIndex(next);
   };
 
-  const remaining = useCountdown(currentSeconds, active, advance);
+  // teamIndex reset anahtari olarak veriliyor: ard arda gelen iki takimin
+  // suresi AYNI ise (orn. ikisi de 5 dk) totalSeconds degismedigi icin sayac
+  // kendiliginden sifirlanmazdi - takim degisiminde her zaman bastan baslar.
+  const remaining = useCountdown(currentSeconds, active, advanceTeam, teamIndex);
   const critical = active && remaining <= 15;
+
+  const goTo = (delta) => {
+    if (finished) {
+      // Tamamlandi ekranindan sadece GERI donulebilir - son slayta.
+      if (delta < 0 && slides.length) {
+        setFinished(false);
+        setSlideIndex(slides.length - 1);
+      }
+      return;
+    }
+    const next = slideIndex + delta;
+    if (next < 0) return;
+    if (next >= slides.length) {
+      setFinished(true);
+      return;
+    }
+    setSlideIndex(next);
+  };
+
+  const jumpTo = (index) => {
+    setFinished(false);
+    setSlideIndex(index);
+  };
+
+  // Klavye ile gecis - sunum yaparken en pratik yol (kumanda/klikır cihazlari
+  // da genelde PageUp/PageDown gonderir). Escape'i Modal zaten kapatma icin
+  // dinliyor, buraya alinmaz.
+  const goToRef = useRef(goTo);
+  goToRef.current = goTo;
+  useEffect(() => {
+    if (!open) return undefined;
+    const onKeyDown = (e) => {
+      if (e.key === "ArrowRight" || e.key === "PageDown" || e.key === " " || e.key === "Spacebar") {
+        e.preventDefault();
+        goToRef.current(1);
+      } else if (e.key === "ArrowLeft" || e.key === "PageUp") {
+        e.preventDefault();
+        goToRef.current(-1);
+      }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [open]);
 
   const totalRemaining = useMemo(() => {
     if (!queue) return 0;
-    const restTeams = queue.slice(currentIndex + 1).reduce((sum, item) => sum + teamSeconds(item), 0);
+    const restTeams = queue.slice(teamIndex + 1).reduce((sum, item) => sum + teamSeconds(item), 0);
     return (finished ? 0 : remaining) + restTeams;
-  }, [queue, currentIndex, remaining, finished]);
+  }, [queue, teamIndex, remaining, finished]);
 
   return (
     <Modal open={open} onClose={onClose} boxClassName="zoombox">
@@ -74,6 +144,49 @@ export default function PresentationRunnerModal({ open, onClose, queue, assets }
             </>
           )}
         </div>
+
+        {slides.length > 0 && (
+          <div className="carousel-nav">
+            <button
+              type="button"
+              className="carousel-arrow"
+              aria-label="Önceki slayt"
+              title="Önceki slayt (←)"
+              disabled={!finished && slideIndex === 0}
+              onClick={() => goTo(-1)}
+            >
+              ‹
+            </button>
+            <div className="carousel-center">
+              <span className="carousel-label">
+                {finished ? `${slides.length} / ${slides.length} — son slayt` : `${currentSlide?.label} · ${slideIndex + 1} / ${slides.length}`}
+              </span>
+              <div className="carousel-dots">
+                {slides.map((s, i) => (
+                  <button
+                    key={s.key}
+                    type="button"
+                    className={`carousel-dot${!finished && i === slideIndex ? " active" : ""}`}
+                    aria-label={`${s.item.teamName} - ${s.label}`}
+                    title={`${s.item.teamName} - ${s.label}`}
+                    onClick={() => jumpTo(i)}
+                  />
+                ))}
+              </div>
+            </div>
+            <button
+              type="button"
+              className="carousel-arrow"
+              aria-label="Sonraki slayt"
+              title="Sonraki slayt (→ / Space)"
+              disabled={finished}
+              onClick={() => goTo(1)}
+            >
+              ›
+            </button>
+          </div>
+        )}
+
         <div className="presentation-runner-total">Toplam kalan: {formatMmSs(totalRemaining)}</div>
         <Button variant="close" className="zoom-close" onClick={onClose} style={{ marginLeft: "auto" }}>
           Kapat
@@ -81,7 +194,12 @@ export default function PresentationRunnerModal({ open, onClose, queue, assets }
       </div>
       <div className="zoomstagewrap">
         <div className="zoomstage" ref={boxRef}>
-          {open && current && <SlideCanvas data={current.sprintData} tab="content" assets={assets} scale={scale} />}
+          {open && current && currentSlide.kind === "dashboard" && (
+            <DashboardSlideCanvas dd={current.dashData || {}} assets={assets} scale={scale} />
+          )}
+          {open && current && currentSlide.kind === "content" && (
+            <SlideCanvas data={current.sprintData} tab="content" assets={assets} scale={scale} />
+          )}
           {open && finished && (
             <div className="presentation-runner-done-overlay">
               <span>Sunum tamamlandı</span>

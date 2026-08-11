@@ -1657,11 +1657,16 @@ header.topbar .btn:hover {
   justify-content: center;
   transition: background 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease, color 0.15s ease;
 }
-.carousel-arrow:hover {
+.carousel-arrow:hover:not(:disabled) {
   background: linear-gradient(135deg, var(--aksa-blue), var(--aksa-blue-light));
   color: #fff;
   box-shadow: 0 4px 14px rgba(13, 94, 168, 0.35);
   transform: translateY(-1px);
+}
+/* Ilk/son slaytta ilgili ok pasiflesir - bkz. PresentationRunnerModal */
+.carousel-arrow:disabled {
+  opacity: 0.4;
+  cursor: default;
 }
 .carousel-center {
   flex: 1;

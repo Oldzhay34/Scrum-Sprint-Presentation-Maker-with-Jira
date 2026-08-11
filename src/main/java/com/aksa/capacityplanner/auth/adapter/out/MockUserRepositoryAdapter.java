@@ -26,14 +26,22 @@ import java.util.stream.Stream;
  *  - 29547 / 123456    (PO, "Gözde Son", teamId=3, "Ürün Geliştirme Ekibi")
  *  - 30816 / 123456    (PO, "Ece Sena Salan", teamId=2, "İş Zekası Ekibi")
  *  - 33603 / 123456    (PO, "Muaz Furkan", teamId=4, "Yapay Zeka Ekibi")
- *  - 25493 / 123456    (PO, "Alican Özekinci", teamId=6, "Dokuman ve Surec Yonetim Sistemi Ekibi")
+ *  - 25493 / 123456    (PO, "Alican Özekinci", teamId=6, "Doküman ve Süreç Yönetim Sistemi Ekibi")
  *  - 35840 / 123456    (PO, "Züleyha Kadeş Tanrıverdi", teamId=5, teamIds=[5,7] -
  *                        Dijital Uygulamalar + Konum Tabanlı Ürün Geliştirme/CBS)
  *  - 37547 / 123456    (PO, "Pelinsu Çevikel", teamId=1, "RPA Ekibi")
  *  - 35834 / 123456    (PO, "Büşra Can", teamId=5, teamIds=[5,7] -
  *                        Dijital Uygulamalar + Konum Tabanlı Ürün Geliştirme/CBS)
- *                        (teamId degerleri prod ortamindaki gercek teams
- *                        tablosu satirlarina karsilik gelir - bkz. /api/teams;
+ *                        (teamId degerleri teams tablosundaki sabit id'lerle
+ *                        birebir eslesir - bkz. V13__seed_teams.sql:
+ *                          1 RPA Ekibi
+ *                          2 İş Zekası Ekibi
+ *                          3 Ürün Geliştirme Ekibi
+ *                          4 Yapay Zeka Ekibi
+ *                          5 Dijital Uygulamalar Ekibi
+ *                          6 Doküman ve Süreç Yönetim Sistemi Ekibi
+ *                          7 Konum Tabanlı Ürün Geliştirme Ekibi (CBS)
+ *                        yeni takim eklenirse iki taraf birlikte guncellenmeli;
  *                        kullanici kendisi de sonradan profil ekranindan
  *                        degistirebilir - ama profil ekrani su an tek takim
  *                        secebiliyor, teamIds'i coklu tutan hesaplar icin
@@ -68,7 +76,7 @@ public class MockUserRepositoryAdapter implements UserRepositoryPort {
                 mockUser("33603", passwordEncoder.encode("123456"), "Muaz Furkan", Role.PO, 4L,
                         "AKSA Enerji", "Yapay Zeka Ekibi", "", "", "", ""),
                 mockUser("25493", passwordEncoder.encode("123456"), "Alican Özekinci", Role.PO, 6L,
-                        "AKSA Enerji", "Dokuman ve Surec Yonetim Sistemi Ekibi", "", "", "", ""),
+                        "AKSA Enerji", "Doküman ve Süreç Yönetim Sistemi Ekibi", "", "", "", ""),
                 mockUser("35840", passwordEncoder.encode("123456"), "Züleyha Kadeş Tanrıverdi", Role.PO, 5L,
                         "AKSA Enerji", "Dijital Uygulamalar Ekibi", "", "", "", "", List.of(5L, 7L)),
                 mockUser("37547", passwordEncoder.encode("123456"), "Pelinsu Çevikel", Role.PO, 1L,

@@ -12,8 +12,17 @@ import org.testcontainers.utility.DockerImageName;
  * Module/subsystem/system katmanlarinin ortak temeli: gercek Postgres + Redis + RabbitMQ
  * container'lari ile calisir (H2/mock yok). Container'lar JVM boyunca (static) tek sefer
  * ayaga kalkar ve testler arasinda paylasilir - her test sinifi icin yeniden baslatilmaz.
+ *
+ * disabledWithoutDocker=true: Docker'a ULASILAMIYORSA bu temeli kullanan test siniflari
+ * HATA vermek yerine ATLANIR (skipped). Onceki davranista asagidaki static blok
+ * ExceptionInInitializerError firlatiyor, JVM sinifi kalici olarak "bozuk" isaretledigi
+ * icin sonraki tum siniflar da NoClassDefFound ile dusuyor ve tek bir ortam sorunu
+ * (orn. Docker Desktop'in named pipe'ina erisemeyen bir gelistirici makinesi) butun
+ * "mvn verify" cikitisini kirmizi yapiyordu. CI ajanlarinda Docker mevcut oldugu icin
+ * orada davranis DEGISMEZ - testler eskisi gibi calisir; atlanan testler de
+ * failsafe raporunda "skipped" olarak gorunur, sessizce yok sayilmazlar.
  */
-@Testcontainers
+@Testcontainers(disabledWithoutDocker = true)
 public abstract class AbstractTestcontainersSupport {
 
     protected static final PostgreSQLContainer<?> POSTGRES =

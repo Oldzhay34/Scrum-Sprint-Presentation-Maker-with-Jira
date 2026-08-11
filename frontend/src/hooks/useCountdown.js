@@ -6,8 +6,13 @@ import { useEffect, useRef, useState } from "react";
  * (veya `totalSeconds` değişince, örn. sıradaki takıma geçilince) sıfırdan
  * başlar. `onExpire`, süre tam 0'a ulaştığı an BİR KEZ çağrılır (örn.
  * sıradaki takıma otomatik geçiş gibi yan etkiler için).
+ *
+ * `resetKey`: süre AYNI kalsa bile sayacın baştan başlaması gereken
+ * durumlar için (örn. ortak sunumda ard arda gelen iki takımın da süresi
+ * 5 dk ise `totalSeconds` değişmez; resetKey olarak takım sırası verilir).
+ * Verilmezse davranış değişmez.
  */
-export function useCountdown(totalSeconds, active, onExpire) {
+export function useCountdown(totalSeconds, active, onExpire, resetKey) {
   const [remaining, setRemaining] = useState(totalSeconds ?? 0);
   const onExpireRef = useRef(onExpire);
   onExpireRef.current = onExpire;
@@ -15,7 +20,7 @@ export function useCountdown(totalSeconds, active, onExpire) {
   useEffect(() => {
     setRemaining(totalSeconds ?? 0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [totalSeconds, active]);
+  }, [totalSeconds, active, resetKey]);
 
   useEffect(() => {
     if (!active || !totalSeconds || totalSeconds <= 0) return undefined;
@@ -30,7 +35,10 @@ export function useCountdown(totalSeconds, active, onExpire) {
       });
     }, 1000);
     return () => clearInterval(id);
-  }, [active, totalSeconds]);
+    // resetKey: sure dolunca interval icerideki clearInterval ile duruyor -
+    // ayni sureli bir sonraki takima gecilince yeniden kurulmasi icin gerekli.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active, totalSeconds, resetKey]);
 
   return remaining;
 }
