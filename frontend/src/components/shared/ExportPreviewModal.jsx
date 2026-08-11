@@ -1,6 +1,7 @@
+import { useRef, useState } from "react";
 import Modal from "./Modal";
 import Button from "./Button";
-import { IconSun, IconMoon, IconDownload } from "./icons";
+import { IconSun, IconMoon, IconDownload, IconUpload } from "./icons";
 import { useCanvasFit } from "../../hooks/useCanvasFit";
 
 /**
@@ -22,9 +23,24 @@ import { useCanvasFit } from "../../hooks/useCanvasFit";
  * zaman göstermiyor" - bunun kok nedeni buydu.
  */
 export default function ExportPreviewModal({ open, onClose, tabs, activeTab, onTabChange, renderCanvas, previewTheme, onPreviewThemeChange, onConfirmDownload, downloading }) {
-  const { boxRef, scale } = useCanvasFit();
+  const { boxRef, scale } = useCanvasFit({ fitParent: true, active: open });
   const idx = tabs ? Math.max(0, tabs.findIndex((t) => t.key === activeTab)) : 0;
   const goTo = (delta) => tabs && onTabChange(tabs[(idx + delta + tabs.length) % tabs.length].key);
+
+  // "Kendi şablonunuzu ekleyin" - bkz. kullanici bildirimi ("her pptx indirme
+  // buttonlarından bahsediyorum"). Yuklenen gorsel SADECE bu indirme icin
+  // bellekte tutulur, hicbir yere kaydedilmez - onConfirmDownload'a parametre
+  // olarak gecirilir (bkz. App.jsx handleGenerateFullDeck).
+  const [customTemplate, setCustomTemplate] = useState(null);
+  const [customTemplateName, setCustomTemplateName] = useState("");
+  const fileInputRef = useRef(null);
+  const handleTemplateFile = (file) => {
+    if (!file || !file.type.startsWith("image/")) return;
+    setCustomTemplateName(file.name);
+    const reader = new FileReader();
+    reader.onload = (e) => setCustomTemplate(e.target.result);
+    reader.readAsDataURL(file);
+  };
 
   return (
     <Modal open={open} onClose={onClose} boxClassName="zoombox">
@@ -75,10 +91,24 @@ export default function ExportPreviewModal({ open, onClose, tabs, activeTab, onT
       </div>
       <div className="export-preview-footer">
         <span className="mhint">
-          Slaytları gözden geçirin — seçtiğiniz tema indirilecek PPTX'e yansır.{" "}
-          İndirmek istediğinize emin olduğunuzda devam edin.
+          Sunum <b>varsayılan şablonda</b> indirilecektir — isterseniz kendi şablon görselinizi
+          ekleyebilirsiniz (kaydedilmez, sadece bu indirme için kullanılır). Seçtiğiniz tema indirilecek PPTX'e yansır.
         </span>
-        <Button variant="primary" loading={downloading} loadingLabel="Hazırlanıyor…" onClick={onConfirmDownload}>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => {
+            handleTemplateFile(e.target.files[0]);
+            e.target.value = "";
+          }}
+        />
+        <Button variant="soft" onClick={() => fileInputRef.current?.click()}>
+          <IconUpload style={{ width: 15, height: 15 }} />
+          {customTemplateName || "Kendi şablonunuzu ekleyin"}
+        </Button>
+        <Button variant="primary" loading={downloading} loadingLabel="Hazırlanıyor…" onClick={() => onConfirmDownload(customTemplate || undefined)}>
           <IconDownload className="navbar-icon" />
           PPTX İndir
         </Button>

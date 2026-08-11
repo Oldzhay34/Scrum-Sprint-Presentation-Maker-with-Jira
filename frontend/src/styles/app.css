@@ -75,7 +75,7 @@
   .card ul{margin:2px 0 0;padding:0 14px 0 44px;list-style:none}
   .card li{position:relative;margin-bottom:5px;color:#374151;line-height:1.28}
   .card li .dot{position:absolute;left:-15px;top:0.5em;width:8px;height:8px;margin-top:-4px;border-radius:50%;background:var(--bullet-color, #1F2937)}
-  .card li b{color:var(--ink)}
+  .card li b{display:inline;padding:1px 5px;border-radius:4px;background:#D1FAE5;color:#166534;font-weight:700;box-decoration-break:clone;-webkit-box-decoration-break:clone}
   .priority-label{display:inline-block;margin-right:5px;padding:0 5px;border-radius:4px;font-size:.72em;font-weight:700;color:#fff;letter-spacing:.2px;vertical-align:1px;white-space:nowrap}
   .item-comment{margin:2px 0 0;padding:3px 8px;font-size:.86em;font-style:italic;color:#166534;background:linear-gradient(90deg,rgba(22,163,74,.14),rgba(22,163,74,.04));border-left:2px solid #16A34A;border-radius:0 6px 6px 0;line-height:1.25}
   /* cover */
@@ -116,6 +116,7 @@
   .psegs{display:flex;flex:1;min-width:0}
   .pseg{color:#fff;font-weight:700;display:flex;align-items:center;justify-content:center;font-size:13px;min-width:0;overflow:hidden;white-space:nowrap}
   .modal{position:fixed;inset:0;background:rgba(15,23,32,.55);display:flex;align-items:center;justify-content:center;z-index:50;padding:24px}
+  .modal:has(.zoombox){padding:0}
   .modal .box{background:#fff;border-radius:14px;width:min(900px,94vw);max-height:92vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.3)}
   .modal .mhead{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--line)}
   .modal .mhead img{width:26px;height:26px}
@@ -126,7 +127,7 @@
   .modal textarea:focus{outline:2px solid #BFDBE6}
   .mhint{font-size:12px;color:var(--mut);margin-top:8px}
   .btn.close{background:#EEF2F4;color:var(--ink)}
-  .zoombox{background:#fff;border-radius:14px;width:min(1300px,96vw);height:94vh;padding:14px;box-shadow:0 20px 60px rgba(0,0,0,.3);display:flex;flex-direction:column;overflow:hidden}
+  .zoombox{background:#fff;border-radius:0;width:100vw;height:100vh;padding:14px;box-shadow:none;display:flex;flex-direction:column;overflow:hidden}
   .zoomstagewrap{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;overflow:hidden}
   .zoomstage{position:relative;width:auto;height:100%;max-width:100%;aspect-ratio:16/9;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:#fff}
   .zoomcanvas{position:absolute;top:0;left:0;width:1280px;height:720px;transform-origin:top left}

@@ -665,6 +665,192 @@ body {
   border-color: var(--line);
 }
 
+/* ---------------------------------------------------------------------- */
+/* Sunum önizleme timer'ı (ZoomModal + PresentationRunnerModal)            */
+/* ---------------------------------------------------------------------- */
+.timer-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 24px;
+  border-radius: 999px;
+  font-size: 28px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.5px;
+  color: #fff;
+  background: linear-gradient(135deg, #0d5ea8 0%, #17a06b 100%);
+  border: none;
+  box-shadow: 0 6px 18px rgba(13, 94, 168, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.28);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+.timer-badge::before {
+  content: "⏱";
+  font-size: 24px;
+  line-height: 1;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.25));
+}
+.theme-dark .timer-badge {
+  background: linear-gradient(135deg, #1c73c2 0%, #22c07e 100%);
+  color: #fff;
+  border: none;
+  box-shadow: 0 6px 20px rgba(34, 192, 126, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+.timer-critical .timer-badge,
+.timer-badge.timer-critical {
+  background: linear-gradient(135deg, #dc2626 0%, #f97316 100%);
+  color: #fff;
+  border: none;
+  box-shadow: 0 6px 22px rgba(220, 38, 38, 0.5);
+  animation: aksa-timer-flash 1s ease-in-out infinite;
+}
+.theme-dark .timer-critical .timer-badge,
+.theme-dark .timer-badge.timer-critical {
+  background: linear-gradient(135deg, #ef4444 0%, #fb923c 100%);
+  color: #fff;
+  box-shadow: 0 6px 26px rgba(239, 68, 68, 0.55);
+}
+
+@keyframes aksa-timer-flash {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.08); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .timer-critical .timer-badge,
+  .timer-badge.timer-critical {
+    animation: none;
+  }
+}
+
+.presentation-runner-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.presentation-runner-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.presentation-runner-team {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--ink);
+}
+.presentation-runner-total {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 18px;
+  border-radius: 999px;
+  font-size: 18px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: #fff;
+  background: linear-gradient(135deg, #7c3aed 0%, #db2777 100%);
+  box-shadow: 0 6px 18px rgba(124, 58, 237, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+.theme-dark .presentation-runner-total {
+  background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+  box-shadow: 0 6px 20px rgba(236, 72, 153, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+.presentation-runner-done-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(13, 20, 30, 0.55);
+  color: #fff;
+  font-size: 22px;
+  font-weight: 700;
+  border-radius: inherit;
+}
+
+/* Bir takimin suresi dolduktan sonra (advance() OTOMATIK cagrilmadan once)
+   ekranin ortasinda beliren 5 saniyelik onay pop-up'i (bkz.
+   PresentationRunnerModal - awaitingConfirm/CONFIRM_SECONDS). */
+.runner-warning-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(13, 20, 30, 0.45);
+  z-index: 5;
+  animation: runner-warning-fade-in 0.2s ease-out;
+}
+.runner-warning-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  max-width: 560px;
+  padding: 26px 32px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #0d5ea8 0%, #17a06b 100%);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  color: #fff;
+  box-shadow: 0 20px 50px rgba(13, 94, 168, 0.4);
+  animation: runner-warning-pop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.runner-warning-spinner {
+  width: 40px;
+  height: 40px;
+  flex: none;
+  margin-top: 4px;
+  border-radius: 50%;
+  border: 5px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
+  animation: runner-spinner-spin 0.8s linear infinite;
+}
+.runner-warning-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.runner-warning-text {
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+.runner-warning-count {
+  font-size: 22px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.runner-warning-actions {
+  display: flex;
+  gap: 10px;
+}
+.runner-warning-actions .btn.soft {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.4);
+}
+.runner-warning-actions .btn.soft:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+@keyframes runner-spinner-spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes runner-warning-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes runner-warning-pop {
+  from { opacity: 0; transform: scale(0.85); }
+  to { opacity: 1; transform: scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .runner-warning-spinner {
+    animation: none;
+  }
+}
+
 .pmrow,
 .bar {
   background: rgba(255, 255, 255, 0.55);
@@ -767,6 +953,19 @@ body {
 header.topbar {
   background: linear-gradient(115deg, var(--aksa-blue-dark) 0%, var(--aksa-blue) 55%, #12699f 100%);
   position: relative;
+}
+/* Uygulama adi (Odyssey) - eskiden uzun bir aciklama cumlesiydi, tek
+   kelimeye inince daha buyuk/belirgin bir marka yazisi (wordmark) olarak
+   ele alindi: degrade dolgu + hafif parlama. */
+header.topbar h1 {
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  background: linear-gradient(90deg, #ffffff, #dff3ff 55%, var(--aksa-green));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.2);
 }
 
 .topbar-logo-btn {
@@ -1046,6 +1245,71 @@ header.topbar {
 
 .alert-modal-action {
   min-width: 140px;
+}
+
+/* ---------------------------------------------------------------------- */
+/* PPTX Şablonu popup'u (PptxTemplateModal) - genel amacli ".box" (900px,   */
+/* mhead/mbody duzeni gerektiren) yerine, AlertModal ile AYNI cam/premium   */
+/* dil ama SOL HIZALI (form icerigi + iki buton oldugu icin) kompakt bir    */
+/* kutu. Onceki surumde genel ".box" icine sigdirilan icerik cok genis      */
+/* kutuda bosluklu/dagitik/"kaymis" gorunuyordu (bkz. kullanici bildirimi). */
+/* ---------------------------------------------------------------------- */
+.pptx-template-box {
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px) saturate(150%);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  border: 1px solid var(--glass-border);
+  border-radius: 18px;
+  width: min(440px, 92vw);
+  padding: 26px 26px 22px;
+  box-shadow: 0 24px 60px rgba(11, 31, 51, 0.35);
+  animation: aksa-pop-in 0.2s cubic-bezier(0.2, 0.9, 0.3, 1.3);
+}
+.pptx-template-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.pptx-template-icon {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  background: linear-gradient(135deg, var(--aksa-blue), var(--aksa-blue-light));
+  box-shadow: 0 4px 14px rgba(13, 94, 168, 0.32);
+}
+.pptx-template-title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--ink);
+}
+.pptx-template-desc {
+  margin: 0 0 16px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--mut);
+}
+.pptx-template-upload {
+  width: 100%;
+  justify-content: flex-start !important;
+  text-align: left;
+}
+.pptx-template-preview {
+  margin-top: 10px;
+  display: flex;
+  justify-content: center;
+}
+.pptx-template-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 22px;
 }
 
 /* ---------------------------------------------------------------------- */
@@ -1650,6 +1914,13 @@ header.topbar .btn:hover {
   box-sizing: border-box;
   animation: login-icon-spin 3.2s linear infinite;
 }
+/* SVG bilesen tabanli yuzen rozetler (bkz. FLOAT_ICONS "Icon" girdileri) -
+   PNG asset'li img yerine ortalanmis bir ikon tasiyan daire. */
+.login-float-icon-svg {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 @keyframes login-icon-spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
@@ -1713,9 +1984,14 @@ header.topbar .btn:hover {
 .login-title {
   margin: 0;
   text-align: center;
-  font-size: 18px;
+  font-size: 34px;
   font-weight: 800;
-  color: var(--ink);
+  letter-spacing: 0.05em;
+  background: linear-gradient(90deg, var(--aksa-blue-light), #eaf6ff 45%, var(--aksa-green));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: 0 2px 18px rgba(74, 159, 224, 0.35);
 }
 .login-sub {
   margin: -6px 0 8px;
@@ -1925,6 +2201,12 @@ header.topbar .btn:hover {
   font-size: 13.5px;
   margin-top: 20px;
 }
+/* Alt alta dizilen eylem butonlari ("Şifre Değiştir" + "Çıkış Yap") tek bir
+   blok gibi dursun: ilk butonun detay listesinden ayrilan 20px'lik bosluguna
+   dokunmadan, sonraki butonlar daha dar bir araliga otursun. */
+.profile-action-btn + .profile-action-btn {
+  margin-top: 10px;
+}
 .btn.profile-logout-btn {
   /* .btn'in genel "background 0.15s ease" transition'ini burada iptal
      ediyoruz - aksi halde tema degisince arka plan beyazdan koyuya 150ms
@@ -1981,6 +2263,39 @@ header.topbar .btn:hover {
   text-align: right;
   overflow-wrap: anywhere;
 }
+.profile-details-edit {
+  gap: 14px;
+}
+.profile-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.profile-input {
+  width: 100%;
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--card, #fff);
+  color: var(--ink);
+  font-size: 13px;
+  font-family: inherit;
+}
+.profile-input:focus {
+  outline: none;
+  border-color: var(--aksa-blue-light, #4a9fe0);
+}
+.theme-dark .profile-input {
+  background: rgba(255, 255, 255, 0.06);
+}
+.profile-edit-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+}
+.profile-edit-actions .btn {
+  flex: 1;
+}
 .profile-brand {
   position: relative;
   z-index: 1;
@@ -1996,6 +2311,85 @@ header.topbar .btn:hover {
   font-size: 13px;
   color: var(--mut);
   padding: 6px 0;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Şifre değiştirme ekrani (PasswordChangeModal) - genel amacli ".box"     */
+/* 900px genisliginde ve mhead/mbody duzeni bekliyor; kisa bir form icin   */
+/* cok genis kaliyor, o yuzden burada daraltiliyor. Secici bilerek         */
+/* ".modal .password-modal-box" (tek sinif degil): app.css'teki            */
+/* ".modal .box" ayni ozgullukte oldugundan, tek sinifli bir kural         */
+/* genislik/kose gibi ozelliklerde SESSIZCE ezilirdi. Arka plan ise        */
+/* kasten devralinir - modal kutusunun neredeyse opak olmasi bilincli bir  */
+/* okunabilirlik karari (bkz. ".modal .box" aciklamasi).                   */
+/* Form alanlari profil ekraninin (.profile-field / .profile-input)        */
+/* stillerini yeniden kullanir ki iki ekran arasindaki gecis kopuk         */
+/* hissettirmesin.                                                         */
+/* ---------------------------------------------------------------------- */
+.modal .password-modal-box {
+  width: min(420px, 92vw);
+  border-radius: 18px;
+  padding: 26px 26px 22px;
+  /* Kutu (".modal .box") zaten dikey flex - dusey ritmi tek yerden, gap ile
+     veriyoruz ki hem form hem "şifreniz güncellendi" ekrani ayni araliklara
+     sahip olsun (alt bilesenlerde margin biriktirmeye gerek kalmasin). */
+  gap: 14px;
+  overflow: auto;
+  animation: aksa-pop-in 0.2s cubic-bezier(0.2, 0.9, 0.3, 1.3);
+}
+.password-modal-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.password-modal-icon {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  background: linear-gradient(135deg, var(--aksa-blue), var(--aksa-blue-light));
+  box-shadow: 0 4px 14px rgba(13, 94, 168, 0.32);
+}
+.password-modal-title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--ink);
+}
+.password-modal-desc {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--mut);
+}
+.password-modal-box form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.password-modal-reveal {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--mut);
+  cursor: pointer;
+  user-select: none;
+}
+.password-modal-reveal input {
+  accent-color: var(--aksa-blue);
+  cursor: pointer;
+}
+.password-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 8px;
 }
 
 /* ---------------------------------------------------------------------- */
