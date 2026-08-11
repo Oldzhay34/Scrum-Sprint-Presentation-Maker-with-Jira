@@ -116,6 +116,7 @@
   .psegs{display:flex;flex:1;min-width:0}
   .pseg{color:#fff;font-weight:700;display:flex;align-items:center;justify-content:center;font-size:13px;min-width:0;overflow:hidden;white-space:nowrap}
   .modal{position:fixed;inset:0;background:rgba(15,23,32,.55);display:flex;align-items:center;justify-content:center;z-index:50;padding:24px}
+  .modal:has(.zoombox){padding:0}
   .modal .box{background:#fff;border-radius:14px;width:min(900px,94vw);max-height:92vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.3)}
   .modal .mhead{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--line)}
   .modal .mhead img{width:26px;height:26px}
@@ -126,7 +127,7 @@
   .modal textarea:focus{outline:2px solid #BFDBE6}
   .mhint{font-size:12px;color:var(--mut);margin-top:8px}
   .btn.close{background:#EEF2F4;color:var(--ink)}
-  .zoombox{background:#fff;border-radius:14px;width:min(1300px,96vw);height:94vh;padding:14px;box-shadow:0 20px 60px rgba(0,0,0,.3);display:flex;flex-direction:column;overflow:hidden}
+  .zoombox{background:#fff;border-radius:0;width:100vw;height:100vh;padding:14px;box-shadow:none;display:flex;flex-direction:column;overflow:hidden}
   .zoomstagewrap{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;overflow:hidden}
   .zoomstage{position:relative;width:auto;height:100%;max-width:100%;aspect-ratio:16/9;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:#fff}
   .zoomcanvas{position:absolute;top:0;left:0;width:1280px;height:720px;transform-origin:top left}

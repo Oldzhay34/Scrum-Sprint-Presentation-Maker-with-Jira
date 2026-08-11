@@ -23,7 +23,7 @@ import { useCanvasFit } from "../../hooks/useCanvasFit";
  * zaman göstermiyor" - bunun kok nedeni buydu.
  */
 export default function ExportPreviewModal({ open, onClose, tabs, activeTab, onTabChange, renderCanvas, previewTheme, onPreviewThemeChange, onConfirmDownload, downloading }) {
-  const { boxRef, scale } = useCanvasFit();
+  const { boxRef, scale } = useCanvasFit({ fitParent: true, active: open });
   const idx = tabs ? Math.max(0, tabs.findIndex((t) => t.key === activeTab)) : 0;
   const goTo = (delta) => tabs && onTabChange(tabs[(idx + delta + tabs.length) % tabs.length].key);
 

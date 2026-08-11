@@ -2,6 +2,7 @@ import Modal from "./Modal";
 import Button from "./Button";
 import { useCanvasFit } from "../../hooks/useCanvasFit";
 import { useCountdown, formatMmSs } from "../../hooks/useCountdown";
+import { useFullscreen } from "../../hooks/useFullscreen";
 
 /**
  * Buyutulmus onizleme modali. Sprint modunda icerik/kapak sekmeleri gosterir,
@@ -12,7 +13,8 @@ import { useCountdown, formatMmSs } from "../../hooks/useCountdown";
  * bir uyari class'i eklenir, 0'a ulasinca sayac orada durur (modal kapanmaz).
  */
 export default function ZoomModal({ open, onClose, tabs, activeTab, onTabChange, renderCanvas, timerSeconds = null }) {
-  const { boxRef, scale } = useCanvasFit();
+  const { boxRef, scale } = useCanvasFit({ fitParent: true, active: open });
+  useFullscreen(open);
   const idx = tabs ? Math.max(0, tabs.findIndex((t) => t.key === activeTab)) : 0;
   const goTo = (delta) => tabs && onTabChange(tabs[(idx + delta + tabs.length) % tabs.length].key);
   const remaining = useCountdown(timerSeconds, open);
