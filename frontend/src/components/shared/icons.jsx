@@ -282,6 +282,32 @@ export function IconLogout(props) {
   );
 }
 
+/**
+ * Jira'dan Çek eylemi icin - Jira'nin markasini (uc ic ice donmus eslkenar
+ * dortgen) cagristiran, tek renkli (currentColor) stilize bir simge. Diger
+ * ikonlarla ayni cizgi-tabanli dil kullanilir, marka logosunun birebir
+ * kopyasi degildir.
+ */
+export function IconJira(props) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
+      <path
+        d="M12 2 3.2 10.2a1.3 1.3 0 0 0 0 1.9L12 20.3l8.8-8.2a1.3 1.3 0 0 0 0-1.9L12 2Z"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M12 6.6 6.9 11.4 12 16.2l5.1-4.8L12 6.6Z"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
+      <circle cx="12" cy="11.4" r="1.5" fill="currentColor" />
+    </svg>
+  );
+}
+
 /** Profil ekranindaki "Şifre Değiştir" eylemi icin asma kilit. */
 export function IconLock(props) {
   return (

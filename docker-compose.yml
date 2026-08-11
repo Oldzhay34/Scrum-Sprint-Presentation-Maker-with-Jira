@@ -114,6 +114,10 @@ services:
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-capacity_planner}
       MINIO_BUCKET: ${MINIO_BUCKET:-capacity-planner-assets}
       APP_JWT_SECRET: ${APP_JWT_SECRET:?APP_JWT_SECRET .env icinde tanimlanmali}
+      JIRA_ENABLED: ${JIRA_ENABLED:-false}
+      JIRA_BASE_URL: ${JIRA_BASE_URL:-}
+      JIRA_ACCOUNT_EMAIL: ${JIRA_ACCOUNT_EMAIL:-}
+      JIRA_API_KEY: ${JIRA_API_KEY:-}
     ports:
       - "${BACKEND_PORT:-8080}:8080"
     depends_on:

@@ -41,6 +41,26 @@ export function resolveTeamTypeFromDepartment(department) {
   return "GENEL";
 }
 
+/**
+ * TeamType -> Jira proje anahtarı (docs/jira-endpoint-plani.md Faz 0 keşfiyle
+ * kazanciholding.atlassian.net üzerinde GET /rest/api/3/project/search ile
+ * doğrulanmış gerçek eşlemeler - bkz. JiraDiscoveryController). Burada
+ * olmayan bir teamType için Jira'dan çekme yapılamaz (proje anahtarı henüz
+ * bilinmiyor) - handleJiraSync bu durumda kullanıcıyı açıkça bilgilendirir.
+ */
+export const JIRA_PROJECT_KEY_BY_TEAM_TYPE = {
+  RPA: "RPA",
+  IS_ZEKASI: "IZ",
+  YAPAY_ZEKA: "YZ",
+  DSYS: "DSYS",
+  KONUM_TABANLI_URUN_GELISTIRME: "CBS",
+  DIJITAL_UYGULAMALAR: "DA",
+};
+
+export function resolveJiraProjectKey(teamType) {
+  return JIRA_PROJECT_KEY_BY_TEAM_TYPE[teamType] ?? null;
+}
+
 /** Login yanitindaki personnel.roles (dizi ya da string) icinde ADMIN var mi kontrol eder. */
 export function resolveIsAdmin(personnel) {
   const roles = personnel?.roles || [];

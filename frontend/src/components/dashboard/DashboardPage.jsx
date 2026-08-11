@@ -2,14 +2,16 @@ import DashboardMetaForm from "./DashboardMetaForm";
 import PersonMappingTable from "./PersonMappingTable";
 import DeltaForm from "./DeltaForm";
 import ManualDashboardForm from "./ManualDashboardForm";
+import JiraDashboardPanel from "./JiraDashboardPanel";
 import DashboardTableHeadersEditor from "./DashboardTableHeadersEditor";
 import ErrorBanner from "../shared/ErrorBanner";
 
 /**
- * Sihirbazin 2. adimi: Kapasite Dashboard veri girisi (Excel'den Yukle veya
- * Manuel Gir). Onizleme artik UnifiedPreviewPane icinde ayri olarak yonetiliyor.
+ * Sihirbazin 2. adimi: Kapasite Dashboard veri girisi (Excel'den Yukle,
+ * Manuel Gir veya Jira'dan - DB'de zaten senkronize edilmis veriyi okur).
+ * Onizleme artik UnifiedPreviewPane icinde ayri olarak yonetiliyor.
  */
-export default function DashboardPage({ source, onSourceChange, dashboard, manual, teamId, tableHeaders, setTableHeaders }) {
+export default function DashboardPage({ source, onSourceChange, dashboard, manual, jira, teamId, tableHeaders, setTableHeaders }) {
   return (
     <section>
       <div className="tabs">
@@ -18,6 +20,9 @@ export default function DashboardPage({ source, onSourceChange, dashboard, manua
         </button>
         <button type="button" className={`tab${source === "manual" ? " active" : ""}`} onClick={() => onSourceChange("manual")}>
           Manuel Gir
+        </button>
+        <button type="button" className={`tab${source === "jira" ? " active" : ""}`} onClick={() => onSourceChange("jira")}>
+          Jira'dan
         </button>
       </div>
 
@@ -40,8 +45,10 @@ export default function DashboardPage({ source, onSourceChange, dashboard, manua
             hasFte={dashboard.hasFte}
           />
         </>
-      ) : (
+      ) : source === "manual" ? (
         <ManualDashboardForm m={manual} teamId={teamId} />
+      ) : (
+        <JiraDashboardPanel j={jira} />
       )}
     </section>
   );

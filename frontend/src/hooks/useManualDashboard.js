@@ -172,8 +172,12 @@ export function useManualDashboard(team, setTeam, sprintNo, setSprintNo, teamTyp
   };
 }
 
-/** Backend'in CapacityDashboardDto'sunu DashboardSlideCanvas'ın beklediği dashData şekline çevirir. */
-function toDashData(dto, team, sprintNo, period, previousSnapshotDate, customKpis = []) {
+/**
+ * Backend'in CapacityDashboardDto'sunu DashboardSlideCanvas'ın beklediği dashData
+ * şekline çevirir. useJiraDashboard.js'de de (DB'den GET /capacity-dashboard ile
+ * gelen AYNI DTO şeklini taşıyan) sonuç için tekrar kullanılır - export edilir.
+ */
+export function toDashData(dto, team, sprintNo, period, previousSnapshotDate, customKpis = []) {
   const durum = riskLevelToLabel(dto.overallRiskLevel);
   return {
     team: team || "Ekip",

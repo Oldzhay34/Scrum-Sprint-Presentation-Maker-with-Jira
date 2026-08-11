@@ -3,7 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes, useNavigate, useParams, useSear
 import "./styles/app.css";
 import "./styles/theme.css";
 
-import { fetchCurrentUser, fetchUserProfile, fetchPresentation, logout, savePresentation, updatePresentationInPlace, recordPresentationDownload } from "./lib/apiClient";
+import { fetchCurrentUser, fetchUserProfile, fetchPresentation, logout, savePresentation, updatePresentationInPlace, recordPresentationDownload, triggerJiraSync } from "./lib/apiClient";
 import LoginPage from "./components/shared/LoginPage";
 import ProfilePage from "./components/shared/ProfilePage";
 import AdminHomePage from "./components/shared/AdminHomePage";
@@ -36,6 +36,7 @@ import { useExcelSuggestions } from "./hooks/useExcelSuggestions";
 import { usePptxExport } from "./hooks/usePptxExport";
 import { useDashboardData } from "./hooks/useDashboardData";
 import { useManualDashboard } from "./hooks/useManualDashboard";
+import { useJiraDashboard } from "./hooks/useJiraDashboard";
 import { useTheme } from "./hooks/useTheme";
 import { useCoverImage } from "./hooks/useCoverImage";
 
@@ -43,7 +44,7 @@ import { autoApplyCompanyHolidays } from "./lib/autoApplyCompanyHolidays";
 import { sectionDefs, SECTION_KEYS } from "./lib/geometry";
 import { buildFullDeck } from "./lib/fullDeckBuilder";
 import { ASSETS } from "./assets/pptxAssets";
-import { hasFteTracking, resolveIsAdmin, resolveTeamTypeFromDepartment } from "./lib/teamTypes";
+import { hasFteTracking, resolveIsAdmin, resolveTeamTypeFromDepartment, resolveJiraProjectKey, teamTypeLabel } from "./lib/teamTypes";
 
 // ZoomModal ("⤢ Preview") ve ExportPreviewModal ("PPTX İndir" oncesi onizleme)
 // AYNI 3 sekmeyi kullanir - tek yerden tanimlanir.
@@ -285,8 +286,6 @@ function MainApp({ theme, toggleTheme, personnel, presentationId, newForTeamId, 
   // PPTX export (buildFullDeck) hem de kayit/yukleme (handleSave/
   // fetchPresentation hidrasyonu, asagida) AYNI degeri gorsun.
   const [tableHeaders, setTableHeaders] = useState(null);
-  const activeDashDataBase = dashSource === "manual" ? manual.dashData : (dashboard.dashData || loadedDashData);
-  const activeDashData = activeDashDataBase ? { ...activeDashDataBase, tableHeaders } : activeDashDataBase;
 
   // ---- Kayitli sunum yukleme (/editor/:id) + kaydetme hedefi ----
   // Ham state'i birebir yansitan "content" sekli (bkz. plan dokumani) hem
@@ -296,6 +295,50 @@ function MainApp({ theme, toggleTheme, personnel, presentationId, newForTeamId, 
   const [loadError, setLoadError] = useState(null);
   const [saveStatus, setSaveStatus] = useState({ loading: false, error: null });
   const saveTeamId = presentationMeta?.teamId ?? newForTeamId ?? personnel?.teamId ?? null;
+
+  // "Jira'dan" sekmesi: DB'de zaten senkronize edilmis (bkz. "Jira'dan Çek")
+  // veriyi okur - saveTeamId gerektigi icin bu hook, onun hesaplanmasindan
+  // SONRA cagrilir (hook cagri SIRASI her render'da ayni oldugu surece
+  // fonksiyon govdesindeki konumu onemli degil).
+  const jiraDash = useJiraDashboard(sprintForm.team, sprintForm.setTeam, sprintForm.sprint, sprintForm.setSprint, saveTeamId, sprintForm.teamType);
+
+  const activeDashDataBase =
+    dashSource === "manual" ? manual.dashData : dashSource === "jira" ? jiraDash.dashData : (dashboard.dashData || loadedDashData);
+  const activeDashData = activeDashDataBase ? { ...activeDashDataBase, tableHeaders } : activeDashDataBase;
+
+  // "Jira'dan Çek" - backend'e senkronizasyon istegini tetikler (RabbitMQ
+  // kuyruguna dusurulur, arka planda islenir - bkz. JiraSyncRequestConsumer).
+  // Bu yuzden istek BASARILI kabul edildiginde bile veriler o an degil,
+  // birkac saniye icinde guncellenir; kullaniciya bunu acikca belirtiyoruz.
+  const [jiraSyncing, setJiraSyncing] = useState(false);
+  const [jiraSyncNotice, setJiraSyncNotice] = useState(null); // { type: "success" | "error", text }
+  const handleJiraSync = () => {
+    if (!saveTeamId) {
+      setJiraSyncNotice({ type: "error", text: "Jira'dan çekebilmek için önce bir takım seçili olmalı." });
+      return;
+    }
+    const jiraProjectKey = resolveJiraProjectKey(sprintForm.teamType);
+    if (!jiraProjectKey) {
+      setJiraSyncNotice({
+        type: "error",
+        text: `"${teamTypeLabel(sprintForm.teamType)}" için Jira proje anahtarı henüz tanımlı değil - bu takım Jira'dan çekilemiyor.`,
+      });
+      return;
+    }
+    setJiraSyncing(true);
+    setJiraSyncNotice(null);
+    triggerJiraSync(saveTeamId, { jiraProjectKey })
+      .then(() => {
+        setJiraSyncNotice({
+          type: "success",
+          text: "Jira senkronizasyonu kuyruğa alındı — veriler birkaç saniye içinde güncellenecek.",
+        });
+      })
+      .catch((err) => {
+        setJiraSyncNotice({ type: "error", text: err?.message || "Jira senkronizasyonu başlatılamadı." });
+      })
+      .finally(() => setJiraSyncing(false));
+  };
 
   // Excel'deki Toplam/Tamamlanan sayilari sirket tatilleri ZATEN dusulmus
   // sekilde hazirlaniyor (bkz. kullanici bildirimi) - bu yuzden Excel
@@ -472,7 +515,9 @@ function MainApp({ theme, toggleTheme, personnel, presentationId, newForTeamId, 
         throw new Error(
           dashSource === "manual"
             ? "Kapasite Dashboard adımında önce verileri girip Hesapla'ya basın."
-            : "Kapasite Dashboard adımında önce Excel yükleyin."
+            : dashSource === "jira"
+              ? "Kapasite Dashboard adımında önce \"Jira'dan Çek\" ile senkronize edip Yenile'ye basın."
+              : "Kapasite Dashboard adımında önce Excel yükleyin."
         );
       }
       const data = { ...sprintForm.data, showBand: band.show, targets: band.bars };
@@ -516,6 +561,8 @@ function MainApp({ theme, toggleTheme, personnel, presentationId, newForTeamId, 
               saving={saveStatus.loading}
               onUpdate={canEdit && fromJoint && presentationMeta ? handleUpdateInPlace : null}
               updating={saveStatus.loading}
+              onJiraSync={handleJiraSync}
+              jiraSyncing={jiraSyncing}
             />
           ) : (
             <DashboardTopActions
@@ -527,10 +574,37 @@ function MainApp({ theme, toggleTheme, personnel, presentationId, newForTeamId, 
               saving={saveStatus.loading}
               onUpdate={canEdit && fromJoint && presentationMeta ? handleUpdateInPlace : null}
               updating={saveStatus.loading}
+              onJiraSync={handleJiraSync}
+              jiraSyncing={jiraSyncing}
             />
           )
         }
       />
+
+      {jiraSyncNotice && (
+        <div
+          role="status"
+          style={{
+            margin: "10px 22px",
+            padding: "10px 14px",
+            borderRadius: 8,
+            display: "flex",
+            alignItems: "flex-start",
+            gap: 10,
+            background: jiraSyncNotice.type === "success" ? "#DCFCE7" : "#FEE2E2",
+            color: jiraSyncNotice.type === "success" ? "#166534" : "#991B1B",
+          }}
+        >
+          <div style={{ flex: 1 }}>{jiraSyncNotice.text}</div>
+          <button
+            onClick={() => setJiraSyncNotice(null)}
+            aria-label="Bildirimi kapat"
+            style={{ border: 0, background: "transparent", cursor: "pointer", fontSize: 16, lineHeight: 1, color: "inherit" }}
+          >
+            ×
+          </button>
+        </div>
+      )}
 
       <ErrorBanner
         error={fullExport.error || loadError || saveStatus.error}
@@ -581,6 +655,7 @@ function MainApp({ theme, toggleTheme, personnel, presentationId, newForTeamId, 
                 onSourceChange={setDashSource}
                 dashboard={dashboard}
                 manual={manual}
+                jira={jiraDash}
                 teamId={saveTeamId}
                 tableHeaders={tableHeaders}
                 setTableHeaders={setTableHeaders}

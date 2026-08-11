@@ -5,7 +5,10 @@ import com.aksa.capacityplanner.auth.domain.InvalidCredentialsException;
 import com.aksa.capacityplanner.common.domain.DomainValidationException;
 import com.aksa.capacityplanner.common.domain.NotFoundException;
 import com.aksa.capacityplanner.document.adapter.out.storage.DocumentStorageException;
+import com.aksa.capacityplanner.jiraintegration.domain.JiraAccessDeniedException;
+import com.aksa.capacityplanner.jiraintegration.domain.JiraSyncRateLimitedException;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.http.ResponseEntity;
@@ -47,9 +50,26 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.BAD_GATEWAY, ex.getMessage(), request);
     }
 
+    @ExceptionHandler(JiraSyncRateLimitedException.class)
+    public ResponseEntity<ApiErrorResponse> handleJiraSyncRateLimited(JiraSyncRateLimitedException ex, HttpServletRequest request) {
+        return build(HttpStatus.TOO_MANY_REQUESTS, ex.getMessage(), request, HttpHeaders.RETRY_AFTER, String.valueOf(ex.getRetryAfterSeconds()));
+    }
+
+    @ExceptionHandler(JiraAccessDeniedException.class)
+    public ResponseEntity<ApiErrorResponse> handleJiraAccessDenied(JiraAccessDeniedException ex, HttpServletRequest request) {
+        return build(HttpStatus.BAD_GATEWAY, ex.getMessage(), request);
+    }
+
     private ResponseEntity<ApiErrorResponse> build(HttpStatus status, String message, HttpServletRequest request) {
         ApiErrorResponse body = new ApiErrorResponse(
                 Instant.now(), status.value(), status.getReasonPhrase(), message, request.getRequestURI());
         return ResponseEntity.status(status).body(body);
+    }
+
+    private ResponseEntity<ApiErrorResponse> build(HttpStatus status, String message, HttpServletRequest request,
+                                                     String headerName, String headerValue) {
+        ApiErrorResponse body = new ApiErrorResponse(
+                Instant.now(), status.value(), status.getReasonPhrase(), message, request.getRequestURI());
+        return ResponseEntity.status(status).header(headerName, headerValue).body(body);
     }
 }

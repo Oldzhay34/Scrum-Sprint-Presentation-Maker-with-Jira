@@ -224,8 +224,12 @@ async function requestJson(path, options = {}) {
   if (!response.ok) {
     await parseErrorBody(response, "Sunucu hatası (HTTP " + response.status + ")");
   }
-  if (response.status === 204) return null;
-  return response.json();
+  // 204 (No Content) disinda, 202 (Accepted) gibi govdesiz baska basarili
+  // yanitlar da olabilir (orn. POST /jira-sync -> ResponseEntity.accepted().build()) -
+  // response.json() bos govdede "Unexpected end of JSON input" ile patliyordu
+  // (bkz. kullanici bildirimi). Govde varsa parse edilir, yoksa null donulur.
+  const text = await response.text();
+  return text ? JSON.parse(text) : null;
 }
 
 /** Takım seçici (admin split-screen sol panel) için mevcut takımları döner. */
@@ -389,4 +393,35 @@ export async function createLeavePeriod(period) {
 
 export async function deleteLeavePeriod(id) {
   return requestJson(`/api/leave-periods/${id}`, { method: "DELETE" });
+}
+
+/**
+ * Bir takımın DB'de kayıtlı (WorkItem/TeamMember) verilerinden GERÇEK kapasite
+ * dashboard'unu hesaplatır (bkz. backend CapacityDashboardController - Excel/
+ * Manuel'den farklı olarak burada veri triggerJiraSync ile Jira'dan senkronize
+ * edilip work_items tablosuna yazılmış olan verilerdir).
+ */
+export async function fetchCapacityDashboard(teamId, { reportDate, periodStart, periodEnd, previousSnapshotDate } = {}) {
+  const params = new URLSearchParams();
+  if (reportDate) params.set("reportDate", reportDate);
+  if (periodStart) params.set("periodStart", periodStart);
+  if (periodEnd) params.set("periodEnd", periodEnd);
+  if (previousSnapshotDate) params.set("previousSnapshotDate", previousSnapshotDate);
+  const qs = params.toString();
+  return requestJson(`/api/teams/${teamId}/capacity-dashboard${qs ? "?" + qs : ""}`);
+}
+
+/**
+ * Jira senkronizasyonunu tetikler (backend RabbitMQ kuyruğuna düşürür,
+ * asenkron işlenir - bkz. JiraSyncRequestConsumer). jira.enabled=false ise
+ * (API anahtarı tanımlı değilse) istek yine kabul edilir ama hiçbir veri
+ * gelmez (NoOpJiraGatewayAdapter boş liste döner) - bu durumda kullanıcıya
+ * "Jira bağlantısı henüz yapılandırılmadı" gibi bir yanıt DÖNMEZ, backend
+ * sessizce boş sonuçla biter (bkz. docs/jira-endpoint-plani.md).
+ */
+export async function triggerJiraSync(teamId, { jiraProjectKey, jql } = {}) {
+  return requestJson(`/api/teams/${teamId}/jira-sync`, {
+    method: "POST",
+    body: JSON.stringify({ jiraProjectKey, jql }),
+  });
 }

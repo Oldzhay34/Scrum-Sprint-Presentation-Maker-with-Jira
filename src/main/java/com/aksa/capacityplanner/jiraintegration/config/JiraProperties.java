@@ -20,6 +20,8 @@ public class JiraProperties {
     private String baseUrl;
     private String accountEmail;
     private String apiKey;
+    /** Ayni takim icin iki jira-sync tetikleme istegi arasinda zorunlu minimum sure (bkz. JiraSyncRateLimiter). */
+    private int syncCooldownSeconds = 60;
 
     public boolean isEnabled() {
         return enabled;
@@ -51,5 +53,13 @@ public class JiraProperties {
 
     public void setApiKey(String apiKey) {
         this.apiKey = apiKey;
+    }
+
+    public int getSyncCooldownSeconds() {
+        return syncCooldownSeconds;
+    }
+
+    public void setSyncCooldownSeconds(int syncCooldownSeconds) {
+        this.syncCooldownSeconds = syncCooldownSeconds;
     }
 }

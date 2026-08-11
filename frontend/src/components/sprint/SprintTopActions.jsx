@@ -1,6 +1,6 @@
 import { useRef } from "react";
 import Button from "../shared/Button";
-import { IconUpload, IconDownload, IconSave, IconRefresh } from "../shared/icons";
+import { IconUpload, IconDownload, IconSave, IconRefresh, IconJira } from "../shared/icons";
 
 /**
  * Sprint modu ust bar eylemleri. Pressman - Command/Menu Labeling: tum
@@ -9,9 +9,15 @@ import { IconUpload, IconDownload, IconSave, IconRefresh } from "../shared/icons
  * (App.jsx'te canEdit false ise onSave={null} geciliyor). "Güncelle"
  * (onUpdate) sadece Ortak Sunum ekranindan (?fromJoint=1) gelindiginde
  * gorunur - yeni surum eklemeden mevcut sunumu yerinde gunceller.
+ * "Jira'dan Çek" (onJiraSync) DashboardTopActions ile AYNI eylemi tetikler -
+ * kullanici sihirbaza girince ILK gordugu adim burasi (Kapak Sayfasi), bu
+ * yuzden buton sadece Kapasite Dashboard adiminda degil burada da gorunur
+ * olmali (bkz. kullanici bildirimi: "buton gozukmuyor" - sadece 3. adimda
+ * oldugu icin bulunamiyordu).
  */
 export default function SprintTopActions({
   onExcelFile, excelLoading, onGenerate, generating, onSave, saving, onUpdate, updating,
+  onJiraSync, jiraSyncing,
 }) {
   const fileInputRef = useRef(null);
 
@@ -31,6 +37,18 @@ export default function SprintTopActions({
         <IconUpload className="navbar-icon" />
         Excel Yükle
       </Button>
+      {onJiraSync && (
+        <Button
+          variant="ghost"
+          loading={jiraSyncing}
+          loadingLabel="Jira'dan çekiliyor…"
+          onClick={onJiraSync}
+          title="Bu takım için Jira senkronizasyonunu tetikler - veriler arka planda birkaç saniye içinde güncellenir"
+        >
+          <IconJira className="navbar-icon" />
+          Jira'dan Çek
+        </Button>
+      )}
       {onSave && (
         <Button variant="ghost" loading={saving} loadingLabel="Kaydediliyor…" onClick={onSave}>
           <IconSave className="navbar-icon" />
