@@ -6,6 +6,7 @@ import com.aksa.capacityplanner.capacity.port.out.WorkItemRepositoryPort;
 import com.aksa.capacityplanner.jiraintegration.config.JiraSyncQueueConfig;
 import com.aksa.capacityplanner.jiraintegration.port.JiraGatewayPort;
 import com.aksa.capacityplanner.jiraintegration.port.JiraGatewayPort.JiraIssueSnapshot;
+import com.aksa.capacityplanner.jiraintegration.domain.JiraEstimationFieldMapper;
 import com.aksa.capacityplanner.jiraintegration.domain.JiraStatusMapper;
 import com.aksa.capacityplanner.jiraintegration.port.JiraSyncRequestedMessage;
 import com.aksa.capacityplanner.monitoring.domain.AuditLog;
@@ -13,6 +14,8 @@ import com.aksa.capacityplanner.monitoring.port.out.AuditLogRepositoryPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -45,12 +48,14 @@ public class JiraSyncRequestConsumer {
     private final JiraGatewayPort jiraGatewayPort;
     private final WorkItemRepositoryPort workItemRepository;
     private final AuditLogRepositoryPort auditLogRepository;
+    private final CacheManager cacheManager;
 
     public JiraSyncRequestConsumer(JiraGatewayPort jiraGatewayPort, WorkItemRepositoryPort workItemRepository,
-                                    AuditLogRepositoryPort auditLogRepository) {
+                                    AuditLogRepositoryPort auditLogRepository, CacheManager cacheManager) {
         this.jiraGatewayPort = jiraGatewayPort;
         this.workItemRepository = workItemRepository;
         this.auditLogRepository = auditLogRepository;
+        this.cacheManager = cacheManager;
     }
 
     @RabbitListener(queues = JiraSyncQueueConfig.REQUEST_QUEUE)
@@ -77,7 +82,7 @@ public class JiraSyncRequestConsumer {
         int failed = 0;
         for (JiraIssueSnapshot issue : issues) {
             try {
-                upsert(message.teamId(), issue);
+                upsert(message.teamId(), message.jiraProjectKey(), issue);
                 upserted++;
             } catch (RuntimeException e) {
                 // Tek bir issue'nun (orn. status_options'ta karsiligi olmayan bir Jira
@@ -91,18 +96,39 @@ public class JiraSyncRequestConsumer {
         String label = "Jira senkronizasyonu tamamlandi: " + upserted + " is kalemi guncellendi"
                 + (failed > 0 ? ", " + failed + " basarisiz" : "");
         recordAudit(message.teamId(), failed == 0, label);
+
+        if (upserted > 0) {
+            evictCapacityDashboardCache();
+        }
+    }
+
+    /**
+     * CapacityDashboardService.getDashboard() @Cacheable("capacity-dashboard")
+     * ile TTL boyunca (app.cache.ttl-seconds, varsayilan 300sn) sonucu
+     * onbelleklıyor - work_items burada guncellendikten SONRA bu cache
+     * silinmezse, kullanici "Yenile"ye bassa bile TTL dolana kadar ESKI
+     * (senkron ONCESI) sayilari gormeye devam ederdi. Cache key tum
+     * DashboardQuery'yi (teamId+tarihler) icerdigi icin tek bir takima ozel
+     * silme yapilamiyor - butun "capacity-dashboard" cache'i temizlenir (hafif
+     * bir hesaplama oldugu icin bunun maliyeti onemsiz).
+     */
+    private void evictCapacityDashboardCache() {
+        Cache cache = cacheManager.getCache("capacity-dashboard");
+        if (cache != null) {
+            cache.clear();
+        }
     }
 
     /** Jira'nin saniye cinsinden tuttugu sure alanlarini gun'e cevirirken kullanilan is gunu uzunlugu (Jira Cloud varsayilani). */
     private static final BigDecimal SECONDS_PER_WORK_DAY = BigDecimal.valueOf(8L * 60 * 60);
 
-    private void upsert(Long teamId, JiraIssueSnapshot issue) {
+    private void upsert(Long teamId, String jiraProjectKey, JiraIssueSnapshot issue) {
         // Jira'nin kendi statu adlari (orn. "PROD", "Açık") uygulamanin
         // status_options.code degerleriyle (orn. "Canlı", "Backlog") birebir
         // AYNI degil - dogrudan issue.statusName() yazmak V8'deki
         // chk_work_items_status_code kontrolunu her satirda ihlal ediyordu.
         String appStatusCode = JiraStatusMapper.resolve(issue.statusName());
-        BigDecimal plannedEffortDays = extractPlannedEffortDays(issue.fieldValues());
+        BigDecimal plannedEffortDays = extractPlannedEffortDays(jiraProjectKey, issue.fieldValues());
 
         WorkItem workItem = workItemRepository.findByJiraIssueKey(issue.issueKey())
                 .orElseGet(() -> new WorkItem(null, teamId, null, issue.summary(), issue.issueKey(),
@@ -114,17 +140,21 @@ public class JiraSyncRequestConsumer {
     }
 
     /**
-     * Jira'nin timeoriginalestimate/aggregatetimeoriginalestimate alanlari saniye
-     * cinsindendir (bkz. docs/jira-endpoint-plani.md). Alt gorevleri de kapsayan
-     * "aggregate" alan varsa o tercih edilir, yoksa issue'nun kendi tahminine
-     * dusulur, o da yoksa 0 (efor girilmemis Jira issue'lari icin makul varsayilan -
-     * NOT NULL olan planned_effort_days'i bos birakamayiz).
-     *
-     * 8 saatlik is gunu varsayimi Jira Cloud'un varsayilan "Time tracking" ayaridir;
-     * bu instance'da farkli yapilandirilmissa (bkz. Jira admin > Time tracking)
-     * buradaki SECONDS_PER_WORK_DAY guncellenmelidir.
+     * RPA/IZ board'lari zaman takibi KULLANMIYOR (timeoriginalestimate vb. hep
+     * null geliyordu - bkz. kullanici bildirimi "efor hep 0"). Once board'un
+     * gercek estimation alanina (Story Points, proje bazinda farkli
+     * customfield_XXXXX - bkz. JiraEstimationFieldMapper) bakilir; hicbir sey
+     * yoksa (bilinmeyen proje veya alan bos) saniye-tabanli zaman takibi
+     * alanlarina (aggregate varsa o, yoksa issue'nun kendi tahmini) dusulur;
+     * o da yoksa 0 (NOT NULL olan planned_effort_days'i bos birakamayiz).
      */
-    private BigDecimal extractPlannedEffortDays(Map<String, Object> fields) {
+    private BigDecimal extractPlannedEffortDays(String jiraProjectKey, Map<String, Object> fields) {
+        String estimationFieldId = JiraEstimationFieldMapper.resolveFieldId(jiraProjectKey);
+        if (estimationFieldId != null && fields.get(estimationFieldId) instanceof Number storyPoints) {
+            // Story Points 1:1 gun olarak varsayilir - bkz. JiraEstimationFieldMapper javadoc'u.
+            return BigDecimal.valueOf(storyPoints.doubleValue()).setScale(2, RoundingMode.HALF_UP);
+        }
+
         Object seconds = fields.get("aggregatetimeoriginalestimate");
         if (seconds == null) {
             seconds = fields.get("timeoriginalestimate");

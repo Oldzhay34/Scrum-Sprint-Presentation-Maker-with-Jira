@@ -1,5 +1,6 @@
 package com.aksa.capacityplanner.jiraintegration.adapter;
 
+import com.aksa.capacityplanner.jiraintegration.domain.JiraEstimationFieldMapper;
 import com.aksa.capacityplanner.jiraintegration.port.JiraGatewayPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,13 +42,22 @@ public class JiraRestClientAdapter implements JiraGatewayPort {
 
     private static final Logger log = LoggerFactory.getLogger(JiraRestClientAdapter.class);
 
-    /** Tek istekte cekilecek Jira alanlari. Takima ozgu custom field'lar (Sektor, Departman vb.)
-     *  gercek customfield_XXXXX id'leri Faz 0 kesfiyle netlesince buraya eklenecek. */
+    /**
+     * Tek istekte cekilecek Jira alanlari. RPA/IZ board'lari zaman takibi
+     * (timeoriginalestimate vb.) KULLANMIYOR - GET /rest/agile/1.0/board/{id}/configuration
+     * ile dogrulandi: her ikisi de "estimation.type"="field" ile Story Points
+     * benzeri bir custom field kullaniyor (bkz. JiraEstimationFieldMapper).
+     * O yuzden zaman-takibi alanlarinin yaninda bu custom field id'leri de
+     * (RPA: customfield_10057, IZ: customfield_10016) burada istenir - takima
+     * ozgu diger custom field'lar (Sektor, Departman vb.) Faz 0 kesfi tamamlaninca eklenir.
+     */
     private static final List<String> DEFAULT_FIELDS = List.of(
             "summary", "status", "assignee", "priority", "issuetype",
             "timeoriginalestimate", "timeestimate", "timespent",
             "aggregatetimeoriginalestimate", "aggregatetimespent",
-            "created", "updated", "resolutiondate");
+            "created", "updated", "resolutiondate",
+            JiraEstimationFieldMapper.RPA_STORY_POINTS_FIELD_ID,
+            JiraEstimationFieldMapper.IZ_STORY_POINTS_FIELD_ID);
 
     private static final int PAGE_SIZE = 100;
     private static final int MAX_PAGES = 50; // guvenlik siniri: 50 * 100 = 5000 issue
