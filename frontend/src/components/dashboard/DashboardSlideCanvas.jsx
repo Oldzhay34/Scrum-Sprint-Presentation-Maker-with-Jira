@@ -1,4 +1,4 @@
-import { DAV_COLORS, barColor, dStatus, nfmt1, nfmtInt, npct } from "../../lib/format";
+import { CARD_TONES, DAV_COLORS, barColor, buildSummaryCards, dStatus, nfmtInt, npct, personTotals } from "../../lib/format";
 import { resolveTableHeaders } from "../../lib/dashboardTableHeaders";
 import { DEFAULT_CORNER_MESH } from "../../assets/cornerMesh";
 
@@ -23,26 +23,12 @@ export default function DashboardSlideCanvas({ dd, assets, scale }) {
     );
   }
 
-  const k = dd.kpis, dur = dStatus(k.durum, k.doluluk);
   const th = resolveTableHeaders(dd.tableHeaders);
-  const cards = [
-    ["Toplam İş Yükü", nfmtInt(k.toplam), "A/G", "var(--ink)"],
-    ["Tamamlanan İş Yükü", nfmtInt(k.tamamlanan), "A/G", "#16A34A"],
-    ["Açık İş Yükü", nfmtInt(k.acik), "A/G", "var(--ink)"],
-    ["Kullanılabilir Kapasite", nfmtInt(k.kapasite), "A/G", "#2563EB"],
-    ["Bakımlı Doluluk", npct(k.doluluk), "Bakım/SR sonrası %", "#" + dur.bar],
-    ["Kapasite Açığı / Fazlası", nfmt1(k.acikFazla), "A/G", k.acikFazla < 0 ? "#DC2626" : "var(--ink)"],
-    ["Genel Durum", dur.label, "Doluluk eşiklerine göre", "#" + dur.fg],
-    ...(dd.customKpis || []).map((c) => [c.label, c.value, c.unit || "", "#7C3AED"]),
-  ];
+  const cards = buildSummaryCards(dd);
+  const totals = personTotals(dd.persons);
   const d = dd.delta;
-  const deltaCards = d
-    ? [
-        ["Dönem Kapanan İş Yükü", nfmtInt(d.kapanan)],
-        ["Canlıya Alınan FTE", d.fte !== "" ? String(d.fte).trim() : null],
-        ["Yeni Eklenen İş Yükü", nfmtInt(d.eklenen)],
-        ["Net İş Yükü Değişimi", nfmtInt(d.net), true],
-      ].filter((c) => c[1] !== null)
+  const noteParts = d
+    ? [d.kapanan !== "" && d.kapanan != null ? `Dönem Kapanan: ${nfmtInt(d.kapanan)} A/G` : null, d.fte !== "" && d.fte != null ? `Canlıya Alınan FTE: ${String(d.fte).trim()}` : null].filter(Boolean)
     : [];
 
   // PPTX'teki (dashboardDeckBuilder.js) ile AYNI inc koordinatlari - sol kenar
@@ -87,26 +73,28 @@ export default function DashboardSlideCanvas({ dd, assets, scale }) {
           {"  •  Rapor Tarihi: "}
           {dd.reportDate}
         </div>
+        <div className="dsec">Ekip Özet</div>
         <div className="dkpis">
-          {cards.map((c, i) => (
-            <div className="dcard" key={i} style={{ "--dcard-accent": c[3] }}>
-              <div className="cl">{c[0]}</div>
-              <div className="cv" style={{ color: c[3], fontSize: i === 6 ? 16 : 23 }}>{c[1]}</div>
-              <div className="cu">{c[2]}</div>
-            </div>
-          ))}
-        </div>
-        {d && (
-          <div className="ddelta">
-            <div className="dlab">
-              <b>Son 2 Hafta</b>
-              {d.range && <div>{d.range}</div>}
-            </div>
-            {deltaCards.map((c, i) => (
-              <div className={`dc${c[2] ? " hl" : ""}`} key={i}>
-                <div className="l">{c[0]}</div>
-                <div className="v">{String(c[1])}</div>
+          {cards.map((c, i) => {
+            const tone = c.toneName ? CARD_TONES[c.toneName] : null;
+            return (
+              <div
+                className="dcard"
+                key={i}
+                data-tone={c.toneName || undefined}
+                style={{ "--tone-bg": tone ? "#" + tone.bg : undefined, "--tone-border": tone ? "#" + tone.border : undefined }}
+              >
+                <div className="cl">{c.label}</div>
+                <div className="cv" style={{ color: tone ? "#" + tone.fg : "var(--ink)", fontSize: c.text ? 18 : 27 }}>{c.value}</div>
+                <div className="cu">{c.sub}</div>
               </div>
+            );
+          })}
+        </div>
+        {noteParts.length > 0 && (
+          <div className="dnote">
+            {noteParts.map((t, i) => (
+              <span key={i}>{t}</span>
             ))}
           </div>
         )}
@@ -114,7 +102,6 @@ export default function DashboardSlideCanvas({ dd, assets, scale }) {
         <div className="dtable">
           <div className="dtr h">
             <span>{th.kisi}</span>
-            <span className="ctr">{th.toplam}<b className="ag">(AG)</b></span>
             <span className="ctr">{th.tamamlanan}<b className="ag">(AG)</b></span>
             <span className="ctr">{th.acik}<b className="ag">(AG)</b></span>
             <span className="ctr">{th.kapasite}<b className="ag">(AG)</b></span>
@@ -134,7 +121,6 @@ export default function DashboardSlideCanvas({ dd, assets, scale }) {
                     {p.role && <div className="rl">{p.role}</div>}
                   </div>
                 </div>
-                <div className="c">{nfmtInt(p.toplam)}</div>
                 <div className="c">{nfmtInt(p.tamamlanan)}</div>
                 <div className="c b">{nfmtInt(p.acik)}</div>
                 <div className="c">{nfmtInt(p.kapasite)}</div>
@@ -151,6 +137,16 @@ export default function DashboardSlideCanvas({ dd, assets, scale }) {
               </div>
             );
           })}
+          {(dd.persons || []).length > 0 && (
+            <div className="dtr total">
+              <div className="tlabel">EKİP TOPLAMI</div>
+              <div className="c">{nfmtInt(totals.tamamlanan)}</div>
+              <div className="c">{nfmtInt(totals.acik)}</div>
+              <div className="c">{nfmtInt(totals.kapasite)}</div>
+              <div />
+              <div />
+            </div>
+          )}
         </div>
         </div>
       </div>

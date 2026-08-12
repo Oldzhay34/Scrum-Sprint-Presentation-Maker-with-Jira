@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { parseDashboardExcel } from "../lib/excelParsers";
-import { num, autoRange, nfmt1 } from "../lib/format";
+import { num, autoRange } from "../lib/format";
 import { hasFteTracking } from "../lib/teamTypes";
 
 const DEFAULT_META = { team: "", dateRange: "01 Haziran – 31 Aralık 2026", reportDate: "", reportObj: null };
@@ -15,9 +15,6 @@ export function useDashboardData(dTeam, setDTeam, dSprint, setDSprint, teamType)
   const [persons, setPersons] = useState([]);
   const [kpis, setKpis] = useState(null);
   const [meta, setMeta] = useState(DEFAULT_META);
-  // "İş_Listesi" sayfasindaki "FTE" sutunu baska hicbir hesaplamada kullanilmiyordu -
-  // toplamini burada tutup dashData.customKpis uzerinden ek bir kart olarak gosteriyoruz.
-  const [totalFte, setTotalFte] = useState(null);
 
   const [dKapanan, setDKapanan] = useState("");
   const [dEklenen, setDEklenen] = useState("");
@@ -39,7 +36,6 @@ export function useDashboardData(dTeam, setDTeam, dSprint, setDSprint, teamType)
         setPersons(parsed.persons);
         setKpis(parsed.kpis);
         setMeta(parsed.meta);
-        setTotalFte(parsed.totalFte);
         // Her yeni Excel yuklendiginde ekip adi da o dosyadan gelenle
         // guncellensin - "sadece bossa doldur" mantigi, alan zaten dolu
         // (varsayilan) oldugu icin hicbir zaman tetiklenmiyordu.
@@ -99,8 +95,6 @@ export function useDashboardData(dTeam, setDTeam, dSprint, setDSprint, teamType)
         range: autoRange(meta.reportObj),
       };
     }
-    const customKpis = totalFte != null ? [{ label: "Toplam FTE", value: nfmt1(totalFte), unit: "İş kalemlerinden (Excel)" }] : [];
-
     return {
       team,
       sprintNo: dSprint,
@@ -110,9 +104,8 @@ export function useDashboardData(dTeam, setDTeam, dSprint, setDSprint, teamType)
       persons: mappedPersons,
       delta,
       deltaRange: delta ? delta.range : "",
-      customKpis,
     };
-  }, [dTeam, dSprint, dKapanan, dEklenen, dFte, dNet, persons, kpis, meta, loaded, totalFte]);
+  }, [dTeam, dSprint, dKapanan, dEklenen, dFte, dNet, persons, kpis, meta, loaded]);
 
   // Ekip adi (dTeam) her degistiginde bu mesaj da guncellensin - Excel'den okunan
   // ismi donup kalmasin, kapak sayfasindaki gibi guncel degeri yansitsin.

@@ -181,20 +181,16 @@
   .dash .dsub{font-size:20px;color:var(--mut);margin-top:3px}
   .dash .dlogos{position:absolute;right:24px;top:22px;display:flex;align-items:center;gap:8px}
   .dash .dlogos img{height:30px}
-  .dkpis{display:flex;gap:9px;margin-top:16px}
-  .dcard{flex:1;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:9px 10px;min-width:0}
-  .dcard .cl{font-size:9.5px;color:var(--mut);line-height:1.15;min-height:22px}
-  .dcard .cv{font-size:23px;font-weight:700;margin-top:3px;line-height:1.3;white-space:nowrap;padding-bottom:2px}
-  .dcard .cu{font-size:8px;color:var(--mut);margin-top:4px}
-  .ddelta{display:flex;align-items:center;gap:12px;margin-top:14px}
-  .ddelta .dlab{width:130px;flex:none} .ddelta .dlab b{font-size:12.5px;color:var(--mut)} .ddelta .dlab div{font-size:10px;color:var(--mut);margin-top:2px}
-  .ddelta .dc{flex:1;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px 12px}
-  .ddelta .dc.hl{background:#FEF2F2;border-color:#FCA5A5}
-  .ddelta .dc .l{font-size:10px;color:var(--mut)} .ddelta .dc.hl .l{color:#B91C1C}
-  .ddelta .dc .v{font-size:18px;font-weight:700;color:var(--ink);margin-top:2px}
+  .dsec{font-size:13px;font-weight:700;color:var(--ink);margin-top:16px}
+  .dkpis{display:flex;gap:12px;margin-top:8px}
+  .dcard{flex:1;background:var(--tone-bg,var(--card));border:1px solid var(--tone-border,var(--line));border-radius:10px;padding:14px 14px;min-width:0}
+  .dcard .cl{font-size:10.5px;color:var(--mut);line-height:1.2;min-height:22px}
+  .dcard .cv{font-size:27px;font-weight:700;margin-top:4px;line-height:1.25;white-space:nowrap;padding-bottom:2px}
+  .dcard .cu{font-size:8.5px;color:var(--mut);margin-top:5px}
+  .dnote{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px 14px;margin-top:6px;font-size:10.5px;color:#C2410C;text-align:right}
   .dhead{font-size:15px;font-weight:700;color:var(--ink);margin-top:18px}
   .dtable{margin-top:8px;width:100%}
-  .dtr{display:grid;grid-template-columns:2.5fr 1fr 1fr 1fr 1.15fr 2.6fr 1.5fr;align-items:center;gap:6px;padding:7px 0;border-bottom:1px solid var(--line)}
+  .dtr{display:grid;grid-template-columns:2.5fr 1fr 1fr 1.15fr 2.6fr 1.5fr;align-items:center;gap:6px;padding:7px 0;border-bottom:1px solid var(--line)}
   .dtr.h{border-bottom:1px solid var(--line);align-items:end} .dtr.h span{font-size:10px;color:var(--mut);font-weight:600;line-height:1.15}
   .dtr.h .ctr{text-align:center} .dtr.h .ag{display:block;font-weight:400;font-size:9px;color:var(--mut);margin-top:2px}
   .dtr .c{text-align:center;font-size:14px;color:var(--ink)} .dtr .c.b{font-weight:700}
@@ -205,5 +201,8 @@
   .dtr .dol .dbar{position:relative;flex:1;height:9px;border-radius:6px;background:var(--line);overflow:hidden;max-width:160px}
   .dtr .dol .dbar i{position:absolute;left:0;top:0;bottom:0;border-radius:6px}
   .dtr .dol .pc{font-size:12px;font-weight:700;color:var(--ink);width:44px}
+  .dtr.total{border-top:2px solid var(--ink);border-bottom:none;margin-top:4px;padding-top:12px}
+  .dtr.total .tlabel{font-size:12px;font-weight:700;color:var(--ink);letter-spacing:.02em}
+  .dtr.total .c{background:#EFF6FF;border:1px solid #DBEAFE;border-radius:6px;padding:7px 0;font-weight:700;font-size:14px;color:var(--ink)}
   .pill{justify-self:center;font-size:11px;font-weight:700;padding:4px 12px;border-radius:14px;border:1px solid}
   .hidden{display:none}

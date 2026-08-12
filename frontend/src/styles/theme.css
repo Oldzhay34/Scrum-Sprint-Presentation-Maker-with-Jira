@@ -109,13 +109,6 @@
 .theme-dark .slidecanvas.tab-content .card .chd .ct {
   text-shadow: 0 0 10px color-mix(in srgb, currentColor 65%, transparent);
 }
-.theme-dark .slidecanvas.tab-dashboard .ddelta .dc.hl {
-  background: rgba(220, 38, 38, 0.16);
-  border-color: rgba(252, 165, 165, 0.4);
-}
-.theme-dark .slidecanvas.tab-dashboard .ddelta .dc.hl .l {
-  color: #fca5a5;
-}
 .theme-dark .slidecanvas.tab-dashboard .dttl {
   color: var(--aksa-blue-light);
 }
@@ -216,50 +209,58 @@
 
 /* Kapasite Dashboard slayti - KPI/kisi tablosu kartlarina golge + renk
    cilasi. Acik modda hafif, koyu modda ("cafcafli") daha belirgin. */
-.slidecanvas.tab-dashboard .dcard,
-.slidecanvas.tab-dashboard .ddelta .dc {
+.slidecanvas.tab-dashboard .dcard {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
-.theme-dark .slidecanvas.tab-dashboard .dcard,
-.theme-dark .slidecanvas.tab-dashboard .ddelta .dc {
+.theme-dark .slidecanvas.tab-dashboard .dcard {
   box-shadow: 0 3px 12px rgba(0, 0, 0, 0.3);
 }
 
-/* KPI kartlari - her kartin kendi anlam rengiyle (--dcard-accent, JS'ten
-   inline aktarilir) ust kenar + kose parlamasi. Referans gorseldeki canli/
-   renkli KPI kart hissi - yeni grafik/veri eklemeden, sadece renk cilasi. */
-.slidecanvas.tab-dashboard .dcard {
-  position: relative;
-  overflow: hidden;
-  isolation: isolate;
-  border-top: 2px solid color-mix(in srgb, var(--dcard-accent, #4a9fe0) 70%, transparent);
+/* "Ekip Özet" KPI kartlarinin ton rengi (data-tone, JS'ten --tone-bg/--tone-border
+   olarak inline aktarilir) - acik modda pastel dolgu, koyu modda ("cafcafli")
+   saydam renkli dolgu (bkz. asagidaki [data-tone="..."] kurallari, eskiden
+   .ddelta .dc.hl icin kullanilan AYNI rgba degerler). */
+.theme-dark .slidecanvas.tab-dashboard .dcard[data-tone="risk"],
+.zoomstagewrap.preview-dark .slidecanvas.tab-dashboard .dcard[data-tone="risk"] {
+  background: rgba(220, 38, 38, 0.16);
+  border-color: rgba(252, 165, 165, 0.4);
 }
-.slidecanvas.tab-dashboard .dcard::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  background: radial-gradient(140px 90px at 0% 0%, color-mix(in srgb, var(--dcard-accent, #4a9fe0) 12%, transparent), transparent 70%);
+.theme-dark .slidecanvas.tab-dashboard .dcard[data-tone="warn"],
+.zoomstagewrap.preview-dark .slidecanvas.tab-dashboard .dcard[data-tone="warn"] {
+  background: rgba(217, 119, 6, 0.16);
+  border-color: rgba(252, 211, 77, 0.4);
+}
+.theme-dark .slidecanvas.tab-dashboard .dcard[data-tone="good"],
+.zoomstagewrap.preview-dark .slidecanvas.tab-dashboard .dcard[data-tone="good"] {
+  background: rgba(22, 163, 74, 0.16);
+  border-color: rgba(134, 239, 172, 0.4);
+}
+.theme-dark .slidecanvas.tab-dashboard .dcard[data-tone="info"],
+.zoomstagewrap.preview-dark .slidecanvas.tab-dashboard .dcard[data-tone="info"] {
+  background: rgba(37, 99, 235, 0.16);
+  border-color: rgba(147, 197, 253, 0.4);
 }
 
-/* Kisi tablosu - doluluk cubugu ve durum rozetine kendi renginde parlama */
-.slidecanvas.tab-dashboard .dol .dbar i {
-  box-shadow: 0 0 8px color-mix(in srgb, var(--fill-accent, transparent) 60%, transparent);
-}
-.slidecanvas.tab-dashboard .pill {
-  box-shadow: 0 0 6px color-mix(in srgb, var(--pill-accent, transparent) 35%, transparent);
-}
+/* Referans rapor gorunumu duz/mat (glow/parlama efekti yok) - eskiden KPI
+   kartlarinda ust kenar + kose parlamasi ile doluluk cubugu/rozet/avatarda
+   renkli "glow" box-shadow'lari vardi; yeni "Ekip Özet" kart tonlari (bg+border
+   dolgu) ile CAKISIYOR ve referanstaki duz rapor hissini bozuyordu (bkz.
+   kullanici bildirimi: "sağdaki soldaki ile birebir aynı olsun") - kaldirildi.
+   .dtr .kisi .av'nin hafif golgesi (derinlik icin) ve .dcard'in genel kart
+   golgesi (asagida, "Kapasite Dashboard slayti" bolumunde) korunuyor. */
 .slidecanvas.tab-dashboard .dtr .kisi .av {
-  box-shadow: 0 0 6px rgba(0, 0, 0, 0.2);
-}
-.theme-dark .slidecanvas.tab-dashboard .dol .dbar i {
-  box-shadow: 0 0 8px color-mix(in srgb, var(--fill-accent, transparent) 70%, transparent);
-}
-.theme-dark .slidecanvas.tab-dashboard .pill {
-  box-shadow: 0 0 8px color-mix(in srgb, var(--pill-accent, transparent) 45%, transparent);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
 }
 .theme-dark .slidecanvas.tab-dashboard .dtr .kisi .av {
-  box-shadow: 0 0 8px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
+}
+
+/* "EKİP TOPLAMI" toplam kutulari - acik modda soluk mavi (bkz. app.css
+   .dtr.total .c), koyu modda karta gore biraz daha acik mavi-gri saydam ton. */
+.theme-dark .slidecanvas.tab-dashboard .dtr.total .c,
+.zoomstagewrap.preview-dark .slidecanvas.tab-dashboard .dtr.total .c {
+  background: rgba(37, 99, 235, 0.14);
+  border-color: rgba(147, 197, 253, 0.35);
 }
 
 /* ---------------------------------------------------------------------- */
@@ -317,13 +318,6 @@
 .zoomstagewrap.preview-light .slidecanvas.tab-content .card .chd .ct {
   text-shadow: none;
 }
-.zoomstagewrap.preview-dark .slidecanvas.tab-dashboard .ddelta .dc.hl {
-  background: rgba(220, 38, 38, 0.16);
-  border-color: rgba(252, 165, 165, 0.4);
-}
-.zoomstagewrap.preview-dark .slidecanvas.tab-dashboard .ddelta .dc.hl .l {
-  color: #fca5a5;
-}
 .zoomstagewrap.preview-dark .slidecanvas.tab-dashboard .dttl {
   color: var(--aksa-blue-light);
 }
@@ -342,12 +336,10 @@
 .zoomstagewrap.preview-light .slidecanvas.tab-content .card-watermark {
   opacity: 0.09;
 }
-.zoomstagewrap.preview-dark .slidecanvas.tab-dashboard .dcard,
-.zoomstagewrap.preview-dark .slidecanvas.tab-dashboard .ddelta .dc {
+.zoomstagewrap.preview-dark .slidecanvas.tab-dashboard .dcard {
   box-shadow: 0 3px 12px rgba(0, 0, 0, 0.3);
 }
-.zoomstagewrap.preview-light .slidecanvas.tab-dashboard .dcard,
-.zoomstagewrap.preview-light .slidecanvas.tab-dashboard .ddelta .dc {
+.zoomstagewrap.preview-light .slidecanvas.tab-dashboard .dcard {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 .zoomstagewrap.preview-dark .slidecanvas.tab-dashboard .dol .dbar i {

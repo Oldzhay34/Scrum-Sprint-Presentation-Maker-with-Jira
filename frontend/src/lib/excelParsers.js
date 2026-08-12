@@ -266,24 +266,12 @@ export function parseDashboardExcel(arrayBuffer, fallbackTeamName) {
   const a1 = A[0] && A[0][0] ? String(A[0][0]) : "";
   const team = a1.replace(/Kapasite.*$/i, "").trim() || fallbackTeamName || "Ekip";
 
-  // "İş_Listesi" sayfasindaki "FTE" sutunu su an baska hicbir yerde
-  // kullanilmiyor - toplamini Kapasite Dashboard'da ek bir kart olarak
-  // gostermek icin burada topluyoruz (bkz. useDashboardData.js).
-  let totalFte = null;
-  if (wb.Sheets["İş_Listesi"]) {
-    const rows = XLSX.utils.sheet_to_json(wb.Sheets["İş_Listesi"], { defval: "" });
-    if (rows.some((row) => row["FTE"] !== "" && row["FTE"] != null)) {
-      totalFte = rows.reduce((sum, row) => sum + (Number(row["FTE"]) || 0), 0);
-    }
-  }
-
   const teamType = detectTeamType(wb);
   const { sprintNo, range } = parametrelerHints(wb);
 
   return {
     persons,
     kpis: total,
-    totalFte,
     teamType,
     sprintNo,
     range,

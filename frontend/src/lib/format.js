@@ -39,16 +39,70 @@ export function npct(r) {
 }
 
 const STATUS_STYLE_MAP = {
-  "Yüksek Risk": { fg: "B91C1C", bg: "FEE2E2", bar: "DC2626" },
-  Risk: { fg: "C2410C", bg: "FFEDD5", bar: "EA580C" },
-  Dikkat: { fg: "B45309", bg: "FEF3C7", bar: "D97706" },
-  Uygun: { fg: "15803D", bg: "DCFCE7", bar: "16A34A" },
+  "Yüksek Risk": { fg: "B91C1C", bg: "FEE2E2", bar: "DC2626", border: "FCA5A5" },
+  Risk: { fg: "C2410C", bg: "FFEDD5", bar: "EA580C", border: "FDBA74" },
+  Dikkat: { fg: "B45309", bg: "FEF3C7", bar: "D97706", border: "FCD34D" },
+  Uygun: { fg: "15803D", bg: "DCFCE7", bar: "16A34A", border: "86EFAC" },
+};
+
+/**
+ * "Ekip Özet" KPI kartlari icin ton paleti - hex degerleri "#" ONEKI OLMADAN
+ * (STATUS_STYLE_MAP ile ayni konvansiyon, cagiran taraf ekliyor).
+ */
+export const CARD_TONES = {
+  risk: { bg: "FEE2E2", fg: "B91C1C", border: "FCA5A5" },
+  warn: { bg: "FEF3C7", fg: "B45309", border: "FCD34D" },
+  good: { bg: "DCFCE7", fg: "15803D", border: "86EFAC" },
+  info: { bg: "DBEAFE", fg: "1D4ED8", border: "93C5FD" },
 };
 
 export function dStatus(durum, ratio) {
   let label = durum;
   if (typeof ratio === "number") label = ratio >= 1.2 ? "Yüksek Risk" : ratio >= 1.0 ? "Risk" : ratio >= 0.85 ? "Dikkat" : "Uygun";
   return Object.assign({ label }, STATUS_STYLE_MAP[label] || STATUS_STYLE_MAP["Uygun"]);
+}
+
+/**
+ * Kapasite dashboard'unun ust "Ekip Özet" KPI kart listesini hesaplar - HER
+ * ZAMAN tam 5 sabit kart (Genel Durum, Kapasite %, Kapasite Farkı, Yeni
+ * Eklenen İş Yükü, Dönem Kapanan İş Yükü) - ozel KPI'lar (dd.customKpis) bu
+ * satira eklenmez (bkz. kullanici bildirimi: "iki fotoda da 5 kutu olsun").
+ * Canli onizleme (DashboardSlideCanvas) ve PPTX export (dashboardDeckBuilder)
+ * BU fonksiyonu kullanarak "birebir ayni" kart setini/renk tonlarini uretir.
+ */
+export function buildSummaryCards(dd) {
+  const k = dd.kpis, dur = dStatus(k.durum, k.doluluk), d = dd.delta;
+  const durToneName = dur.label === "Uygun" ? "good" : dur.label === "Dikkat" ? "warn" : "risk";
+  const cards = [
+    { label: "Genel Durum", value: dur.label, sub: "Doluluk eşiklerine göre", toneName: durToneName, text: true },
+    { label: "Kapasite", value: npct(k.doluluk), sub: "Bakım/SR sonrası %", toneName: null },
+    {
+      label: "Kapasite Farkı",
+      value: nfmt1(k.acikFazla) + " A/G",
+      sub: "Açık kapasite karşılaştırması",
+      toneName: k.acikFazla < 0 ? "risk" : k.acikFazla > 0 ? "good" : null,
+    },
+  ];
+  if (d) {
+    cards.push({ label: "Yeni Eklenen İş Yükü", value: nfmtInt(d.eklenen) + " A/G", sub: "Son 2 hafta", toneName: "info" });
+    // Kapanan is (yuk azaltan bir "delta") negatif gosterilir - kapatilan is
+    // acik is yukunu AZALTIR, bu yuzden isaret negatif olmali - kart etiketi
+    // de bu yuzden "Net İş Yükü Değişimi" (bkz. kullanici bildirimi).
+    cards.push({ label: "Net İş Yükü Değişimi", value: nfmtInt(-Number(d.kapanan)) + " A/G", sub: "Son 2 hafta", toneName: "good" });
+  }
+  return cards;
+}
+
+/** Kisi tablosundaki tamamlanan/acik/kapasite kolonlarinin "EKİP TOPLAMI" satiri icin toplamlarini hesaplar. */
+export function personTotals(persons) {
+  return (persons || []).reduce(
+    (a, p) => ({
+      tamamlanan: a.tamamlanan + Number(p.tamamlanan || 0),
+      acik: a.acik + Number(p.acik || 0),
+      kapasite: a.kapasite + Number(p.kapasite || 0),
+    }),
+    { tamamlanan: 0, acik: 0, kapasite: 0 }
+  );
 }
 
 /** Backend'in RiskLevel enum'unu (UYGUN/DIKKAT/RISK/YUKSEK_RISK) Turkce etikete cevirir. */
