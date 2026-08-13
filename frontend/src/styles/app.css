@@ -190,7 +190,7 @@
   .dnote{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px 14px;margin-top:6px;font-size:10.5px;color:#C2410C;text-align:right}
   .dhead{font-size:15px;font-weight:700;color:var(--ink);margin-top:18px}
   .dtable{margin-top:8px;width:100%}
-  .dtr{display:grid;grid-template-columns:2.5fr 1fr 1fr 1.15fr 2.6fr 1.5fr;align-items:center;gap:6px;padding:7px 0;border-bottom:1px solid var(--line)}
+  .dtr{display:grid;grid-template-columns:2.5fr 1fr 1fr 1fr 1.15fr 2.6fr 1.5fr;align-items:center;gap:6px;padding:7px 0;border-bottom:1px solid var(--line)}
   .dtr.h{border-bottom:1px solid var(--line);align-items:end} .dtr.h span{font-size:10px;color:var(--mut);font-weight:600;line-height:1.15}
   .dtr.h .ctr{text-align:center} .dtr.h .ag{display:block;font-weight:400;font-size:9px;color:var(--mut);margin-top:2px}
   .dtr .c{text-align:center;font-size:14px;color:var(--ink)} .dtr .c.b{font-weight:700}

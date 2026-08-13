@@ -93,15 +93,16 @@ export function buildSummaryCards(dd) {
   return cards;
 }
 
-/** Kisi tablosundaki tamamlanan/acik/kapasite kolonlarinin "EKİP TOPLAMI" satiri icin toplamlarini hesaplar. */
+/** Kisi tablosundaki tamamlanan/acik/kapasite/toplam kolonlarinin "EKİP TOPLAMI" satiri icin toplamlarini hesaplar. */
 export function personTotals(persons) {
   return (persons || []).reduce(
     (a, p) => ({
       tamamlanan: a.tamamlanan + Number(p.tamamlanan || 0),
       acik: a.acik + Number(p.acik || 0),
       kapasite: a.kapasite + Number(p.kapasite || 0),
+      toplam: a.toplam + Number(p.toplam || 0),
     }),
-    { tamamlanan: 0, acik: 0, kapasite: 0 }
+    { tamamlanan: 0, acik: 0, kapasite: 0, toplam: 0 }
   );
 }
 
