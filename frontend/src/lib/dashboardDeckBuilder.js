@@ -84,7 +84,7 @@ export function addDashboardSlide(pptx, dd, assets, theme = "light", cornerMesh 
 
   s.addText("Kişi Bazlı Kapasite Özeti", { x: 0.4, y: curY, w: 6, h: 0.34, fontFace: "Calibri", fontSize: 14, bold: true, color: INK, margin: 0 });
   const TY = curY + 0.42;
-  const cols = { kisi: [0.4, 2.7], tam: [3.15, 1.15], acik: [4.35, 1.15], kap: [5.55, 1.15], dol: [6.75, 4.45], durum: [11.3, 1.63] };
+  const cols = { kisi: [0.4, 2.7], tam: [3.15, 1.15], acik: [4.35, 1.15], kap: [5.55, 1.15], toplam: [6.75, 1.35], dol: [8.2, 3.05], durum: [11.3, 1.63] };
   const HH = 0.52;
   const AGP = (t) => [{ text: t, options: { fontSize: 8.3, color: MUT, bold: false } }, { text: "\n(AG)", options: { fontSize: 6.6, color: "9AA3AF" } }];
   const plain = (t) => [{ text: t, options: { fontSize: 8.3, color: MUT, bold: false } }];
@@ -94,6 +94,7 @@ export function addDashboardSlide(pptx, dd, assets, theme = "light", cornerMesh 
     [AGP(th.tamamlanan), cols.tam, "center"],
     [AGP(th.acik), cols.acik, "center"],
     [AGP(th.kapasite), cols.kap, "center"],
+    [AGP(th.toplam), cols.toplam, "center"],
     [plain(th.doluluk), cols.dol, "left"],
     [plain(th.durum), cols.durum, "center"],
   ].forEach(([t, col, al]) => s.addText(t, { x: col[0], y: TY, w: col[1], h: HH, fontFace: "Calibri", align: al, valign: "bottom", margin: 0, lineSpacingMultiple: 0.95 }));
@@ -115,7 +116,8 @@ export function addDashboardSlide(pptx, dd, assets, theme = "light", cornerMesh 
     nc(cols.tam, nfmtInt(p.tamamlanan));
     nc(cols.acik, nfmtInt(p.acik), true);
     nc(cols.kap, nfmtInt(p.kapasite));
-    const barX = cols.dol[0], barW = 3.6, barH = 0.16, barY = cy - barH / 2;
+    nc(cols.toplam, nfmtInt(p.toplam));
+    const barX = cols.dol[0], barW = 2.15, barH = 0.16, barY = cy - barH / 2;
     s.addShape(pptx.ShapeType.roundRect, { x: barX, y: barY, w: barW, h: barH, rectRadius: 0.08, fill: { color: "E5E7EB" }, line: { type: "none" } });
     s.addShape(pptx.ShapeType.roundRect, { x: barX, y: barY, w: Math.max(0.05, Math.min(1, Number(p.doluluk)) * barW), h: barH, rectRadius: 0.08, fill: { color: barColor(p.doluluk) }, line: { type: "none" } });
     s.addText("%" + Math.round(p.doluluk * 100), { x: barX + barW + 0.08, y, w: 0.7, h: rowH, fontFace: "Calibri", fontSize: 10, bold: true, color: INK, align: "left", valign: "middle", margin: 0 });
@@ -136,6 +138,7 @@ export function addDashboardSlide(pptx, dd, assets, theme = "light", cornerMesh 
     totalBox(cols.tam, nfmtInt(totals.tamamlanan));
     totalBox(cols.acik, nfmtInt(totals.acik));
     totalBox(cols.kap, nfmtInt(totals.kapasite));
+    totalBox(cols.toplam, nfmtInt(totals.toplam));
   }
 
   s.addText((dd.team || "") + " Kapasite Dashboard", { x: 8.5, y: 7.16, w: 4.4, h: 0.28, fontFace: "Calibri", fontSize: 8, color: "9AA3AF", align: "right", margin: 0 });

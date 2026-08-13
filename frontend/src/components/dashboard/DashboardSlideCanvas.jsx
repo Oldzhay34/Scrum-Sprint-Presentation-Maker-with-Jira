@@ -105,6 +105,7 @@ export default function DashboardSlideCanvas({ dd, assets, scale }) {
             <span className="ctr">{th.tamamlanan}<b className="ag">(AG)</b></span>
             <span className="ctr">{th.acik}<b className="ag">(AG)</b></span>
             <span className="ctr">{th.kapasite}<b className="ag">(AG)</b></span>
+            <span className="ctr">{th.toplam}<b className="ag">(AG)</b></span>
             <span>{th.doluluk}</span>
             <span className="ctr">{th.durum}</span>
           </div>
@@ -124,6 +125,7 @@ export default function DashboardSlideCanvas({ dd, assets, scale }) {
                 <div className="c">{nfmtInt(p.tamamlanan)}</div>
                 <div className="c b">{nfmtInt(p.acik)}</div>
                 <div className="c">{nfmtInt(p.kapasite)}</div>
+                <div className="c">{nfmtInt(p.toplam)}</div>
                 <div className="dol">
                   <div className="dbar"><i style={{ width: fill + "%", background: "#" + barColor(p.doluluk), "--fill-accent": "#" + barColor(p.doluluk) }} /></div>
                   <div className="pc" title={p.bakimOrani != null ? `Kişiye özel bakım oranı: %${Math.round(p.bakimOrani * 100)}` : "Takım geneli bakım oranı kullanılıyor"}>
@@ -143,6 +145,7 @@ export default function DashboardSlideCanvas({ dd, assets, scale }) {
               <div className="c">{nfmtInt(totals.tamamlanan)}</div>
               <div className="c">{nfmtInt(totals.acik)}</div>
               <div className="c">{nfmtInt(totals.kapasite)}</div>
+              <div className="c">{nfmtInt(totals.toplam)}</div>
               <div />
               <div />
             </div>
