@@ -17,6 +17,7 @@ public enum TeamType {
     DIJITAL_UYGULAMALAR(false),
     KONUM_TABANLI_URUN_GELISTIRME(false),
     DSYS(false),
+    MOBIL_UYGULAMALAR(false),
     GENEL(false);
 
     private final boolean fteTrackingEnabled;
@@ -62,6 +63,9 @@ public enum TeamType {
         }
         if (d.contains("doküman") || d.contains("dokuman") || d.contains("dsys")) {
             return DSYS;
+        }
+        if (d.contains("mobil")) {
+            return MOBIL_UYGULAMALAR;
         }
         return GENEL;
     }

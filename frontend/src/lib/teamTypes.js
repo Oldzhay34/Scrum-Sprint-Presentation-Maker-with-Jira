@@ -11,6 +11,7 @@ export const TEAM_TYPES = [
   { value: "DIJITAL_UYGULAMALAR", label: "Dijital Uygulamalar Ekibi", hasFte: false },
   { value: "KONUM_TABANLI_URUN_GELISTIRME", label: "Konum Tabanlı Ürün Geliştirme Ekibi", hasFte: false },
   { value: "DSYS", label: "Doküman ve Süreç Yönetim Sistemi Ekibi", hasFte: false },
+  { value: "MOBIL_UYGULAMALAR", label: "Mobil Uygulamalar Ekibi", hasFte: false },
   { value: "GENEL", label: "Diğer / Genel", hasFte: false },
 ];
 
@@ -38,6 +39,7 @@ export function resolveTeamTypeFromDepartment(department) {
   if (d.includes("ürün") || d.includes("urun")) return "URUN_GELISTIRME";
   if (d.includes("dijital")) return "DIJITAL_UYGULAMALAR";
   if (d.includes("doküman") || d.includes("dokuman") || d.includes("süreç yönetim") || d.includes("dsys")) return "DSYS";
+  if (d.includes("mobil")) return "MOBIL_UYGULAMALAR";
   return "GENEL";
 }
 

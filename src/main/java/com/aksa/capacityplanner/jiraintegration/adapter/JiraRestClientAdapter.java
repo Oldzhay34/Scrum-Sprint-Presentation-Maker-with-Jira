@@ -110,11 +110,23 @@ public class JiraRestClientAdapter implements JiraGatewayPort {
         return result;
     }
 
+    /**
+     * RPA projesinde issue'larin %74'u (2197 issue'nun 1622'si - canli olarak
+     * dogrulandi) Alt Gorev (Sub-task). Bunlar filtrelenmeden cekilince RPA
+     * takimi dashboard'da toplam is kalemi sayisini gercek surec sayisinin
+     * (~575) NEREDEYSE 4 KATI olarak goruyordu - bkz. kullanici bildirimi
+     * ("verilerin yanlis oldugunu soyluyorlar"). Alt gorevlerin coguu ayrica
+     * kendi Story Points degerine sahip olmuyor (ust hikaye tasir), bu da
+     * "efor hep 0" izlenimini guclendiriyordu. Story/Epic/Task/Bug seviyesi
+     * IZ'de zaten problemsizdi (0 subtask), ama kural TUM projeler icin
+     * genel olarak dogru: kapasite takibi hikaye/gorev seviyesinde yapilir,
+     * alt gorevler kendi basina ayri bir "is kalemi" degildir.
+     */
     private String resolveJql(JiraFetchQuery query) {
         if (query.jql() != null && !query.jql().isBlank()) {
             return query.jql();
         }
-        return "project = " + query.jiraProjectKey() + " ORDER BY updated DESC";
+        return "project = " + query.jiraProjectKey() + " AND issuetype != Sub-task ORDER BY updated DESC";
     }
 
     @SuppressWarnings("unchecked")

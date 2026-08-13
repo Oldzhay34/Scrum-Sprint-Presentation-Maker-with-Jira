@@ -27,8 +27,8 @@ import java.util.stream.Stream;
  *  - 30816 / 123456    (PO, "Ece Sena Salan", teamId=2, "İş Zekası Ekibi")
  *  - 33603 / 123456    (PO, "Muaz Furkan", teamId=4, "Yapay Zeka Ekibi")
  *  - 25493 / 123456    (PO, "Alican Özekinci", teamId=6, "Doküman ve Süreç Yönetim Sistemi Ekibi")
- *  - 35840 / 123456    (PO, "Züleyha Kadeş Tanrıverdi", teamId=5, teamIds=[5,7] -
- *                        Dijital Uygulamalar + Konum Tabanlı Ürün Geliştirme/CBS)
+ *  - 35840 / 123456    (PO, "Züleyha Kadeş Tanrıverdi", teamId=5, teamIds=[5,7,8] -
+ *                        Dijital Uygulamalar + Konum Tabanlı Ürün Geliştirme/CBS + Mobil Uygulamalar)
  *  - 37547 / 123456    (PO, "Pelinsu Çevikel", teamId=1, "RPA Ekibi")
  *  - 35834 / 123456    (PO, "Büşra Can", teamId=5, teamIds=[5,7] -
  *                        Dijital Uygulamalar + Konum Tabanlı Ürün Geliştirme/CBS)
@@ -78,7 +78,7 @@ public class MockUserRepositoryAdapter implements UserRepositoryPort {
                 mockUser("25493", passwordEncoder.encode("123456"), "Alican Özekinci", Role.PO, 6L,
                         "AKSA Enerji", "Doküman ve Süreç Yönetim Sistemi Ekibi", "", "", "", ""),
                 mockUser("35840", passwordEncoder.encode("123456"), "Züleyha Kadeş Tanrıverdi", Role.PO, 5L,
-                        "AKSA Enerji", "Dijital Uygulamalar Ekibi", "", "", "", "", List.of(5L, 7L)),
+                        "AKSA Enerji", "Dijital Uygulamalar Ekibi", "", "", "", "", List.of(5L, 7L, 8L)),
                 mockUser("37547", passwordEncoder.encode("123456"), "Pelinsu Çevikel", Role.PO, 1L,
                         "AKSA Enerji", "RPA Ekibi", "", "", "", ""),
                 mockUser("35834", passwordEncoder.encode("123456"), "Büşra Can", Role.PO, 5L,
