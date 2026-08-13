@@ -33,9 +33,13 @@ public final class JiraStatusMapper {
     private static final String UNMAPPED_FALLBACK = "Backlog";
 
     private static final Map<String, String> JIRA_TO_APP_STATUS = Map.ofEntries(
-            // Analiz asamasi
+            // Analiz asamasi - "Analiz Havuzu"/"Analiz Onayı" status_options'ta (V14) RPA ve
+            // IZ icin tanimli gercek kodlar; Jira board'unda ayni adla bir sutun/statu varsa
+            // birebir (identity) eslenir.
             Map.entry("ANALYSIS", "Analiz"),
             Map.entry("Analiz", "Analiz"),
+            Map.entry("Analiz Havuzu", "Analiz Havuzu"),
+            Map.entry("Analiz Onayı", "Analiz Onayı"),
             Map.entry("Ön Analiz", "Ön Analiz"),
 
             // Bekleyen/baslamamis is
@@ -50,6 +54,7 @@ public final class JiraStatusMapper {
             // Gelistirme/devam eden is
             Map.entry("DEVELOPMENT", "Geliştirme"),
             Map.entry("Geliştirme", "Geliştirme"),
+            Map.entry("Geliştirme Havuzu", "Geliştirme Havuzu"),
             Map.entry("Devam Ediyor", "Devam Ediyor"),
             Map.entry("In Progress", "Devam Ediyor"),
             Map.entry("UAT", "UAT"),

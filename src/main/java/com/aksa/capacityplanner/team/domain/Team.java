@@ -20,4 +20,8 @@ public class Team {
     private BigDecimal defaultTargetWorkDays;
     /** Takimin tipi (orn. RPA, IS_ZEKASI) - FTE gibi takima ozgu ozelliklerin varligini belirler. */
     private TeamType teamType;
+    /** Jira proje anahtari (orn. "RPA"), jira-sync tetiklenirken varsayilan olarak kullanilir. */
+    private String jiraProjectKey;
+    /** Jira board id'si (orn. RPA=538) - su an yalnizca referans/kesif amacli, senkronizasyon JQL'i etkilemez. */
+    private Long jiraBoardId;
 }

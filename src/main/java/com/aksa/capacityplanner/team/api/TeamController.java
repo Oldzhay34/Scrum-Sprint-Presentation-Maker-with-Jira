@@ -78,17 +78,19 @@ public class TeamController {
 
     public record TeamRequest(@NotBlank String name, String description,
                                BigDecimal maintenanceAllocationPercent, BigDecimal defaultTargetWorkDays,
-                               TeamType teamType) {
+                               TeamType teamType, String jiraProjectKey, Long jiraBoardId) {
     }
 
     private Team toDomain(TeamRequest request) {
         return new Team(null, request.name(), request.description(),
-                request.maintenanceAllocationPercent(), request.defaultTargetWorkDays(), request.teamType());
+                request.maintenanceAllocationPercent(), request.defaultTargetWorkDays(), request.teamType(),
+                request.jiraProjectKey(), request.jiraBoardId());
     }
 
     private TeamDto toDto(Team team) {
         return new TeamDto(team.getId(), team.getName(), team.getDescription(),
-                team.getMaintenanceAllocationPercent(), team.getDefaultTargetWorkDays(), team.getTeamType());
+                team.getMaintenanceAllocationPercent(), team.getDefaultTargetWorkDays(), team.getTeamType(),
+                team.getJiraProjectKey(), team.getJiraBoardId());
     }
 
     private CustomFieldDefinitionDto toDto(TeamCustomFieldDefinition definition) {

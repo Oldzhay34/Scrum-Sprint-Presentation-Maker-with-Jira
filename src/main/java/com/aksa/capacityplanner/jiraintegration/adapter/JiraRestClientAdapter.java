@@ -47,17 +47,20 @@ public class JiraRestClientAdapter implements JiraGatewayPort {
      * (timeoriginalestimate vb.) KULLANMIYOR - GET /rest/agile/1.0/board/{id}/configuration
      * ile dogrulandi: her ikisi de "estimation.type"="field" ile Story Points
      * benzeri bir custom field kullaniyor (bkz. JiraEstimationFieldMapper).
-     * O yuzden zaman-takibi alanlarinin yaninda bu custom field id'leri de
-     * (RPA: customfield_10057, IZ: customfield_10016) burada istenir - takima
-     * ozgu diger custom field'lar (Sektor, Departman vb.) Faz 0 kesfi tamamlaninca eklenir.
+     * customfield_10503 (Efor A/DK, dakika) TUM takimlar icin birincil efor
+     * kaynagidir (kullanicinin dogrulanmis formul dokumaniyla teyitli); SP
+     * alanlari (10016/10057) sadece 10503 bossa fallback olarak kullanilir -
+     * takima ozgu diger custom field'lar (Sektor, Departman vb.) Faz 0 kesfi
+     * tamamlaninca eklenir.
      */
     private static final List<String> DEFAULT_FIELDS = List.of(
             "summary", "status", "assignee", "priority", "issuetype",
             "timeoriginalestimate", "timeestimate", "timespent",
             "aggregatetimeoriginalestimate", "aggregatetimespent",
             "created", "updated", "resolutiondate",
-            JiraEstimationFieldMapper.RPA_STORY_POINTS_FIELD_ID,
-            JiraEstimationFieldMapper.IZ_STORY_POINTS_FIELD_ID);
+            JiraEstimationFieldMapper.EFFORT_MINUTES_FIELD_ID,
+            JiraEstimationFieldMapper.STORY_POINTS_PRIMARY_FIELD_ID,
+            JiraEstimationFieldMapper.STORY_POINTS_FALLBACK_FIELD_ID);
 
     private static final int PAGE_SIZE = 100;
     private static final int MAX_PAGES = 50; // guvenlik siniri: 50 * 100 = 5000 issue

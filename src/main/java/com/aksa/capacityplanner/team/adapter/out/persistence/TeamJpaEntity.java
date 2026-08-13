@@ -37,6 +37,12 @@ public class TeamJpaEntity {
     @Column(name = "team_type", nullable = false)
     private TeamType teamType;
 
+    @Column(name = "jira_project_key")
+    private String jiraProjectKey;
+
+    @Column(name = "jira_board_id")
+    private Long jiraBoardId;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private Instant createdAt;

@@ -46,11 +46,14 @@ public class TeamPersistenceAdapter implements TeamRepositoryPort {
         entity.setMaintenanceAllocationPercent(team.getMaintenanceAllocationPercent());
         entity.setDefaultTargetWorkDays(team.getDefaultTargetWorkDays());
         entity.setTeamType(team.getTeamType());
+        entity.setJiraProjectKey(team.getJiraProjectKey());
+        entity.setJiraBoardId(team.getJiraBoardId());
         return entity;
     }
 
     private Team toDomain(TeamJpaEntity entity) {
         return new Team(entity.getId(), entity.getName(), entity.getDescription(),
-                entity.getMaintenanceAllocationPercent(), entity.getDefaultTargetWorkDays(), entity.getTeamType());
+                entity.getMaintenanceAllocationPercent(), entity.getDefaultTargetWorkDays(), entity.getTeamType(),
+                entity.getJiraProjectKey(), entity.getJiraBoardId());
     }
 }

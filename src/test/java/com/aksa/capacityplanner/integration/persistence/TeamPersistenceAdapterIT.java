@@ -30,7 +30,7 @@ class TeamPersistenceAdapterIT {
     @Test
     void save_thenFindById_roundTripsAllFields() {
         Team team = new Team(null, "RPA Ekibi", "Robotik Surec Otomasyonu",
-                new BigDecimal("0.2500"), new BigDecimal("120.00"), TeamType.RPA);
+                new BigDecimal("0.2500"), new BigDecimal("120.00"), TeamType.RPA, "RPA", 538L);
 
         Team saved = adapter.save(team);
         Optional<Team> found = adapter.findById(saved.getId());
@@ -40,12 +40,14 @@ class TeamPersistenceAdapterIT {
         assertThat(found.get().getMaintenanceAllocationPercent()).isEqualByComparingTo("0.2500");
         assertThat(found.get().getDefaultTargetWorkDays()).isEqualByComparingTo("120.00");
         assertThat(found.get().getTeamType()).isEqualTo(TeamType.RPA);
+        assertThat(found.get().getJiraProjectKey()).isEqualTo("RPA");
+        assertThat(found.get().getJiraBoardId()).isEqualTo(538L);
     }
 
     @Test
     void findAll_returnsAllSavedTeams() {
-        adapter.save(new Team(null, "Ekip A", null, BigDecimal.ZERO, null, TeamType.GENEL));
-        adapter.save(new Team(null, "Ekip B", null, BigDecimal.ZERO, null, TeamType.GENEL));
+        adapter.save(new Team(null, "Ekip A", null, BigDecimal.ZERO, null, TeamType.GENEL, null, null));
+        adapter.save(new Team(null, "Ekip B", null, BigDecimal.ZERO, null, TeamType.GENEL, null, null));
 
         List<Team> all = adapter.findAll();
 
@@ -54,7 +56,7 @@ class TeamPersistenceAdapterIT {
 
     @Test
     void deleteById_removesTeam() {
-        Team saved = adapter.save(new Team(null, "Silinecek Ekip", null, BigDecimal.ZERO, null, TeamType.GENEL));
+        Team saved = adapter.save(new Team(null, "Silinecek Ekip", null, BigDecimal.ZERO, null, TeamType.GENEL, null, null));
 
         adapter.deleteById(saved.getId());
 

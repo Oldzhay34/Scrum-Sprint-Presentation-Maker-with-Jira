@@ -42,6 +42,8 @@ public class TeamService implements TeamUseCase {
         existing.setMaintenanceAllocationPercent(team.getMaintenanceAllocationPercent());
         existing.setDefaultTargetWorkDays(team.getDefaultTargetWorkDays());
         existing.setTeamType(team.getTeamType() == null ? existing.getTeamType() : team.getTeamType());
+        existing.setJiraProjectKey(team.getJiraProjectKey());
+        existing.setJiraBoardId(team.getJiraBoardId());
         return teamRepository.save(existing);
     }
 

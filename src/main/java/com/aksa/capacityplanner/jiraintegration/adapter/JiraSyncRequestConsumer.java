@@ -8,9 +8,12 @@ import com.aksa.capacityplanner.jiraintegration.port.JiraGatewayPort;
 import com.aksa.capacityplanner.jiraintegration.port.JiraGatewayPort.JiraIssueSnapshot;
 import com.aksa.capacityplanner.jiraintegration.domain.JiraEstimationFieldMapper;
 import com.aksa.capacityplanner.jiraintegration.domain.JiraStatusMapper;
+import com.aksa.capacityplanner.jiraintegration.domain.TeamMemberMatcher;
 import com.aksa.capacityplanner.jiraintegration.port.JiraSyncRequestedMessage;
 import com.aksa.capacityplanner.monitoring.domain.AuditLog;
 import com.aksa.capacityplanner.monitoring.port.out.AuditLogRepositoryPort;
+import com.aksa.capacityplanner.team.domain.TeamMember;
+import com.aksa.capacityplanner.team.port.out.TeamMemberRepositoryPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
@@ -29,9 +32,10 @@ import java.util.Map;
  * ve WorkItem olarak upsert eder. Jira baglantisi devrede degilken (NoOpJiraGatewayAdapter)
  * bos liste doner, bu durumda hicbir sey yapmadan biter - akis yine de uctan uca calisir.
  *
- * Gercek Jira alan eslemesi (fieldValues -> WorkItem) takima gore degisebilecegi icin
- * burada sadece ozet/durum gibi genel alanlar kullanilir; takima ozgu mapping ileride
- * bu sinifa veya ayri bir JiraFieldMapper'a eklenebilir.
+ * Gercek Jira alan eslemesi (fieldValues -> WorkItem) status/efor/assignee icin
+ * TUM takimlarda gecerli genel kurallara dayanir (bkz. JiraStatusMapper,
+ * JiraEstimationFieldMapper, TeamMemberMatcher); takima ozgu ek alan mapping'i
+ * (sektor, departman vb.) ileride bu sinifa veya ayri bir JiraFieldMapper'a eklenebilir.
  *
  * "POST /api/teams/{teamId}/jira-sync" tetikleme istegi zaten AuditLogInterceptor
  * uzerinden otomatik loglaniyor (bkz. AuditActionResolver: JIRA_SYNC) - ama bu SADECE
@@ -47,13 +51,16 @@ public class JiraSyncRequestConsumer {
 
     private final JiraGatewayPort jiraGatewayPort;
     private final WorkItemRepositoryPort workItemRepository;
+    private final TeamMemberRepositoryPort teamMemberRepository;
     private final AuditLogRepositoryPort auditLogRepository;
     private final CacheManager cacheManager;
 
     public JiraSyncRequestConsumer(JiraGatewayPort jiraGatewayPort, WorkItemRepositoryPort workItemRepository,
+                                    TeamMemberRepositoryPort teamMemberRepository,
                                     AuditLogRepositoryPort auditLogRepository, CacheManager cacheManager) {
         this.jiraGatewayPort = jiraGatewayPort;
         this.workItemRepository = workItemRepository;
+        this.teamMemberRepository = teamMemberRepository;
         this.auditLogRepository = auditLogRepository;
         this.cacheManager = cacheManager;
     }
@@ -78,12 +85,18 @@ public class JiraSyncRequestConsumer {
             return;
         }
 
+        List<TeamMember> teamMembers = teamMemberRepository.findByTeamId(message.teamId());
+
         int upserted = 0;
         int failed = 0;
+        int unmatchedAssignee = 0;
         for (JiraIssueSnapshot issue : issues) {
             try {
-                upsert(message.teamId(), message.jiraProjectKey(), issue);
+                boolean assigneeUnmatched = upsert(message.teamId(), issue, teamMembers);
                 upserted++;
+                if (assigneeUnmatched) {
+                    unmatchedAssignee++;
+                }
             } catch (RuntimeException e) {
                 // Tek bir issue'nun (orn. status_options'ta karsiligi olmayan bir Jira
                 // statusu - bkz. V8 chk_work_items_status_code) basarisiz olmasi tum
@@ -92,9 +105,14 @@ public class JiraSyncRequestConsumer {
                 log.warn("Issue upsert edilemedi, atlaniyor. issueKey={}, teamId={}", issue.issueKey(), message.teamId(), e);
             }
         }
+        if (unmatchedAssignee > 0) {
+            log.warn("Assignee eslestirilemeyen issue sayisi: {} (teamId={}) - TeamMember.fullName/email Jira "
+                    + "gorunum adiyla eslesmiyor olabilir.", unmatchedAssignee, message.teamId());
+        }
 
         String label = "Jira senkronizasyonu tamamlandi: " + upserted + " is kalemi guncellendi"
-                + (failed > 0 ? ", " + failed + " basarisiz" : "");
+                + (failed > 0 ? ", " + failed + " basarisiz" : "")
+                + (unmatchedAssignee > 0 ? ", " + unmatchedAssignee + " atanan kisi eslestirilemedi" : "");
         recordAudit(message.teamId(), failed == 0, label);
 
         if (upserted > 0) {
@@ -121,14 +139,19 @@ public class JiraSyncRequestConsumer {
 
     /** Jira'nin saniye cinsinden tuttugu sure alanlarini gun'e cevirirken kullanilan is gunu uzunlugu (Jira Cloud varsayilani). */
     private static final BigDecimal SECONDS_PER_WORK_DAY = BigDecimal.valueOf(8L * 60 * 60);
+    /** customfield_10503 (Efor A/DK) dakika cinsinden - gune cevirirken bolunecek is gunu uzunlugu (8 saat = 480 dk). */
+    private static final BigDecimal MINUTES_PER_WORK_DAY = BigDecimal.valueOf(480L);
 
-    private void upsert(Long teamId, String jiraProjectKey, JiraIssueSnapshot issue) {
+    /** @return issue'da bir assignee VARDI ama TeamMember ile eslestirilemedi ise true (audit ozetinde sayilir). */
+    private boolean upsert(Long teamId, JiraIssueSnapshot issue, List<TeamMember> teamMembers) {
         // Jira'nin kendi statu adlari (orn. "PROD", "Açık") uygulamanin
         // status_options.code degerleriyle (orn. "Canlı", "Backlog") birebir
         // AYNI degil - dogrudan issue.statusName() yazmak V8'deki
         // chk_work_items_status_code kontrolunu her satirda ihlal ediyordu.
         String appStatusCode = JiraStatusMapper.resolve(issue.statusName());
-        BigDecimal plannedEffortDays = extractPlannedEffortDays(jiraProjectKey, issue.fieldValues());
+        BigDecimal plannedEffortDays = extractPlannedEffortDays(issue.fieldValues());
+        Object assigneeField = issue.fieldValues().get("assignee");
+        Long teamMemberId = TeamMemberMatcher.resolveTeamMemberId(assigneeField, teamMembers);
 
         WorkItem workItem = workItemRepository.findByJiraIssueKey(issue.issueKey())
                 .orElseGet(() -> new WorkItem(null, teamId, null, issue.summary(), issue.issueKey(),
@@ -136,22 +159,34 @@ public class JiraSyncRequestConsumer {
         workItem.setTitle(issue.summary());
         workItem.setStatusCode(appStatusCode);
         workItem.setPlannedEffortDays(plannedEffortDays);
+        workItem.setTeamMemberId(teamMemberId);
         workItemRepository.save(workItem);
+
+        return assigneeField != null && teamMemberId == null;
     }
 
     /**
-     * RPA/IZ board'lari zaman takibi KULLANMIYOR (timeoriginalestimate vb. hep
-     * null geliyordu - bkz. kullanici bildirimi "efor hep 0"). Once board'un
-     * gercek estimation alanina (Story Points, proje bazinda farkli
-     * customfield_XXXXX - bkz. JiraEstimationFieldMapper) bakilir; hicbir sey
-     * yoksa (bilinmeyen proje veya alan bos) saniye-tabanli zaman takibi
-     * alanlarina (aggregate varsa o, yoksa issue'nun kendi tahmini) dusulur;
-     * o da yoksa 0 (NOT NULL olan planned_effort_days'i bos birakamayiz).
+     * Oncelik sirasi:
+     *   1) customfield_10503 (Efor A/DK, DAKIKA) / 480 - kullanicinin dogrulanmis
+     *      formul dokumaninda ("dk(issue)÷480") ve full-audit.json'daki PASS
+     *      sonuclu "capacity-sample-member" kontrolunde teyit edilen, TUM
+     *      takimlar icin gecerli birincil kaynak.
+     *   2) customfield_10016, yoksa customfield_10057 (Story Points) - 1 SP = 1
+     *      gun VARSAYILIR (dogrulanmamis bir katsayi varsayimidir - bkz.
+     *      JiraEstimationFieldMapper javadoc'u), sadece 10503 bossa kullanilir.
+     *   3) Saniye-tabanli zaman takibi alanlari (aggregate varsa o, yoksa
+     *      issue'nun kendi tahmini) - RPA/IZ board'lari bunu hic KULLANMIYOR
+     *      (hep null), ama diger takimlarda dolu olabilir.
+     *   4) Hicbiri yoksa 0 (NOT NULL olan planned_effort_days'i bos birakamayiz).
      */
-    private BigDecimal extractPlannedEffortDays(String jiraProjectKey, Map<String, Object> fields) {
-        String estimationFieldId = JiraEstimationFieldMapper.resolveFieldId(jiraProjectKey);
-        if (estimationFieldId != null && fields.get(estimationFieldId) instanceof Number storyPoints) {
-            // Story Points 1:1 gun olarak varsayilir - bkz. JiraEstimationFieldMapper javadoc'u.
+    private BigDecimal extractPlannedEffortDays(Map<String, Object> fields) {
+        if (fields.get(JiraEstimationFieldMapper.EFFORT_MINUTES_FIELD_ID) instanceof Number minutes) {
+            return BigDecimal.valueOf(minutes.doubleValue())
+                    .divide(MINUTES_PER_WORK_DAY, 2, RoundingMode.HALF_UP);
+        }
+
+        Number storyPoints = JiraEstimationFieldMapper.resolveStoryPoints(fields);
+        if (storyPoints != null) {
             return BigDecimal.valueOf(storyPoints.doubleValue()).setScale(2, RoundingMode.HALF_UP);
         }
 

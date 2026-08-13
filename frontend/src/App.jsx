@@ -55,7 +55,7 @@ import { autoApplyCompanyHolidays } from "./lib/autoApplyCompanyHolidays";
 import { sectionDefs, SECTION_KEYS } from "./lib/geometry";
 import { buildFullDeck } from "./lib/fullDeckBuilder";
 import { ASSETS } from "./assets/pptxAssets";
-import { hasFteTracking, resolveIsAdmin, resolveTeamTypeFromDepartment, resolveJiraProjectKey, teamTypeLabel } from "./lib/teamTypes";
+import { hasFteTracking, resolveIsAdmin, resolveTeamTypeFromDepartment } from "./lib/teamTypes";
 
 // ZoomModal ("⤢ Preview") ve ExportPreviewModal ("PPTX İndir" oncesi onizleme)
 // AYNI 3 sekmeyi kullanir - tek yerden tanimlanir.
@@ -426,17 +426,13 @@ function MainApp({ theme, toggleTheme, personnel, presentationId, newForTeamId, 
       setJiraSyncNotice({ type: "error", text: "Jira'dan çekebilmek için önce bir takım seçili olmalı." });
       return;
     }
-    const jiraProjectKey = resolveJiraProjectKey(sprintForm.teamType);
-    if (!jiraProjectKey) {
-      setJiraSyncNotice({
-        type: "error",
-        text: `"${teamTypeLabel(sprintForm.teamType)}" için Jira proje anahtarı henüz tanımlı değil - bu takım Jira'dan çekilemiyor.`,
-      });
-      return;
-    }
     setJiraSyncing(true);
     setJiraSyncNotice(null);
-    triggerJiraSync(saveTeamId, { jiraProjectKey })
+    // jiraProjectKey burada gonderilmiyor - backend, takima kayitli varsayilani
+    // (Team.jiraProjectKey, bkz. V18__teams_add_jira_config.sql) kullanir; takimda
+    // da tanimli degilse (orn. CBS) backend acik bir hata mesajiyla 400 doner
+    // (bkz. JiraSyncController.resolveProjectKey) ve o mesaj asagida gosterilir.
+    triggerJiraSync(saveTeamId, {})
       .then(() => {
         setJiraSyncNotice({
           type: "success",

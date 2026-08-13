@@ -3,39 +3,43 @@ package com.aksa.capacityplanner.jiraintegration.domain;
 import java.util.Map;
 
 /**
- * Jira proje anahtari -> o board'un "estimation" (efor tahmini) alani olarak
- * kullandigi custom field id'si.
+ * Jira'daki efor/buyukluk alanlarinin id'lerini ve cozumleme sirasini tutar.
  *
- * RPA ve IZ board'lari zaman takibi (timeoriginalestimate vb.) KULLANMIYOR -
- * ikisi de tum alanlari null donduruyordu (bkz. kullanici bildirimi: "efor hep
- * 0"). GET /rest/agile/1.0/board/{boardId}/configuration ile canli dogrulandi:
- *   - RPA panosu (board 538): estimation.field.fieldId = customfield_10057 ("Story Points")
- *   - IZ panosu (board 1669): estimation.field.fieldId = customfield_10016 ("Story point estimate")
- * Bu ID'ler Jira instance'ina OZGUDUR ve custom field olusturuldukca degisebilir -
- * board konfigurasyonu degisirse (orn. farkli bir alan estimation'a atanirsa)
- * bu esleme de guncellenmelidir.
+ * Birincil efor kaynagi ARTIK customfield_10503 (Efor A/DK, DAKIKA) - bkz.
+ * JiraSyncRequestConsumer.extractPlannedEffortDays. Bu alan, kullanicinin
+ * paylastigi dogrulanmis formul dokumaninda ("dk(issue) = customfield_10503,
+ * doluluk = Σ[dk(issue)÷480]") VE full-audit.json'daki PASS sonuclu
+ * "capacity-sample-member" kontrolunde teyit edilmistir - TUM takimlar icin
+ * (proje bazinda degil) genel gecerlidir.
  *
- * Story Points, tanim geregi zaman degil SOYUT bir buyukluk birimidir; burada
- * 1 Story Point = 1 gun (adam/gun) olarak VARSAYILIR (RPA Excel'indeki "Efor"
- * kolonundaki degerlerle (5-20 araligi) buyukluk mertebesi olarak tutarli).
- * Bu bir donusum katsayisi VARSAYIMIDIR, birebir dogrulanmis degildir - takim
- * farkli bir oran kullaniyorsa JiraSyncRequestConsumer'daki kullanim noktasi
- * (extractPlannedEffortDays) buna gore carpanla guncellenebilir.
+ * Bu sinif artik SADECE customfield_10503 bos oldugunda dusulecek Story Point
+ * fallback zincirini cozumler - yine proje bazinda DEGIL, evrensel bir
+ * oncelik sirasiyla: once customfield_10016 ("Story point estimate"), o da
+ * bossa customfield_10057 ("Story Points"). Eskiden burada sadece RPA->10057,
+ * IZ->10016 sabit esleme vardi; bu DA/DSYS/SD/YZ icin efor'un hep 0 kalmasina
+ * yol aciyordu (bkz. kullanici bildirimi - 6 takimin da board id'leri artik
+ * elimizde, hepsi icin veri cekilebilmeli).
  */
 public final class JiraEstimationFieldMapper {
 
-    public static final String RPA_STORY_POINTS_FIELD_ID = "customfield_10057";
-    public static final String IZ_STORY_POINTS_FIELD_ID = "customfield_10016";
-
-    private static final Map<String, String> ESTIMATION_FIELD_BY_PROJECT_KEY = Map.of(
-            "RPA", RPA_STORY_POINTS_FIELD_ID,
-            "IZ", IZ_STORY_POINTS_FIELD_ID);
+    /** Efor (A/DK) - dakika. Doluluk/efor hesabinin birincil kaynagi (tum takimlar). */
+    public static final String EFFORT_MINUTES_FIELD_ID = "customfield_10503";
+    /** Story point estimate - SP kaynagi, customfield_10503 bossa kullanilir (birincil fallback). */
+    public static final String STORY_POINTS_PRIMARY_FIELD_ID = "customfield_10016";
+    /** Story Points - SP kaynagi, 10016 da bossa kullanilir (ikincil fallback). */
+    public static final String STORY_POINTS_FALLBACK_FIELD_ID = "customfield_10057";
 
     private JiraEstimationFieldMapper() {
     }
 
-    /** Bilinmeyen bir proje icin null doner - cagiran taraf bu durumda efor cikaramaz, 0'a duser. */
-    public static String resolveFieldId(String jiraProjectKey) {
-        return ESTIMATION_FIELD_BY_PROJECT_KEY.get(jiraProjectKey);
+    /** customfield_10016 varsa onu, yoksa customfield_10057'yi, ikisi de yoksa null doner. */
+    public static Number resolveStoryPoints(Map<String, Object> fields) {
+        if (fields.get(STORY_POINTS_PRIMARY_FIELD_ID) instanceof Number primary) {
+            return primary;
+        }
+        if (fields.get(STORY_POINTS_FALLBACK_FIELD_ID) instanceof Number fallback) {
+            return fallback;
+        }
+        return null;
     }
 }
