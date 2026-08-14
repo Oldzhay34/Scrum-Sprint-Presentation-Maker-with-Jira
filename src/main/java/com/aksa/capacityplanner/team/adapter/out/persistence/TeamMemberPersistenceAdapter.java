@@ -61,6 +61,8 @@ public class TeamMemberPersistenceAdapter implements TeamMemberRepositoryPort {
         entity.setTargetWorkDaysOverridden(member.isTargetWorkDaysOverridden());
         entity.setCustomFieldValues(member.getCustomFieldValues() != null
                 ? new HashMap<>(member.getCustomFieldValues()) : new HashMap<>());
+        entity.setJiraAccountId(member.getJiraAccountId());
+        entity.setAvatarUrl(member.getAvatarUrl());
         return entity;
     }
 
@@ -70,6 +72,8 @@ public class TeamMemberPersistenceAdapter implements TeamMemberRepositoryPort {
                 entity.getTargetWorkDays(), entity.isTargetWorkDaysOverridden());
         member.setCustomFieldValues(entity.getCustomFieldValues() != null
                 ? new HashMap<>(entity.getCustomFieldValues()) : new HashMap<>());
+        member.setJiraAccountId(entity.getJiraAccountId());
+        member.setAvatarUrl(entity.getAvatarUrl());
         return member;
     }
 }

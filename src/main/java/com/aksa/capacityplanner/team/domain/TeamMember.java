@@ -31,6 +31,10 @@ public class TeamMember {
     private boolean targetWorkDaysOverridden;
     /** Takima ozgu ek alanlarin degerleri (fieldKey -> deger, string olarak saklanir). */
     private Map<String, String> customFieldValues = new HashMap<>();
+    /** Jira'nin kalici kullanici kimligi (accountId) - displayName degisse bile ayni kisiyi gosterir. Manuel eklenen uyelerde null. */
+    private String jiraAccountId;
+    /** Jira profil fotografi URL'i (assignee.avatarUrls['48x48']) - yoksa frontend bas harflerle gosterir. */
+    private String avatarUrl;
 
     public TeamMember(Long id, Long teamId, String fullName, String role, String email,
                        LocalDate startDate, String statusCode, BigDecimal targetWorkDays,

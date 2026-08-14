@@ -1,9 +1,35 @@
+import { useState } from "react";
 import { CARD_TONES, DAV_COLORS, barColor, buildSummaryCards, dStatus, nfmtInt, npct, personTotals } from "../../lib/format";
 import { resolveTableHeaders } from "../../lib/dashboardTableHeaders";
 import { DEFAULT_CORNER_MESH } from "../../assets/cornerMesh";
 
 const S = 96; // px per inch - dashboardDeckBuilder.js ile AYNI inc koordinatlari
 const CORNER_MESH_RATIO = 658 / 960;
+
+/**
+ * Kisi Bazli Kapasite Ozeti tablosundaki kisi ikonu: Jira profil fotografi
+ * (assignee.avatarUrls) varsa onu gosterir; yoksa (veya foto yuklenemezse -
+ * orn. Jira gizlilik ayari nedeniyle 403) adin bas harflerini renkli bir
+ * dairede gosterir. Ayni desen referans "Jira Dashboard" projesindeki
+ * Avatar.jsx bileseninde de kullaniliyor.
+ */
+function PersonAvatar({ avatarUrl, initials, color }) {
+  const [failed, setFailed] = useState(false);
+  if (avatarUrl && !failed) {
+    return (
+      <div className="av" style={{ overflow: "hidden", padding: 0 }}>
+        <img
+          src={avatarUrl}
+          alt=""
+          loading="lazy"
+          style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%" }}
+          onError={() => setFailed(true)}
+        />
+      </div>
+    );
+  }
+  return <div className="av" style={{ background: color }}>{initials}</div>;
+}
 
 /**
  * Kapasite dashboard slaydini (KPI kartlari + son 2 hafta delta + kisi tablosu)
@@ -116,7 +142,11 @@ export default function DashboardSlideCanvas({ dd, assets, scale }) {
             return (
               <div className="dtr" key={i}>
                 <div className="kisi">
-                  <div className="av" style={{ background: av }}>{(p.initials || p.name.slice(0, 2)).toUpperCase()}</div>
+                  <PersonAvatar
+                    avatarUrl={p.avatarUrl}
+                    initials={(p.initials || p.name.slice(0, 2)).toUpperCase()}
+                    color={av}
+                  />
                   <div>
                     <div className="nm">{p.name}</div>
                     {p.role && <div className="rl">{p.role}</div>}

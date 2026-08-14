@@ -196,6 +196,7 @@ export function toDashData(dto, team, sprintNo, period, previousSnapshotDate, cu
     persons: (dto.memberMetrics || []).map((m) => ({
       name: m.fullName,
       role: m.role || "",
+      avatarUrl: m.avatarUrl || "",
       initials: (m.fullName || "").slice(0, 2).toUpperCase(),
       toplam: m.totalPlannedEffort,
       tamamlanan: m.completedEffort,

@@ -20,7 +20,7 @@ public class CapacityDashboardMapper {
     }
 
     private MemberCapacityMetricsDto toDto(MemberCapacityMetrics m) {
-        return new MemberCapacityMetricsDto(m.getTeamMemberId(), m.getFullName(), m.getRole(),
+        return new MemberCapacityMetricsDto(m.getTeamMemberId(), m.getFullName(), m.getRole(), m.getAvatarUrl(),
                 m.getTotalPlannedEffort(), m.getCompletedEffort(), m.getRemainingEffort(),
                 m.getRawRemainingCapacity(), m.getMaintainedCapacity(), m.getMaintenanceAllocationPercent(),
                 m.getOccupancyPercent(), m.getRiskLevel());

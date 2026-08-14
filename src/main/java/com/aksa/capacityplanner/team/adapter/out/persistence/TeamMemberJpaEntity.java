@@ -46,6 +46,12 @@ public class TeamMemberJpaEntity {
     @Column(name = "target_work_days_overridden")
     private boolean targetWorkDaysOverridden;
 
+    @Column(name = "jira_account_id")
+    private String jiraAccountId;
+
+    @Column(name = "avatar_url", columnDefinition = "text")
+    private String avatarUrl;
+
     // 1NF: ayri bir EAV tablosunda (bkz. V9 migration) - Hibernate
     // @ElementCollection ile Map<fieldKey, value>'yu kendisi yonetir, entity/
     // adapter kodu JSON (de)serilestirme yapmaz.

@@ -125,6 +125,7 @@ public class CapacityCalculationService {
         metrics.setTeamMemberId(member.getId());
         metrics.setFullName(member.getFullName());
         metrics.setRole(member.getRole());
+        metrics.setAvatarUrl(member.getAvatarUrl());
         metrics.setTotalPlannedEffort(scale(planned));
         metrics.setCompletedEffort(scale(completed));
         metrics.setRemainingEffort(scale(remaining));

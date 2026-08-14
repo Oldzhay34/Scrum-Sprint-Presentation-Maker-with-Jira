@@ -14,6 +14,8 @@ public class MemberCapacityMetrics {
     private Long teamMemberId;
     private String fullName;
     private String role;
+    /** Jira profil fotografi URL'i - yoksa frontend bas harflerle gosterir. */
+    private String avatarUrl;
     private BigDecimal totalPlannedEffort;
     private BigDecimal completedEffort;
     private BigDecimal remainingEffort;

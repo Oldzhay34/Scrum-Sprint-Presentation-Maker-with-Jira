@@ -85,17 +85,20 @@ public class JiraSyncRequestConsumer {
             return;
         }
 
-        List<TeamMember> teamMembers = teamMemberRepository.findByTeamId(message.teamId());
+        // Mutable liste: bu sync batch'i icinde YENI otomatik olusturulan bir uye,
+        // ayni batch'teki sonraki issue'lar icin de hemen eslesebilsin (ayni kisiye
+        // ait birden fazla issue varsa, ayni kisi icin IKI KERE TeamMember olusmasin).
+        List<TeamMember> teamMembers = new java.util.ArrayList<>(teamMemberRepository.findByTeamId(message.teamId()));
 
         int upserted = 0;
         int failed = 0;
-        int unmatchedAssignee = 0;
+        int newlyProvisioned = 0;
         for (JiraIssueSnapshot issue : issues) {
             try {
-                boolean assigneeUnmatched = upsert(message.teamId(), issue, teamMembers);
+                boolean wasNewMember = upsert(message.teamId(), message.jiraProjectKey(), issue, teamMembers);
                 upserted++;
-                if (assigneeUnmatched) {
-                    unmatchedAssignee++;
+                if (wasNewMember) {
+                    newlyProvisioned++;
                 }
             } catch (RuntimeException e) {
                 // Tek bir issue'nun (orn. status_options'ta karsiligi olmayan bir Jira
@@ -105,14 +108,14 @@ public class JiraSyncRequestConsumer {
                 log.warn("Issue upsert edilemedi, atlaniyor. issueKey={}, teamId={}", issue.issueKey(), message.teamId(), e);
             }
         }
-        if (unmatchedAssignee > 0) {
-            log.warn("Assignee eslestirilemeyen issue sayisi: {} (teamId={}) - TeamMember.fullName/email Jira "
-                    + "gorunum adiyla eslesmiyor olabilir.", unmatchedAssignee, message.teamId());
+        if (newlyProvisioned > 0) {
+            log.info("Jira'dan otomatik olusturulan yeni takim uyesi sayisi: {} (teamId={}) - takim rosterinde "
+                    + "eksik olan gercek Jira katilimcilari icin.", newlyProvisioned, message.teamId());
         }
 
         String label = "Jira senkronizasyonu tamamlandi: " + upserted + " is kalemi guncellendi"
                 + (failed > 0 ? ", " + failed + " basarisiz" : "")
-                + (unmatchedAssignee > 0 ? ", " + unmatchedAssignee + " atanan kisi eslestirilemedi" : "");
+                + (newlyProvisioned > 0 ? ", " + newlyProvisioned + " yeni takim uyesi otomatik eklendi" : "");
         recordAudit(message.teamId(), failed == 0, label);
 
         if (upserted > 0) {
@@ -142,16 +145,40 @@ public class JiraSyncRequestConsumer {
     /** customfield_10503 (Efor A/DK) dakika cinsinden - gune cevirirken bolunecek is gunu uzunlugu (8 saat = 480 dk). */
     private static final BigDecimal MINUTES_PER_WORK_DAY = BigDecimal.valueOf(480L);
 
-    /** @return issue'da bir assignee VARDI ama TeamMember ile eslestirilemedi ise true (audit ozetinde sayilir). */
-    private boolean upsert(Long teamId, JiraIssueSnapshot issue, List<TeamMember> teamMembers) {
+    /** @return bu issue icin YENI bir TeamMember otomatik olusturulduysa true (audit ozetinde sayilir). */
+    private boolean upsert(Long teamId, String jiraProjectKey, JiraIssueSnapshot issue, List<TeamMember> teamMembers) {
         // Jira'nin kendi statu adlari (orn. "PROD", "Açık") uygulamanin
         // status_options.code degerleriyle (orn. "Canlı", "Backlog") birebir
         // AYNI degil - dogrudan issue.statusName() yazmak V8'deki
         // chk_work_items_status_code kontrolunu her satirda ihlal ediyordu.
         String appStatusCode = JiraStatusMapper.resolve(issue.statusName());
         BigDecimal plannedEffortDays = extractPlannedEffortDays(issue.fieldValues());
-        Object assigneeField = issue.fieldValues().get("assignee");
-        Long teamMemberId = TeamMemberMatcher.resolveTeamMemberId(assigneeField, teamMembers);
+        // RPA ISTISNASI: bir hikayenin kendi customfield_10503'u, alt gorevlerinin
+        // TOPLAMIDIR (kisiye ozel degil) - alt gorevi OLAN bir parent'ta bu degeri
+        // aynen kullanmak, o eforu hem parent'ta hem de her alt gorevde AYRI AYRI
+        // saymak (cift sayim) anlamina gelir. Gercek kisi bazli efor alt gorev
+        // seviyesinde (kendi assignee'si, kendi customfield_10503'uyle) zaten
+        // ayrica geliyor - bu yuzden alt gorevi olan RPA parent'larinin kendi
+        // eforu burada BILEREK 0'a sabitlenir (bkz. kullanici bildirimi, 2026-08-14).
+        if ("RPA".equals(jiraProjectKey) && hasSubtasks(issue.fieldValues())) {
+            plannedEffortDays = BigDecimal.ZERO;
+        }
+
+        TeamMemberMatcher.JiraAssignee assignee = TeamMemberMatcher.extractAssignee(issue.fieldValues().get("assignee"));
+        boolean createdNewMember = false;
+        Long teamMemberId = null;
+        if (assignee != null) {
+            TeamMember matched = TeamMemberMatcher.resolve(assignee, teamMembers);
+            if (matched != null) {
+                teamMemberId = matched.getId();
+                backfillJiraIdentity(matched, assignee);
+            } else {
+                TeamMember created = provisionTeamMember(teamId, assignee);
+                teamMembers.add(created);
+                teamMemberId = created.getId();
+                createdNewMember = true;
+            }
+        }
 
         WorkItem workItem = workItemRepository.findByJiraIssueKey(issue.issueKey())
                 .orElseGet(() -> new WorkItem(null, teamId, null, issue.summary(), issue.issueKey(),
@@ -162,7 +189,49 @@ public class JiraSyncRequestConsumer {
         workItem.setTeamMemberId(teamMemberId);
         workItemRepository.save(workItem);
 
-        return assigneeField != null && teamMemberId == null;
+        return createdNewMember;
+    }
+
+    /**
+     * Isim/email ile eslesen ESKI (manuel girilmis) bir TeamMember'in jiraAccountId/avatarUrl
+     * alanlari henuz bossa (veya Jira tarafinda degistiyse) burada geriye doldurulur - boylece
+     * bir dahaki senkronizasyonda artik isim eslestirmesine degil dogrudan accountId'ye guvenilir.
+     */
+    private void backfillJiraIdentity(TeamMember member, TeamMemberMatcher.JiraAssignee assignee) {
+        boolean changed = false;
+        if (assignee.accountId() != null && !assignee.accountId().equals(member.getJiraAccountId())) {
+            member.setJiraAccountId(assignee.accountId());
+            changed = true;
+        }
+        if (assignee.avatarUrl() != null && !assignee.avatarUrl().equals(member.getAvatarUrl())) {
+            member.setAvatarUrl(assignee.avatarUrl());
+            changed = true;
+        }
+        if (changed) {
+            teamMemberRepository.save(member);
+        }
+    }
+
+    /**
+     * Takim rosterinde (team_members) karsiligi olmayan gercek bir Jira katilimcisi icin
+     * yeni bir TeamMember olusturur - referans "Jira Dashboard" projesindeki gibi, uyelik
+     * manuel bir listeye degil dogrudan Jira'nin kendisine dayanir. role/startDate/statusCode
+     * bilerek bos birakilir (Jira bu bilgileri saglamaz) - takim yoneticisi sonradan doldurabilir.
+     */
+    private TeamMember provisionTeamMember(Long teamId, TeamMemberMatcher.JiraAssignee assignee) {
+        TeamMember member = new TeamMember(null, teamId, assignee.displayName(), null, assignee.email(),
+                null, null, null, false);
+        member.setJiraAccountId(assignee.accountId());
+        member.setAvatarUrl(assignee.avatarUrl());
+        TeamMember saved = teamMemberRepository.save(member);
+        log.info("Yeni takim uyesi otomatik olusturuldu: '{}' (teamId={}, jiraAccountId={})",
+                assignee.displayName(), teamId, assignee.accountId());
+        return saved;
+    }
+
+    /** Jira'nin "subtasks" alani, o issue'nun alt gorevlerinin (varsa) kisa listesini tasir. */
+    private boolean hasSubtasks(Map<String, Object> fields) {
+        return fields.get("subtasks") instanceof List<?> subtasks && !subtasks.isEmpty();
     }
 
     /**
