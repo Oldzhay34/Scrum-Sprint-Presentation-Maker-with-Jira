@@ -99,10 +99,11 @@ class JiraSyncRequestConsumerTest {
     }
 
     @Test
-    void rpaParentWithSubtasks_effortZeroedToAvoidDoubleCounting() {
-        // RPA'da parent'in kendi customfield_10503'u alt gorevlerin TOPLAMIdir -
-        // gercek kisi bazli efor alt gorevlerden ayrica geldigi icin parent'in
-        // kendi eforu burada 0 sayilmali.
+    void parentWithSubtasks_effortZeroedToAvoidDoubleCounting() {
+        // Parent'in kendi customfield_10503'u alt gorevlerin TOPLAMI (RPA) ya da
+        // tamamen BOS (SD) olabiliyor - ikisinde de kisiye ozel degil, gercek
+        // kisi bazli efor alt gorevlerden ayrica geldigi icin parent'in kendi
+        // eforu burada 0 sayilmali. Kural TUM projeler icin gecerli.
         Map<String, Object> parentFields = fields(Map.of("customfield_10503", 960));
         parentFields.put("subtasks", List.of(Map.of("key", "RPA-100")));
         jiraGatewayPort.issues = List.of(issue("RPA-9", "Alt gorevi olan parent", "Açık", parentFields));
@@ -113,7 +114,7 @@ class JiraSyncRequestConsumerTest {
     }
 
     @Test
-    void rpaLeafIssueWithoutSubtasks_stillUsesOwnEffort() {
+    void leafIssueWithoutSubtasks_stillUsesOwnEffort() {
         Map<String, Object> fields = fields(Map.of("customfield_10503", 960));
         fields.put("subtasks", List.of());
         jiraGatewayPort.issues = List.of(issue("RPA-10", "Alt gorevsiz", "Açık", fields));
@@ -124,14 +125,16 @@ class JiraSyncRequestConsumerTest {
     }
 
     @Test
-    void subtaskZeroingRule_isScopedToRpaOnly() {
+    void subtaskZeroingRule_appliesToNonRpaProjectsToo() {
+        // SD-1733 gibi gercek vakalar: parent'in kendi eforu BOS, gercek efor
+        // alt gorevlerde - RPA'ya ozel olmadigi canli veriyle dogrulandi.
         Map<String, Object> parentFields = fields(Map.of("customfield_10503", 960));
         parentFields.put("subtasks", List.of(Map.of("key", "SD-100")));
         jiraGatewayPort.issues = List.of(issue("SD-9", "Baska takim, alt gorevi var", "Açık", parentFields));
 
         consumer.onSyncRequested(new JiraSyncRequestedMessage(TEAM_ID, "SD", null));
 
-        assertThat(workItemRepository.byKey("SD-9").getPlannedEffortDays()).isEqualByComparingTo("2.00");
+        assertThat(workItemRepository.byKey("SD-9").getPlannedEffortDays()).isEqualByComparingTo("0");
     }
 
     @Test
@@ -203,7 +206,7 @@ class JiraSyncRequestConsumerTest {
         consumer.onSyncRequested(new JiraSyncRequestedMessage(TEAM_ID, "RPA", null));
         Long firstId = workItemRepository.byKey("RPA-8").getId();
 
-        jiraGatewayPort.issues = List.of(issue("RPA-8", "Guncellendi", "Canlı", fields(Map.of("customfield_10503", 960))));
+        jiraGatewayPort.issues = List.of(issue("RPA-8", "Guncellendi", "Tamamlandı", fields(Map.of("customfield_10503", 960))));
         consumer.onSyncRequested(new JiraSyncRequestedMessage(TEAM_ID, "RPA", null));
 
         WorkItem updated = workItemRepository.byKey("RPA-8");

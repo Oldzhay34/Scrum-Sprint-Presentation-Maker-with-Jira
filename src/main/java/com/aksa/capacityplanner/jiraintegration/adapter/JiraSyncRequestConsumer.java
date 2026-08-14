@@ -151,16 +151,21 @@ public class JiraSyncRequestConsumer {
         // status_options.code degerleriyle (orn. "Canlı", "Backlog") birebir
         // AYNI degil - dogrudan issue.statusName() yazmak V8'deki
         // chk_work_items_status_code kontrolunu her satirda ihlal ediyordu.
-        String appStatusCode = JiraStatusMapper.resolve(issue.statusName());
+        String appStatusCode = JiraStatusMapper.resolve(jiraProjectKey, issue.statusName());
         BigDecimal plannedEffortDays = extractPlannedEffortDays(issue.fieldValues());
-        // RPA ISTISNASI: bir hikayenin kendi customfield_10503'u, alt gorevlerinin
-        // TOPLAMIDIR (kisiye ozel degil) - alt gorevi OLAN bir parent'ta bu degeri
-        // aynen kullanmak, o eforu hem parent'ta hem de her alt gorevde AYRI AYRI
-        // saymak (cift sayim) anlamina gelir. Gercek kisi bazli efor alt gorev
+        // TUM PROJELER ICIN: bir hikayenin kendi customfield_10503'u genelde
+        // ya BOS (gercek efor sadece alt gorevlerde - orn. SD-1733) ya da alt
+        // gorevlerin TOPLAMIDIR (orn. RPA) - ikisinde de kisiye ozel degildir.
+        // Alt gorevi OLAN bir parent'ta bu degeri aynen kullanmak, ya hicbir
+        // seyi (bos oldugu icin) ya da eforu iki kere (parent + her alt gorev
+        // ayri ayri) saymak anlamina gelir. Gercek kisi bazli efor alt gorev
         // seviyesinde (kendi assignee'si, kendi customfield_10503'uyle) zaten
-        // ayrica geliyor - bu yuzden alt gorevi olan RPA parent'larinin kendi
-        // eforu burada BILEREK 0'a sabitlenir (bkz. kullanici bildirimi, 2026-08-14).
-        if ("RPA".equals(jiraProjectKey) && hasSubtasks(issue.fieldValues())) {
+        // ayrica geliyor - bu yuzden alt gorevi olan parent'larin kendi eforu
+        // burada BILEREK 0'a sabitlenir (bkz. kullanici bildirimi, 2026-08-14 -
+        // "efor lari epiclere ya da islere girmis olabilirler... subtasklara
+        // da bakabilirsin"; IZ/YZ'de hic alt gorev olmadigi icin bu kural
+        // onlar icin etkisizdir).
+        if (hasSubtasks(issue.fieldValues())) {
             plannedEffortDays = BigDecimal.ZERO;
         }
 

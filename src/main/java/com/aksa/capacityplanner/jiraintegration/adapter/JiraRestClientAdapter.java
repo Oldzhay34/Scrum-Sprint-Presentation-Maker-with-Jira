@@ -117,39 +117,48 @@ public class JiraRestClientAdapter implements JiraGatewayPort {
     }
 
     /**
-     * RPA DISINDAKI projelerde issue'larin buyuk kismi Alt Gorev (Sub-task)
-     * olabiliyor (orn. eskiden RPA'da 2197 issue'nun 1622'si). Bunlar
-     * filtrelenmeden cekilince dashboard'da toplam is kalemi sayisi gercek
-     * surec sayisinin NEREDEYSE 4 KATI gorunuyordu - bkz. kullanici bildirimi
-     * ("verilerin yanlis oldugunu soyluyorlar"). Bu yuzden varsayilan olarak
-     * alt gorevler HARIC tutulur: kapasite takibi hikaye/gorev seviyesinde
-     * yapilir, alt gorevler kendi basina ayri bir "is kalemi" degildir.
+     * ESKIDEN alt gorevler (Sub-task) varsayilan sorgudan TAMAMEN haric
+     * tutuluyordu (issuetype != Sub-task) - RPA'da issue'larin buyuk kismi
+     * (orn. 2197'nin 1622'si) alt gorev oldugundan, filtrelenmeden cekilince
+     * dashboard toplam is kalemi sayisini gercek surec sayisinin NEREDEYSE 4
+     * KATI gosteriyordu.
      *
-     * RPA ISTISNASI (2026-08-14, kullanici bildirimi): RPA'da bir hikayenin
-     * KENDI customfield_10503 degeri, o hikayenin TUM alt gorevlerindeki
-     * eforun TOPLAMIDIR - kisiye ozel degildir (ayrica gorevi olusturan/parent'i
-     * atanan kisi ile fiilen calisan kisi FARKLI olabiliyor). Bu yuzden RPA'da
-     * kisi bazli efor SADECE alt gorev seviyesinde (kendi assignee'si, kendi
-     * customfield_10503'u ile) dogru hesaplanabilir - alt gorevler burada
-     * BILEREK dahil edilir; JiraSyncRequestConsumer, alt gorevi OLAN parent'larin
-     * kendi eforunu 0 sayarak cift saymayi engeller (bkz. o sinifin upsert metodu).
-     * Ayrica RPA'da "labels" alaninda "rpa" etiketi olan isler, kisinin sirkete
-     * dahil OLMAYAN kendi projesi oldugu icin tamamen kapsam disi birakilir.
+     * ANCAK canli veri incelemesi (2026-08-14, kullanici bildirimi - "efor
+     * lari epiclere ya da islere girmis olabilirler... subtasklara da
+     * bakabilirsin") RPA, SD ve DA/DSYS'de AYNI deseni ortaya cikardi: gercek
+     * kisi-bazli efor VE gercek assignee bilgisi COGUNLUKLA parent'ta degil
+     * ALT GOREVLERDE tutuluyor - orn. SD-1733'un kendi customfield_10503'u BOS,
+     * ama 4 alt gorevinde toplam 960 dakika (ve parent'tan FARKLI bir kisiye,
+     * UMUT HAZIRAY'a atanmis) efor var. Alt gorevleri disarida birakmak bu
+     * eforu ve kisi atamasini TAMAMEN kaybettiriyordu (SD'de "Tamamlanan"
+     * kartinin herkeste 0 gorunmesinin bir nedeni de buydu). IZ ve YZ'de hic
+     * alt gorev yok (canli dogrulandi, sayim=0), bu yuzden onlar icin bu
+     * degisiklik etkisizdir.
+     *
+     * Bu yuzden artik TUM projelerde alt gorevler BILEREK DAHIL edilir; eski
+     * "4 kat sisme" sorunu, JiraSyncRequestConsumer'daki "alt gorevi olan
+     * parent'in kendi eforunu 0 say" kuraliyla (cift sayimi onler, artik tum
+     * projeler icin gecerli) ve is kalemi SAYISININ artik gercegi yansitmasiyla
+     * (alt gorevler de gercek is kalemleridir) kabul edilebilir hale geldi.
+     *
+     * RPA'ya OZEL kalan tek kural: "labels" alaninda "rpa" etiketi olan isler,
+     * kisinin sirkete dahil OLMAYAN kendi projesi oldugu icin kapsam disi
+     * birakilir (bkz. kullanici bildirimi). DIKKAT: "labels NOT IN (x)" tek
+     * basina yazilirsa, Jira'nin JQL semantiginde labels alani BOS/null olan
+     * issue'lar da (SQL'deki "NULL NOT IN (...)" gibi) YANLISLIKLA disarida
+     * kalir - canli testte RPA-2260 (hic etiketi olmayan, gercek bir parent)
+     * bu yuzden sessizce elendigi tespit edildi. "OR labels IS EMPTY" ile
+     * etiketsiz issue'lar acikca dahil edilir.
      */
     private String resolveJql(JiraFetchQuery query) {
         if (query.jql() != null && !query.jql().isBlank()) {
             return query.jql();
         }
         if ("RPA".equals(query.jiraProjectKey())) {
-            // DIKKAT: "labels NOT IN (x)" tek basina yazilirsa, Jira'nin JQL semantiginde
-            // labels alani BOS/null olan issue'lar da (SQL'deki "NULL NOT IN (...)" gibi)
-            // YANLISLIKLA disarida kalir - canli test sirasinda RPA-2260 (hic etiketi
-            // olmayan, gercek bir parent) bu yuzden sessizce elendigi tespit edildi.
-            // "OR labels IS EMPTY" ile etiketsiz issue'lar acikca dahil edilir.
             return "project = RPA AND (labels NOT IN (" + RPA_OUT_OF_SCOPE_LABEL
                     + ") OR labels IS EMPTY) ORDER BY updated DESC";
         }
-        return "project = " + query.jiraProjectKey() + " AND issuetype != Sub-task ORDER BY updated DESC";
+        return "project = " + query.jiraProjectKey() + " ORDER BY updated DESC";
     }
 
     @SuppressWarnings("unchecked")
