@@ -102,7 +102,7 @@ stages:
         steps:
           - template: templates/setup-java-maven-cache.yml
           - script: ./mvnw -B verify -P subsystem-tests
-            displayName: "Subsystem testlerini calistir (capacity + team + leave orkestrasyonu, cache, RabbitMQ)"
+            displayName: "Subsystem testlerini calistir (capacity + team + leave orkestrasyonu, cache, arka plan jira-sync)"
           - template: templates/publish-test-results.yml
             parameters:
               testResultsFiles: "**/failsafe-reports/TEST-*.xml"

@@ -8,6 +8,13 @@ RUN npm install
 COPY . .
 ARG VITE_API_BASE_URL=http://localhost:8080
 ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
+# Odyssey kabugunun icinde /kapasite/ alt yolundan servis ediliyoruz -
+# Vite varlik adreslerini bu onekle uretsin (bkz. vite.config.js).
+ARG VITE_BASE_PATH=/
+ENV VITE_BASE_PATH=${VITE_BASE_PATH}
+# Oturum yoksa kullanicinin geri gonderilecegi giris adresi (Odyssey).
+ARG VITE_ODYSSEY_URL=/
+ENV VITE_ODYSSEY_URL=${VITE_ODYSSEY_URL}
 RUN npm run build
 
 # --- run stage ---

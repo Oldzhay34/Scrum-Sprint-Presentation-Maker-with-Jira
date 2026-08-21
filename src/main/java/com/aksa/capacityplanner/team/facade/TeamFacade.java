@@ -6,6 +6,7 @@ import com.aksa.capacityplanner.team.domain.TeamMember;
 import com.aksa.capacityplanner.team.port.in.TeamMemberUseCase;
 import com.aksa.capacityplanner.team.port.in.TeamUseCase;
 import com.aksa.capacityplanner.team.port.out.StatusOptionRepositoryPort;
+import com.aksa.capacityplanner.team.port.out.TeamSectorOptionRepositoryPort;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -20,12 +21,15 @@ public class TeamFacade {
     private final TeamUseCase teamUseCase;
     private final TeamMemberUseCase teamMemberUseCase;
     private final StatusOptionRepositoryPort statusOptionRepository;
+    private final TeamSectorOptionRepositoryPort teamSectorOptionRepository;
 
     public TeamFacade(TeamUseCase teamUseCase, TeamMemberUseCase teamMemberUseCase,
-                       StatusOptionRepositoryPort statusOptionRepository) {
+                       StatusOptionRepositoryPort statusOptionRepository,
+                       TeamSectorOptionRepositoryPort teamSectorOptionRepository) {
         this.teamUseCase = teamUseCase;
         this.teamMemberUseCase = teamMemberUseCase;
         this.statusOptionRepository = statusOptionRepository;
+        this.teamSectorOptionRepository = teamSectorOptionRepository;
     }
 
     public Team createTeam(Team team) {
@@ -87,5 +91,10 @@ public class TeamFacade {
 
     public void removeCustomField(Long teamId, Long fieldId) {
         teamUseCase.removeCustomField(teamId, fieldId);
+    }
+
+    /** Takimin Jira'dan senkronize edilen sektor listesi (bkz. JiraSyncProcessor) - elle duzenlenmez. */
+    public List<String> listSectorOptions(Long teamId) {
+        return teamSectorOptionRepository.findByTeamId(teamId);
     }
 }

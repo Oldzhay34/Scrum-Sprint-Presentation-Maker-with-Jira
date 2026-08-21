@@ -44,7 +44,8 @@ public final class AuditActionResolver {
             Map.entry("PUT /api/leave-periods/{id}", new ActionInfo("LEAVE_UPDATE", "İzin kaydı güncellendi", "LEAVE")),
             Map.entry("DELETE /api/leave-periods/{id}", new ActionInfo("LEAVE_DELETE", "İzin kaydı silindi", "LEAVE")),
 
-            Map.entry("POST /api/assets/cover-image", new ActionInfo("ASSET_UPLOAD", "Kapak görseli yüklendi", "ASSET"))
+            Map.entry("POST /api/assets/cover-image", new ActionInfo("ASSET_UPLOAD", "Kapak görseli yüklendi", "ASSET")),
+            Map.entry("POST /api/assets/cover-background", new ActionInfo("ASSET_UPLOAD", "Sunum arka planı yüklendi", "ASSET"))
     );
 
     private AuditActionResolver() {

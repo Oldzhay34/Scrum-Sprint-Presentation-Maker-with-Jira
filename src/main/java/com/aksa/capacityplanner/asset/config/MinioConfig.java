@@ -10,7 +10,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * MinIO baglantisi Postgres/Redis/RabbitMQ ile ayni desende hazirlanir
+ * MinIO baglantisi Postgres ile ayni desende hazirlanir
  * (docker-compose'daki "minio" servisi + burada bean/bucket bootstrap).
  * Flyway migration'lari nasil ilk aciliste otomatik uygulanirsa, burada da
  * bucket yoksa acilista otomatik olusturulur.

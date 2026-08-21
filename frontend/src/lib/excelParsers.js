@@ -1,6 +1,7 @@
 import * as XLSX from "xlsx";
 import { trDDMM, xd, autoRange } from "./format";
 import { PRIORITY_ORDER } from "./geometry";
+import { makeSuggestion } from "./suggestions";
 
 /**
  * Excel'deki "Statü" degerlerinin hangi sprint bolumune (done/active/risk/pending)
@@ -48,7 +49,7 @@ function statusMapFor(teamName) {
  * ikisi de parseRuns (lib/geometry.js) tarafindan cozumlenip slaytta/PPTX'te
  * gosterilir (bkz. PRIORITY_COLORS).
  */
-function formatWorkItemName(name, sector, department, priority) {
+export function formatWorkItemName(name, sector, department, priority) {
   const plainTags = [sector, department].map((t) => (t == null ? "" : String(t).trim())).filter(Boolean);
   const p = priority == null ? "" : String(priority).trim();
   let suffix = "";
@@ -177,7 +178,20 @@ export function parseSprintExcel(arrayBuffer, teamName) {
         const sector = row["Sektör"];
         const department = row["Departman"];
         const priority = row["Öncelik"];
-        suggestions[sec].push(formatWorkItemName(name, sector, department, priority));
+        // Oneriler artik duz string degil, siralanabilir birer NESNE - bkz.
+        // lib/suggestions.js ve SuggestionList.jsx ("çok demode ve rastgele
+        // gözüküyor ... bir liste gibi", PO notu 2026-08-19). Excel'de
+        // ekleniş tarihi sutunu varsa siralamada kullanilir.
+        const addedRaw = row["Eklenme Tarihi"] ?? row["Açılış Tarihi"] ?? row["Tarih"] ?? null;
+        const added = addedRaw ? xd(addedRaw) : null;
+        suggestions[sec].push(
+          makeSuggestion(formatWorkItemName(name, sector, department, priority), {
+            priority: priority ? String(priority).trim() : null,
+            sector: sector ? String(sector).trim() : null,
+            addedDate: added ? added.toISOString().slice(0, 10) : null,
+            source: "excel",
+          })
+        );
       }
     });
   }
@@ -223,7 +237,21 @@ export function parseDashboardExcel(arrayBuffer, fallbackTeamName) {
   };
   const rT = mrow("Toplam Planlanan Efor"), rDone = mrow("Tamamlanan"), rDol = mrow("Kalan Kapasite Bakımlı"), rDur = mrow("Durum");
   const g = (row, c) => (row ? Number(row[c]) : 0);
-  const total = { toplam: g(rT, 1), doluluk: g(rDol, 1), durum: rDur ? String(rDur[1]) : "" };
+  // "Kapasite Farkı" artik Excel'in KENDISINDE hazir bir alan (Rapor!B32 =
+  // "Bakım Hariç Kalan Kapasite" − "Kalan Efor"); PO'lar bu alani sablona
+  // eklemeyi kabul etti (kullanici bildirimi 2026-08-20). Varsa DOGRUDAN
+  // okunur - boylece uygulamanin turettigi deger ile PO'nun Excel'de gordugu
+  // rakam arasinda hicbir sapma olmaz. Etiket sonunda iki nokta var
+  // ("Kapasite Farkı:"), bu yuzden includes ile aranir. Alan yoksa
+  // (eski sablonlar) null doner ve cagiran taraf eskisi gibi kendisi hesaplar.
+  const rGap = findRow((s) => s.trim().startsWith("Kapasite Farkı"));
+  const kapasiteFarki = rGap && rGap[1] != null && String(rGap[1]).trim() !== "" ? Number(rGap[1]) : null;
+  const total = {
+    toplam: g(rT, 1),
+    doluluk: g(rDol, 1),
+    durum: rDur ? String(rDur[1]) : "",
+    kapasiteFarki: Number.isFinite(kapasiteFarki) ? kapasiteFarki : null,
+  };
 
   const kapMap = {};
   const roleMap = {};
@@ -266,12 +294,39 @@ export function parseDashboardExcel(arrayBuffer, fallbackTeamName) {
   const a1 = A[0] && A[0][0] ? String(A[0][0]) : "";
   const team = a1.replace(/Kapasite.*$/i, "").trim() || fallbackTeamName || "Ekip";
 
+  // "İş_Listesi" sayfasindaki "FTE" sutunu (RPA'ya ozgu, sadece RPA Excel'lerinde
+  // var) - toplamini Kapasite Dashboard'da "Toplam FTE" ek karti olarak gostermek
+  // icin burada topluyoruz (bkz. useDashboardData.js). Baska takim tipinin
+  // Excel'inde bu sayfa/sutun olmadigindan totalFte otomatik null kalir.
+  //
+  // ESKIDEN butun satirlarin FTE'si (statu ne olursa olsun - Açık/Devam Ediyor
+  // dahil) toplaniyordu; bu, Excel'in KENDI "Rapor" sayfasindaki "FTE
+  // Gerçekleşen" hucresinden (B12) FARKLI bir sayi uretiyordu - dosya
+  // incelemesi 2026-08-20'de o hucrenin gercek formulu bulundu:
+  //   =SUMIFS(FTE,Statü,"Canlı") + SUMIFS(FTE,Statü,"Canlıda/Y") + SUMIFS(FTE,Statü,"İptal")
+  // yani SADECE fiilen tamamlanmis/canliya alinmis/iptal edilmis isler
+  // sayilir - hala acik/devam eden backlog'un FTE'si "gerceklesen"e HENUZ
+  // girmez (kullanici bildirimi 2026-08-20: "fte oranı yanlışmış"). Ayni
+  // formul burada birebir tekrarlanir ki uygulamadaki "Toplam FTE" karti
+  // Excel'deki "FTE Gerçekleşen" ile HER ZAMAN ayni sayiyi gostersin.
+  const FTE_REALIZED_STATUSES = new Set(["Canlı", "Canlıda/Y", "İptal"]);
+  let totalFte = null;
+  if (wb.Sheets["İş_Listesi"]) {
+    const rows = XLSX.utils.sheet_to_json(wb.Sheets["İş_Listesi"], { defval: "" });
+    if (rows.some((row) => row["FTE"] !== "" && row["FTE"] != null)) {
+      totalFte = rows
+        .filter((row) => FTE_REALIZED_STATUSES.has(String(row["Statü"] ?? "").trim()))
+        .reduce((sum, row) => sum + (Number(row["FTE"]) || 0), 0);
+    }
+  }
+
   const teamType = detectTeamType(wb);
   const { sprintNo, range } = parametrelerHints(wb);
 
   return {
     persons,
     kpis: total,
+    totalFte,
     teamType,
     sprintNo,
     range,

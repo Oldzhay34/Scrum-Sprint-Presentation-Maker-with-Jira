@@ -13,7 +13,7 @@ import static org.hamcrest.Matchers.*;
 
 /**
  * Team modulunun uctan uca (api -> facade -> usecase -> persistence) dogrulanmasi,
- * gercek Postgres/Redis/RabbitMQ container'lari uzerinde (Flyway migration'lari dahil).
+ * gercek Postgres container.i uzerinde (Flyway migration'lari dahil).
  * Diger modullerle (leave, capacity) orkestrasyon subsystem katmaninda test edilir.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)

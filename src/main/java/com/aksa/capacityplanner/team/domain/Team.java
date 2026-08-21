@@ -24,4 +24,11 @@ public class Team {
     private String jiraProjectKey;
     /** Jira board id'si (orn. RPA=538) - su an yalnizca referans/kesif amacli, senkronizasyon JQL'i etkilemez. */
     private Long jiraBoardId;
+    /**
+     * true ise Jira sync roster'da karsiligi olmayan assignee'ler icin ARTIK
+     * YENI TeamMember otomatik olusturmaz (bkz. JiraSyncProcessor) -
+     * eslesmeyen is kalemleri "atanmamis" kalir. Roster'i tamamen elle
+     * (PO/admin) yonetilen takimlar icin (orn. RPA - bkz. V21 migration).
+     */
+    private boolean rosterLocked;
 }

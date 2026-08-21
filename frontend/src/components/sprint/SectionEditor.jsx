@@ -1,14 +1,9 @@
 import { useRef, useState } from "react";
 import { PRIORITY_OPTIONS, SECTOR_OPTIONS } from "../../lib/excelParsers";
 import { extractPriority, extractComment, withComment, linesOf } from "../../lib/geometry";
+import SuggestionList from "./SuggestionList";
 
 const fieldStyle = { border: "1px solid var(--line)", borderRadius: 7, padding: "6px 9px", fontSize: 13, fontFamily: "inherit" };
-
-/** Chip etiketinde ##Öncelik## ve ** isaretlerini gostermeden okunakli bir onizleme uretir. */
-function chipLabel(chipText) {
-  const { text } = extractPriority(chipText);
-  return text.replace(/\*\*/g, "");
-}
 
 const PLACEHOLDERS = {
   done: "Her satıra bir madde yazın.\nÖrn: Fiyat Hesaplama Motoru projesi canlı ortama aktarıldı.",
@@ -22,7 +17,12 @@ const PLACEHOLDERS = {
  * Pressman - User Help Facilities: her bolumde placeholder ornegi ve
  * "Başlık: açıklama" bicimlendirme ipucu gosterilir.
  */
-export default function SectionEditor({ sectionKey, def, text, onTextChange, count, chips, onChipUse, onExpand, teamType }) {
+export default function SectionEditor({ sectionKey, def, text, onTextChange, count, chips, onChipUse, onExpand, teamType, sectorOptions }) {
+  // Takimin Jira'dan senkronize edilmis GERCEK sektor listesi varsa o kullanilir
+  // (bkz. useSectorOptions/apiClient.fetchSectorOptions) - henuz hic senkronize
+  // edilmemis (veya Jira'ya hic bagli olmayan, orn. Excel/Manuel) bir takim icin
+  // eski sabit listeye (SECTOR_OPTIONS) duser, dropdown hicbir zaman bomboş kalmaz.
+  const sectorList = sectorOptions && sectorOptions.length ? sectorOptions : SECTOR_OPTIONS;
   const textareaRef = useRef(null);
   const [manualText, setManualText] = useState("");
   const [manualSector, setManualSector] = useState("");
@@ -133,7 +133,7 @@ export default function SectionEditor({ sectionKey, def, text, onTextChange, cou
         />
         <select style={{ ...fieldStyle, flex: "0 0 120px" }} value={manualSector} onChange={(e) => setManualSector(e.target.value)}>
           <option value="">Sektör (ops.)</option>
-          {SECTOR_OPTIONS.map((s) => (
+          {sectorList.map((s) => (
             <option key={s} value={s}>
               {s}
             </option>
@@ -160,23 +160,10 @@ export default function SectionEditor({ sectionKey, def, text, onTextChange, cou
           Temizle
         </button>
       </div>
-      <div className="chips">
-        {chips.map((chipText) => {
-          const label = chipLabel(chipText);
-          return (
-            <button
-              key={chipText}
-              type="button"
-              className="chip"
-              title={label}
-              onClick={() => onChipUse(chipText)}
-            >
-              <span className="plus">+</span>
-              {label.length > 52 ? label.slice(0, 50) + "…" : label}
-            </button>
-          );
-        })}
-      </div>
+      {/* Excel/Jira onerileri - eskiden sirasiz "chip" balonlariydi, artik
+          oncelige/ekleniş tarihine gore siralanabilen gercek bir liste
+          (bkz. SuggestionList.jsx, PO notu 2026-08-19). */}
+      <SuggestionList items={chips} onUse={onChipUse} />
       <div className="comment-panel">
         <div className="panelttl" style={{ marginTop: 10 }}>Eklenen maddeler</div>
         <div className="hint" style={{ marginBottom: 6 }}>

@@ -9,23 +9,16 @@ import ErrorBanner from "../shared/ErrorBanner";
 /**
  * Sihirbazin 2. adimi: Kapasite Dashboard veri girisi (Excel'den Yukle,
  * Manuel Gir veya Jira'dan - DB'de zaten senkronize edilmis veriyi okur).
- * Onizleme artik UnifiedPreviewPane icinde ayri olarak yonetiliyor.
+ * Veri kaynagi sekmeleri artik BURADA degil, sagdaki "Canlı Önizleme"
+ * panelinin ust cubugunda (bkz. SourceTabs.jsx, UnifiedPreviewPane.jsx) -
+ * "source" prop'u yine App.jsx'teki AYNI state'ten gelir, sadece sekme UI'si
+ * tasindi (bkz. kullanici bildirimi, 2026-08-17: "ilk resimde attıklarımı
+ * ikinci resimdeki yere taşı"). Onizleme artik UnifiedPreviewPane icinde ayri
+ * olarak yonetiliyor.
  */
-export default function DashboardPage({ source, onSourceChange, dashboard, manual, jira, teamId, tableHeaders, setTableHeaders }) {
+export default function DashboardPage({ source, dashboard, manual, jira, teamId, tableHeaders, setTableHeaders }) {
   return (
     <section>
-      <div className="tabs">
-        <button type="button" className={`tab${source === "excel" ? " active" : ""}`} onClick={() => onSourceChange("excel")}>
-          Excel'den Yükle
-        </button>
-        <button type="button" className={`tab${source === "manual" ? " active" : ""}`} onClick={() => onSourceChange("manual")}>
-          Manuel Gir
-        </button>
-        <button type="button" className={`tab${source === "jira" ? " active" : ""}`} onClick={() => onSourceChange("jira")}>
-          Jira'dan
-        </button>
-      </div>
-
       <DashboardTableHeadersEditor tableHeaders={tableHeaders} setTableHeaders={setTableHeaders} />
 
       {source === "excel" ? (
@@ -36,7 +29,7 @@ export default function DashboardPage({ source, onSourceChange, dashboard, manua
           {dashboard.error && <ErrorBanner error={dashboard.error} />}
           <DashboardMetaForm dTeam={dashboard.dTeam} setDTeam={dashboard.setDTeam} dSprint={dashboard.dSprint} setDSprint={dashboard.setDSprint} />
           <p className="panelttl">Kişi eşleme — ad / rol / kısaltma</p>
-          <PersonMappingTable persons={dashboard.persons} onUpdate={dashboard.updatePerson} teamId={teamId} />
+          <PersonMappingTable persons={dashboard.persons} onUpdate={dashboard.updatePerson} teamId={teamId} reportDate={dashboard.reportDateIso} />
           <DeltaForm
             dKapanan={dashboard.dKapanan} setDKapanan={dashboard.setDKapanan}
             dEklenen={dashboard.dEklenen} setDEklenen={dashboard.setDEklenen}

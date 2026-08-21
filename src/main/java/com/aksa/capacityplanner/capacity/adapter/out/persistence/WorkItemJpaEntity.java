@@ -51,6 +51,40 @@ public class WorkItemJpaEntity {
     @Column(name = "closed_date")
     private LocalDate closedDate;
 
+    @Column(nullable = false)
+    private boolean flagged;
+
+    private String sector;
+
+    private String priority;
+
+    @Column(name = "sprint_name")
+    private String sprintName;
+
+    @Column(name = "active_sprint", nullable = false)
+    private boolean activeSprint;
+
+    @Column(name = "sprint_start_date")
+    private LocalDate sprintStartDate;
+
+    @Column(name = "sprint_end_date")
+    private LocalDate sprintEndDate;
+
+    @Column(name = "previous_sprint", nullable = false)
+    private boolean previousSprint;
+
+    @Column(name = "issue_type")
+    private String issueType;
+
+    @Column(name = "parent_key")
+    private String parentKey;
+
+    @Column(name = "parent_title")
+    private String parentTitle;
+
+    @Column(name = "parent_labels")
+    private String parentLabels;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private Instant createdAt;

@@ -21,7 +21,7 @@ export default function ZoomModal({ open, onClose, tabs, activeTab, onTabChange,
   const critical = timerSeconds && remaining <= 15;
 
   return (
-    <Modal open={open} onClose={onClose} boxClassName="zoombox">
+    <Modal open={open} onClose={onClose} boxClassName="zoombox stage-dark">
       <div className="zoombar">
         {timerSeconds != null && (
           <div className={`timer-badge${critical ? " timer-critical" : ""}`}>{formatMmSs(remaining)}</div>

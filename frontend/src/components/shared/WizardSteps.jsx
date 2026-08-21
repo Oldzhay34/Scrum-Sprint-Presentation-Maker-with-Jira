@@ -2,6 +2,10 @@ const STEPS = [
   { key: "cover", no: 1, label: "Kapak Sayfası Parametreleri" },
   { key: "sprint", no: 2, label: "İçerik Slaytı Parametreleri" },
   { key: "dash", no: 3, label: "Kapasite Dashboard Parametreleri" },
+  // 4. adim - kullanici bildirimi 2026-08-20: "3 kapasite dashboard
+  // parametrelerinin yanına 4. sayfa geliyor velocity chart & burndown
+  // graph parametreleri kısmı".
+  { key: "velocity", no: 4, label: "Velocity & Burndown Parametreleri" },
 ];
 
 /**

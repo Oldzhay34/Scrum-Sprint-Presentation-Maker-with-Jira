@@ -7,7 +7,3 @@ spring:
     properties:
       hibernate:
         format_sql: true
-  data:
-    redis:
-      repositories:
-        enabled: false

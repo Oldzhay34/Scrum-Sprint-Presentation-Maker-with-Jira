@@ -7,6 +7,7 @@ import {
   fetchCurrentUser,
   fetchUserProfile,
   fetchPresentation,
+  fetchPresentations,
   fetchTeams,
   fetchLatestPresentationsByTeams,
   logout,
@@ -15,7 +16,6 @@ import {
   recordPresentationDownload,
   triggerJiraSync,
 } from "./lib/apiClient";
-import LoginPage from "./components/shared/LoginPage";
 import ProfilePage from "./components/shared/ProfilePage";
 import AdminHomePage from "./components/shared/AdminHomePage";
 import MonitoringPage from "./components/shared/MonitoringPage";
@@ -36,33 +36,67 @@ import SprintTopActions from "./components/sprint/SprintTopActions";
 import EditorModal from "./components/sprint/EditorModal";
 import SlideCanvas from "./components/sprint/SlideCanvas";
 import CoverPage from "./components/sprint/CoverPage";
+import VelocityBurndownPage from "./components/sprint/VelocityBurndownPage";
+import VelocityBurndownSlideCanvas from "./components/sprint/VelocityBurndownSlideCanvas";
 
 import DashboardPage from "./components/dashboard/DashboardPage";
 import DashboardTopActions from "./components/dashboard/DashboardTopActions";
 import DashboardSlideCanvas from "./components/dashboard/DashboardSlideCanvas";
+import DashboardEditModal from "./components/dashboard/DashboardEditModal";
 
 import { useSprintForm } from "./hooks/useSprintForm";
 import { useBandEditor } from "./hooks/useBandEditor";
 import { useExcelSuggestions } from "./hooks/useExcelSuggestions";
+import { useJiraContentSuggestions } from "./hooks/useJiraContentSuggestions";
 import { usePptxExport } from "./hooks/usePptxExport";
 import { useDashboardData } from "./hooks/useDashboardData";
 import { useManualDashboard } from "./hooks/useManualDashboard";
 import { useJiraDashboard } from "./hooks/useJiraDashboard";
 import { useTheme } from "./hooks/useTheme";
 import { useCoverImage } from "./hooks/useCoverImage";
+import { useCoverBackground } from "./hooks/useCoverBackground";
+import { useVelocityBurndown } from "./hooks/useVelocityBurndown";
+import { useSectorOptions } from "./hooks/useSectorOptions";
 
 import { autoApplyCompanyHolidays } from "./lib/autoApplyCompanyHolidays";
 import { sectionDefs, SECTION_KEYS } from "./lib/geometry";
 import { buildFullDeck } from "./lib/fullDeckBuilder";
 import { ASSETS } from "./assets/pptxAssets";
 import { hasFteTracking, resolveIsAdmin, resolveTeamTypeFromDepartment } from "./lib/teamTypes";
+import { nextSprintNo } from "./lib/sprintNumbers";
+
+// Giris ekrani ARTIK BU UYGULAMADA DEGIL: kimlik dogrulama dis kabuga
+// (Odyssey) tasindi. Oturum yoksa ya da dustuyse kullaniciyi tum sekmeyle
+// birlikte oraya gonderiyoruz - iframe icindeyken de ust pencereyi
+// degistiriyoruz, yoksa giris ekrani cerceve icinde sikisip kalirdi.
+// VITE_ODYSSEY_URL derleme aninda verilir; verilmezse ayni origin koku
+// kullanilir (Odyssey zaten orada duruyor, bkz. Odyssey nginx /kapasite).
+const ODYSSEY_URL = import.meta.env.VITE_ODYSSEY_URL || "/";
+// Vite base degeri ("/kapasite/") React Router icin sondaki egik cizgisiz
+// olmali; kok altinda calisirken ("/") bos string olur ve etkisiz kalir.
+const ROUTER_BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
+
+function odysseyeDon() {
+  const hedef = new URL(ODYSSEY_URL, window.location.href);
+  // Yerel gelistirmede (VITE_ODYSSEY_URL verilmeden "npm run dev") hedef
+  // uygulamanin KENDI koku oluyor; yonlendirme sonsuz donguye girmesin diye
+  // ayni sayfaya gidecekse hic dokunmuyoruz - o zaman ekran bos kalir ve
+  // gelistirici konsolda sebebini gorur.
+  const ust = window.top || window;
+  if (ust === window && hedef.href === window.location.href) {
+    console.warn("Oturum yok ve Odyssey adresi bu sayfanin kendisi - yonlendirme atlandi (VITE_ODYSSEY_URL verin).");
+    return;
+  }
+  ust.location.href = hedef.href;
+}
 
 // ZoomModal ("⤢ Preview") ve ExportPreviewModal ("PPTX İndir" oncesi onizleme)
-// AYNI 3 sekmeyi kullanir - tek yerden tanimlanir.
+// AYNI 4 sekmeyi kullanir - tek yerden tanimlanir.
 const PREVIEW_TABS = [
   { key: "cover", label: "Kapak" },
   { key: "content", label: "İçerik Slaytı" },
   { key: "dashboard", label: "Kapasite Dashboard" },
+  { key: "velocity", label: "Velocity & Burndown" },
 ];
 
 /**
@@ -75,6 +109,7 @@ const EMPTY_CONTENT = {
   sprint: "",
   range: "",
   sections: { done: "", active: "", risk: "", pending: "" },
+  notes: "",
   band: { show: false, bars: [] },
   dashSource: "excel",
   dashData: null,
@@ -82,14 +117,16 @@ const EMPTY_CONTENT = {
 };
 
 /**
- * Giris durumunu yonetir - girmeden once sadece LoginPage, girince ana
- * uygulama (MainApp) render edilir. Iki farkli bilesen olarak ayrildi ki
- * hook sayisi/sirasi render'lar arasinda tutarli kalsin (Rules of Hooks) -
- * ayni bilesen icinde erken "return" ile kalan hook'lari atlamak gecersizdi.
+ * Oturum durumunu yonetir - oturum yoksa kullanici dis kabuga (Odyssey)
+ * geri gonderilir, varsa ana uygulama (MainApp) render edilir. Iki farkli
+ * bilesen olarak ayrildi ki hook sayisi/sirasi render'lar arasinda tutarli
+ * kalsin (Rules of Hooks) - ayni bilesen icinde erken "return" ile kalan
+ * hook'lari atlamak gecersizdi.
  *
  * Sayfa yenilendiginde acilista /api/auth/me ile mevcut oturum (access_token
- * cookie'si hala gecerliyse) geri kurulur - kullanici her yenilemede tekrar
- * login olmak zorunda kalmaz.
+ * cookie'si hala gecerliyse) geri kurulur; cookie'yi Odyssey'in giris
+ * ekrani yazar ve ayni origin uzerinden buraya da gelir (bkz. Odyssey
+ * nginx.conf - /api ve /kapasite ayni alan adindan servis edilir).
  */
 export default function App() {
   const [personnel, setPersonnel] = useState(null);
@@ -115,15 +152,21 @@ export default function App() {
   }, [personnel]);
 
   const handleLogout = () => {
-    logout().finally(() => setPersonnel(null));
+    logout().finally(odysseyeDon);
   };
 
   if (!sessionChecked) return null;
 
+  // Oturum yoksa giris icin dis kabuga don (bkz. odysseyeDon).
+  if (!personnel) {
+    odysseyeDon();
+    return null;
+  }
+
   const isAdmin = resolveIsAdmin(personnel);
 
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={ROUTER_BASE}>
       <Routes>
         <Route
           path="/profile"
@@ -206,9 +249,7 @@ export default function App() {
         <Route
           path="/"
           element={
-            !personnel ? (
-              <LoginPage onLogin={setPersonnel} theme={theme} onToggleTheme={toggleTheme} />
-            ) : isAdmin ? (
+            isAdmin ? (
               <Navigate to="/admin" replace />
             ) : (
               <MainApp theme={theme} toggleTheme={toggleTheme} personnel={personnel} />
@@ -257,7 +298,7 @@ function MainApp({ theme, toggleTheme, personnel, presentationId, newForTeamId, 
   // baslar, ama kullanici site uzerinden bagimsiz secebilir (yonetici istegi).
   const [pptxTheme, setPptxTheme] = useState(theme);
 
-  // Login yanitindaki (bkz. LoginPage.jsx/apiClient.fetchCurrentUser -
+  // Login yanitindaki (bkz. Odyssey auth.js/apiClient.fetchCurrentUser -
   // su an {sicil, fullName, role, teamId} doner) "role" alanindan admin
   // durumunu, "department"tan (ileride eklenecek AD/personel entegrasyonuyla
   // gelecek - bkz. AuthUser.java) takimini cozumler. Admin her takimi
@@ -282,6 +323,12 @@ function MainApp({ theme, toggleTheme, personnel, presentationId, newForTeamId, 
 
   // ---- Kapak (1. adim) durumu ----
   const cover = useCoverImage(ASSETS.cover_bg);
+  const coverBackground = useCoverBackground();
+  // Sihirbazin 4. adimi: "Velocity & Burndown Parametreleri" (kullanici
+  // bildirimi 2026-08-20). Kapak gorseli/arka planiyla AYNI oturuma-ozel
+  // desen - hicbir sey kaydedilmez, sadece bu oturumun onizleme/PPTX'inde
+  // kullanilir.
+  const velocityBurndown = useVelocityBurndown();
 
   // ---- Sprint (2. adim) durumu ----
   const sprintForm = useSprintForm();
@@ -331,6 +378,7 @@ function MainApp({ theme, toggleTheme, personnel, presentationId, newForTeamId, 
   const teamsPromiseRef = useRef(null);
   const band = useBandEditor();
   const excel = useExcelSuggestions();
+  const jiraContent = useJiraContentSuggestions();
   const [editorKey, setEditorKey] = useState(null);
   const handleSectionTextChange = (key, text) => {
     sprintForm.setSectionText(key, text);
@@ -343,6 +391,16 @@ function MainApp({ theme, toggleTheme, personnel, presentationId, newForTeamId, 
     if (excel.bandTargets.length) band.setSample(excel.bandTargets);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [excel.bandTargets]);
+
+  // Jira'dan Getir de AYNI bandi (HEDEFLER: Canlı/Kalan Süreç Sayısı)
+  // doldurabilir - bkz. jiraContentMapper.js buildBandTargetsFromWorkItems.
+  // "FTE" cubugu Jira'dan TURETILEMEZ (kullanici bildirimi, 2026-08-17: "hedefler
+  // bandını da jira dan otomatik çekebilir miyiz" - arastirildi, Jira'da FTE
+  // alani yok, sadece süreç sayısı cubugu doldurulabilir).
+  useEffect(() => {
+    if (jiraContent.bandTargets.length) band.setSample(jiraContent.bandTargets);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [jiraContent.bandTargets]);
 
   // ---- Kapasite Dashboard (3. adim) durumu ----
   const [dashSource, setDashSource] = useState("excel");
@@ -380,6 +438,7 @@ function MainApp({ theme, toggleTheme, personnel, presentationId, newForTeamId, 
     if (replace || c.sections) {
       SECTION_KEYS.forEach((k) => sprintForm.setSectionText(k, c.sections?.[k] || ""));
     }
+    if (replace || c.notes) sprintForm.setNotes(c.notes || "");
     if (replace || c.band?.bars?.length) band.setSample(c.band?.bars || []);
     // setSample(bars) show'u true yapar - kayitta gizliyse hemen geri kapatilir.
     if (c.band ? c.band.show === false : replace) band.toggleShow(false);
@@ -399,12 +458,28 @@ function MainApp({ theme, toggleTheme, personnel, presentationId, newForTeamId, 
   const [loadError, setLoadError] = useState(null);
   const [saveStatus, setSaveStatus] = useState({ loading: false, error: null });
   const saveTeamId = presentationMeta?.teamId ?? newForTeamId ?? personnel?.teamId ?? null;
+  // "Tamamlanan İşler" kutusundaki Epic-label filtresi icin (bkz.
+  // jiraContentMapper.js epicLabeledWithOwnTeam, kullanici teyidi 2026-08-20) -
+  // takimin Jira proje anahtari (orn. "RPA") teams listesinden okunur.
+  const saveTeamJiraProjectKey = teams?.find((t) => t.id === saveTeamId)?.jiraProjectKey ?? null;
 
   // "Jira'dan" sekmesi: DB'de zaten senkronize edilmis (bkz. "Jira'dan Çek")
   // veriyi okur - saveTeamId gerektigi icin bu hook, onun hesaplanmasindan
   // SONRA cagrilir (hook cagri SIRASI her render'da ayni oldugu surece
   // fonksiyon govdesindeki konumu onemli degil).
-  const jiraDash = useJiraDashboard(sprintForm.team, sprintForm.setTeam, sprintForm.sprint, sprintForm.setSprint, saveTeamId, sprintForm.teamType);
+  const jiraDash = useJiraDashboard(sprintForm.team, sprintForm.setTeam, sprintForm.sprint, sprintForm.setSprint, saveTeamId, sprintForm.teamType, sprintForm.setRange);
+  // Sektor (ops.) dropdown'u saveTeamId'YE DEGIL, o an KAPAKTA secili Takım
+  // Tipi'ne gore olmali - saveTeamId (kaydedilecek sunumun kimligi) henuz bir
+  // sunum yuklenmemis/kaydedilmemisse eski/boş kalabiliyor, bu durumda kapakta
+  // "Ürün Geliştirme" secili olsa bile sektor listesi baska bir takima (veya
+  // hicbirine) ait cekilip eski sabit listeye duseriyordu (bkz. kullanici
+  // bildirimi, 2026-08-18: "EDAŞ ... gözükmüyor" - PO henuz bir sunum
+  // yuklemeden sadece Takım Tipi'ni degistirerek test ediyordu).
+  const teamIdForSelectedType = useMemo(
+    () => teams?.find((t) => t.teamType === sprintForm.teamType)?.id ?? null,
+    [teams, sprintForm.teamType]
+  );
+  const sectorOptions = useSectorOptions(teamIdForSelectedType);
 
   // Baska takimi salt-okunur goruntulerken SADECE o sunumun kayitli
   // dashboard'u gosterilir - aksi halde kullanicinin bu oturumda yukledigi
@@ -413,18 +488,54 @@ function MainApp({ theme, toggleTheme, personnel, presentationId, newForTeamId, 
   const activeDashDataBase = viewingOtherTeam
     ? loadedDashData
     : dashSource === "manual" ? manual.dashData : dashSource === "jira" ? jiraDash.dashData : (dashboard.dashData || loadedDashData);
-  const activeDashData = activeDashDataBase ? { ...activeDashDataBase, tableHeaders } : activeDashDataBase;
 
-  // "Jira'dan Çek" - backend'e senkronizasyon istegini tetikler (RabbitMQ
-  // kuyruguna dusurulur, arka planda islenir - bkz. JiraSyncRequestConsumer).
+  // Canlı önizlemedeki "Düzenle" ekraninin (DashboardEditModal) uzerine
+  // yazdigi GECICI kaplama - gercek work_items/team_members'i DEGISTIRMEZ,
+  // sadece bu sunumun kaydedilecek versiyonuna (buildSaveContent -> dashData)
+  // yansir. Veri kaynagi YENIDEN hesaplanirsa (activeDashDataBase referansi
+  // degisirse - Jira "Yenile", Excel yeniden yukleme, Manuel "Hesapla")
+  // asagidaki effect ile otomatik sifirlanir (bkz. kullanici bildirimi,
+  // 2026-08-17: "bu değişiklikler sadece versiyon tablosuna kaydedilsin").
+  const [dashDataOverride, setDashDataOverride] = useState(null);
+  useEffect(() => {
+    setDashDataOverride(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeDashDataBase]);
+
+  const effectiveDashDataBase = dashDataOverride || activeDashDataBase;
+  const activeDashData = effectiveDashDataBase ? { ...effectiveDashDataBase, tableHeaders } : effectiveDashDataBase;
+
+  // "Jira'dan Çek" - backend'e senkronizasyon istegini tetikler (arka plan
+  // isleyicisine devredilir - bkz. JiraSyncProcessor / JiraSyncAsyncConfig).
   // Bu yuzden istek BASARILI kabul edildiginde bile veriler o an degil,
   // birkac saniye icinde guncellenir; kullaniciya bunu acikca belirtiyoruz.
   const [jiraSyncing, setJiraSyncing] = useState(false);
   const [jiraSyncNotice, setJiraSyncNotice] = useState(null); // { type: "success" | "error", text }
+  // Senkronizasyon backend'de ASENKRON islendigi icin "tamamlandi" sinyali
+  // yok - bu yuzden istek kabul edildikten SONRA sabit bir sure (backend.in
+  // isi bitirmesi icin makul bir tahmin) beklenip Kapasite Dashboard'un
+  // "Jira'dan" sekmesi (jiraDash.refresh) VE İçerik Slaytı'nin HEDEFLER/
+  // oneri cubuklari (jiraContent.fetchFromJira) OTOMATIK yenilenir - eskiden
+  // ikisi de kullanicinin ayri ayri elle "Yenile"/"Jira'dan Getir" basmasini
+  // gerektiriyordu (bkz. kullanici bildirimi, 2026-08-17: "jira dan çek
+  // tuşuna basıldığı anda içerik slaytı ile kapasite dashboard sayfası
+  // otomatik jiradan çekmesi lazım").
+  const JIRA_SYNC_AUTO_REFRESH_DELAY_MS = 4000;
   const handleJiraSync = () => {
     if (!saveTeamId) {
       setJiraSyncNotice({ type: "error", text: "Jira'dan çekebilmek için önce bir takım seçili olmalı." });
       return;
+    }
+    // Excel yuklerken YAPILANIN AYNISI (bkz. handleExcelFile) - onceden Excel'den
+    // (veya elle) doldurulmus icerik bolumleri, "Jira'dan Çek" ile gelecek YENİ
+    // verinin ustune eski/yanlis bir sekilde binmesin diye temizlenir. Bu
+    // olmadan kullanici Excel yukleyip "Jira'dan Çek"e bassa bile İçerik
+    // Slaytı'nda hala ESKİ Excel metni kalıyordu - kullanici Jira oneri
+    // cip'lerini ekleyene kadar hicbir sey degismemis GİBİ gorunuyordu (bkz.
+    // kullanici bildirimi 2026-08-20: "içerik slaytında hala excel verisi
+    // kalıyor jiradan çekmeliydi").
+    if (SECTION_KEYS.some((k) => sprintForm.sections[k]?.trim())) {
+      SECTION_KEYS.forEach((k) => sprintForm.setSectionText(k, ""));
     }
     setJiraSyncing(true);
     setJiraSyncNotice(null);
@@ -436,8 +547,12 @@ function MainApp({ theme, toggleTheme, personnel, presentationId, newForTeamId, 
       .then(() => {
         setJiraSyncNotice({
           type: "success",
-          text: "Jira senkronizasyonu kuyruğa alındı — veriler birkaç saniye içinde güncellenecek.",
+          text: "Jira senkronizasyonu başlatıldı — veriler birkaç saniye içinde otomatik güncellenecek.",
         });
+        setTimeout(() => {
+          jiraDash.refresh();
+          jiraContent.fetchFromJira(saveTeamId, saveTeamJiraProjectKey);
+        }, JIRA_SYNC_AUTO_REFRESH_DELAY_MS);
       })
       .catch((err) => {
         setJiraSyncNotice({ type: "error", text: err?.message || "Jira senkronizasyonu başlatılamadı." });
@@ -480,11 +595,45 @@ function MainApp({ theme, toggleTheme, personnel, presentationId, newForTeamId, 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [presentationId]);
 
+  // Sihirbaz BOS acildiginda (yeni sunum) kapaktaki "Sprint no", takimin
+  // kayitli EN SON sunumunun sprintinin bir fazlasiyla doldurulur - onceden
+  // useSprintForm'daki sabit "7" geliyordu ve PO her seferinde elle
+  // duzeltiyordu (bkz. kullanici bildirimi, 2026-08-21).
+  //
+  // - /editor/:id ile ACILAN bir sunumda calismaz: oradaki sprint no kaydin
+  //   kendisidir, ustune yazilamaz (presentationId kontrolu).
+  // - Kullanici alani elle degistirdikten sonra da calismaz (sprintDefaultedRef
+  //   ile takim basina TEK SEFER).
+  // - Istek basarisiz olursa/takimin hic sunumu yoksa mevcut deger korunur ya
+  //   da "1"e duser - alan HICBIR ZAMAN bos birakilmaz (backend @NotBlank
+  //   bekliyor, CoverPage de bos degeri "sayi olmali" uyarisiyla reddediyor).
+  // - "Jira'dan Çek/Yenile" sonrasi Jira'nin GERCEK aktif sprinti bu
+  //   varsayilanin onune gecer (bkz. useJiraDashboard.refresh) - kasitli.
+  const sprintDefaultedRef = useRef(null);
+  useEffect(() => {
+    if (presentationId || !saveTeamId) return;
+    if (sprintDefaultedRef.current === saveTeamId) return;
+    sprintDefaultedRef.current = saveTeamId;
+    fetchPresentations(saveTeamId)
+      .then((list) => {
+        // Istek ucustayken kullanici baska bir takima gectiyse gec gelen
+        // yaniti uygulama (ayni desen: readOnlyReqRef).
+        if (sprintDefaultedRef.current !== saveTeamId) return;
+        sprintForm.setSprint(nextSprintNo(list));
+      })
+      .catch(() => {
+        // Sessizce mevcut varsayilanla devam - sprint no'yu okuyamamak
+        // sihirbazi bloke etmemeli.
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [presentationId, saveTeamId]);
+
   const buildSaveContent = () => ({
     teamType: sprintForm.teamType,
     sprint: sprintForm.sprint,
     range: sprintForm.range,
     sections: sprintForm.sections,
+    notes: sprintForm.notes,
     band: { show: band.show, bars: band.bars },
     dashSource,
     dashData: activeDashData,
@@ -652,6 +801,9 @@ function MainApp({ theme, toggleTheme, personnel, presentationId, newForTeamId, 
   // ---- Birlesik onizleme (kapak / icerik / kapasite dashboard) ----
   const [previewTab, setPreviewTab] = useState("cover");
   const [zoomOpen, setZoomOpen] = useState(false);
+  // "Düzenle" (DashboardEditModal) - sadece Kapasite Dashboard sekmesinde
+  // anlamli, bkz. UnifiedPreviewPane onEdit prop'u.
+  const [dashEditOpen, setDashEditOpen] = useState(false);
   // "PPTX İndir"e basildiginda dosya HEMEN inmez - once bu onizleme popup'u
   // acilir (tema secenegiyle), kullanici gozden gecirip asil indirmeyi
   // popup icindeki butonla onaylar (bkz. ExportPreviewModal).
@@ -660,7 +812,13 @@ function MainApp({ theme, toggleTheme, personnel, presentationId, newForTeamId, 
   // Sihirbaz adimi (mode) degistiginde onizleme sekmesi de otomatik esler -
   // "Kapak Sayfasi" adimina gecince onizleme de kapak gorselini (logo + ag deseni)
   // gostersin, kullanici ayrica sekme tiklamak zorunda kalmasin.
-  const MODE_TO_PREVIEW_TAB = { cover: "cover", sprint: "content", dash: "dashboard" };
+  const MODE_TO_PREVIEW_TAB = { cover: "cover", sprint: "content", dash: "dashboard", velocity: "velocity" };
+  // 4 adimli sihirbazin sirasi - "İleri"/"Geri" butonlari ve dolayli
+  // atlamalar (orn. adimlar arasi tikla-git) bu diziye gore hesaplanir.
+  const WIZARD_MODES = ["cover", "sprint", "dash", "velocity"];
+  const WIZARD_STEP_LABELS = {
+    cover: "Kapak Sayfası", sprint: "İçerik Slaytı", dash: "Kapasite Dashboard", velocity: "Velocity & Burndown",
+  };
   const [wizardAlert, setWizardAlert] = useState(null);
   const changeMode = (newMode) => {
     if (mode === "cover" && newMode !== "cover" && canEdit && !sprintForm.sprint.trim()) {
@@ -673,7 +831,7 @@ function MainApp({ theme, toggleTheme, personnel, presentationId, newForTeamId, 
 
   // Kapak gorseli kullanicidan gelmisse ASSETS'in uzerine yazilir - SlideCanvas,
   // DashboardSlideCanvas ve buildFullDeck bunu degistirmeden ayni sekilde tuketir.
-  const assets = { ...ASSETS, cover_bg: cover.coverBg };
+  const assets = { ...ASSETS, cover_bg: cover.coverBg, slide_bg: coverBackground.bg };
   const SEC = sectionDefs(assets);
 
   // Excel yukleme tek bir kaynaktan gelir: hangi sayfadan yuklenirse yuklensin
@@ -706,19 +864,33 @@ function MainApp({ theme, toggleTheme, personnel, presentationId, newForTeamId, 
     setExcelFileName(file.name);
   };
 
+  const sprintData = { ...sprintForm.data, showBand: band.show, targets: band.bars };
+  // PPTX ciktisinin "orantı motoru" gorselin GERCEK piksel boyutuna ihtiyac
+  // duyar (bkz. lib/velocityDeckBuilder.js - pptxgenjs'in sizing:contain
+  // ozelligi bunu KENDISI okuyamiyor), canli onizleme ise buna hic ihtiyac
+  // duymaz (CSS object-fit:contain tarayicida otomatik). Bu yuzden iki
+  // ayri sekil: renderPreviewCanvas SADECE url kullanir, veloDataForExport
+  // (PPTX icin) genislik/yukseklik de tasir.
+  const veloDataForExport = {
+    burndownUrl: velocityBurndown.burndown.url,
+    burndownWidth: velocityBurndown.burndown.naturalWidth,
+    burndownHeight: velocityBurndown.burndown.naturalHeight,
+    burndownZoomX: velocityBurndown.burndown.zoomX,
+    burndownZoomY: velocityBurndown.burndown.zoomY,
+    velocityUrl: velocityBurndown.velocity.url,
+    velocityWidth: velocityBurndown.velocity.naturalWidth,
+    velocityHeight: velocityBurndown.velocity.naturalHeight,
+    velocityZoomX: velocityBurndown.velocity.zoomX,
+    velocityZoomY: velocityBurndown.velocity.zoomY,
+  };
+
   const handleGenerateFullDeck = (cornerMesh) =>
     fullExport.run(async () => {
-      if (!activeDashData || !activeDashData.kpis) {
-        throw new Error(
-          dashSource === "manual"
-            ? "Kapasite Dashboard adımında önce verileri girip Hesapla'ya basın."
-            : dashSource === "jira"
-              ? "Kapasite Dashboard adımında önce \"Jira'dan Çek\" ile senkronize edip Yenile'ye basın."
-              : "Kapasite Dashboard adımında önce Excel yükleyin."
-        );
-      }
+      // Kapasite verisi olmasa da indirmeye izin verilir: slayt bos
+      // iskeletle uretilir (bkz. addDashboardSlide) - kullanici istegi
+      // (2026-08-19). Eskiden burada hata firlatilip PPTX hic inmiyordu.
       const data = { ...sprintForm.data, showBand: band.show, targets: band.bars };
-      const pptx = buildFullDeck(data, activeDashData, assets, pptxTheme, cornerMesh);
+      const pptx = await buildFullDeck(data, activeDashData, veloDataForExport, assets, pptxTheme, cornerMesh);
       const sp = (sprintForm.sprint.trim() || "X").replace(/[^\w]/g, "");
       await pptx.writeFile({ fileName: `Sprint_Kapasite_${sp}.pptx` });
       // Salt-okunur baska bir takimin sunumu indiriliyorsa kayit O takim
@@ -731,14 +903,24 @@ function MainApp({ theme, toggleTheme, personnel, presentationId, newForTeamId, 
       }
     });
 
-  const sprintData = { ...sprintForm.data, showBand: band.show, targets: band.bars };
-
   // ZoomModal ve ExportPreviewModal'in ikisi de aktif sekmeye gore AYNI tuvali
   // (dashboard veya kapak/icerik) cizer - tek yerden tanimlanip ikisine de
   // gecirilir (bkz. asagidaki renderCanvas prop'lari).
   const renderPreviewCanvas = (scale) =>
     previewTab === "dashboard" ? (
       <DashboardSlideCanvas dd={activeDashData || {}} assets={assets} scale={scale} />
+    ) : previewTab === "velocity" ? (
+      <VelocityBurndownSlideCanvas
+        data={sprintData}
+        burndownUrl={velocityBurndown.burndown.url}
+        velocityUrl={velocityBurndown.velocity.url}
+        burndownZoomX={velocityBurndown.burndown.zoomX}
+        burndownZoomY={velocityBurndown.burndown.zoomY}
+        velocityZoomX={velocityBurndown.velocity.zoomX}
+        velocityZoomY={velocityBurndown.velocity.zoomY}
+        assets={assets}
+        scale={scale}
+      />
     ) : (
       <SlideCanvas data={sprintData} tab={previewTab} assets={assets} scale={scale} />
     );
@@ -831,6 +1013,7 @@ function MainApp({ theme, toggleTheme, personnel, presentationId, newForTeamId, 
               sprint={sprintForm.sprint} setSprint={sprintForm.setSprint}
               range={sprintForm.range} setRange={sprintForm.setRange}
               cover={cover}
+              coverBackground={coverBackground}
               canEdit={canEdit}
               timerMinutes={timerMinutes}
               setTimerMinutes={setTimerMinutes}
@@ -842,8 +1025,12 @@ function MainApp({ theme, toggleTheme, personnel, presentationId, newForTeamId, 
                 form={{ ...sprintForm, setSectionText: handleSectionTextChange }}
                 band={band}
                 excel={excel}
+                jira={jiraContent}
+                teamId={saveTeamId}
+                jiraProjectKey={saveTeamJiraProjectKey}
                 assets={assets}
                 onExpandSection={setEditorKey}
+                sectorOptions={sectorOptions}
               />
             ) : (
               <ReadOnlyNotice teamType={sprintForm.teamType} view={readOnlyView} />
@@ -853,7 +1040,6 @@ function MainApp({ theme, toggleTheme, personnel, presentationId, newForTeamId, 
             canEdit ? (
               <DashboardPage
                 source={dashSource}
-                onSourceChange={setDashSource}
                 dashboard={dashboard}
                 manual={manual}
                 jira={jiraDash}
@@ -865,12 +1051,27 @@ function MainApp({ theme, toggleTheme, personnel, presentationId, newForTeamId, 
               <ReadOnlyNotice teamType={sprintForm.teamType} view={readOnlyView} />
             )
           )}
+          {mode === "velocity" && (
+            canEdit ? (
+              <VelocityBurndownPage velocityBurndown={velocityBurndown} />
+            ) : (
+              <ReadOnlyNotice teamType={sprintForm.teamType} view={readOnlyView} />
+            )
+          )}
           <div className="wizard-nav">
-            <Button variant="soft" disabled={mode === "cover"} onClick={() => changeMode(mode === "dash" ? "sprint" : "cover")}>
-              {mode === "dash" ? "← Geri: İçerik Slaytı" : "← Geri: Kapak Sayfası"}
+            <Button
+              variant="soft"
+              disabled={mode === "cover"}
+              onClick={() => changeMode(WIZARD_MODES[Math.max(0, WIZARD_MODES.indexOf(mode) - 1)])}
+            >
+              ← Geri: {WIZARD_STEP_LABELS[WIZARD_MODES[Math.max(0, WIZARD_MODES.indexOf(mode) - 1)]]}
             </Button>
-            <Button variant="primary" disabled={mode === "dash"} onClick={() => changeMode(mode === "cover" ? "sprint" : "dash")}>
-              {mode === "cover" ? "İleri: İçerik Slaytı →" : "İleri: Kapasite Dashboard →"}
+            <Button
+              variant="primary"
+              disabled={mode === "velocity"}
+              onClick={() => changeMode(WIZARD_MODES[Math.min(WIZARD_MODES.length - 1, WIZARD_MODES.indexOf(mode) + 1)])}
+            >
+              İleri: {WIZARD_STEP_LABELS[WIZARD_MODES[Math.min(WIZARD_MODES.length - 1, WIZARD_MODES.indexOf(mode) + 1)]]} →
             </Button>
           </div>
         </div>
@@ -882,6 +1083,16 @@ function MainApp({ theme, toggleTheme, personnel, presentationId, newForTeamId, 
           activeTab={previewTab}
           onTabChange={setPreviewTab}
           onZoom={() => setZoomOpen(true)}
+          onEdit={canEdit ? () => setDashEditOpen(true) : null}
+          showDataSource={mode === "dash" && canEdit}
+          dataSource={dashSource}
+          onDataSourceChange={setDashSource}
+          burndownUrl={velocityBurndown.burndown.url}
+          velocityUrl={velocityBurndown.velocity.url}
+          burndownZoomX={velocityBurndown.burndown.zoomX}
+          burndownZoomY={velocityBurndown.burndown.zoomY}
+          velocityZoomX={velocityBurndown.velocity.zoomX}
+          velocityZoomY={velocityBurndown.velocity.zoomY}
         />
       </main>
 
@@ -892,6 +1103,14 @@ function MainApp({ theme, toggleTheme, personnel, presentationId, newForTeamId, 
         text={editorKey ? sprintForm.sections[editorKey] : ""}
         onChange={(text) => editorKey && handleSectionTextChange(editorKey, text)}
         onClose={() => setEditorKey(null)}
+      />
+
+      <DashboardEditModal
+        open={dashEditOpen}
+        onClose={() => setDashEditOpen(false)}
+        dashData={activeDashData}
+        onApply={setDashDataOverride}
+        hasFte={hasFteTracking(sprintForm.teamType)}
       />
 
       <ZoomModal

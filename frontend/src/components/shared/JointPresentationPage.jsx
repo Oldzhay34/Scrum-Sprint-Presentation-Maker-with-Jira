@@ -120,8 +120,11 @@ export default function JointPresentationPage({ personnel, theme, onToggleTheme 
   // tiklandiysa onunla baslar, modal icinde sekmeler arasi gecilebilir.
   const [zoom, setZoom] = useState(null);
   const zoomResult = zoom ? results?.find((r) => r.teamId === zoom.teamId) : null;
+  // Kapasite sekmesi veri olmasa da HER ZAMAN gosterilir - slayt bos
+  // iskeletle ciziliyor (bkz. addDashboardSlide/DashboardSlideCanvas) ve
+  // PPTX ciktisiyla ayni sayfalar onizlemede de gorunsun.
   const zoomTabs = zoomResult
-    ? [{ key: "content", label: "İçerik Slaytı" }, ...(zoomResult.dashData?.kpis ? [{ key: "dashboard", label: "Kapasite Dashboard" }] : [])]
+    ? [{ key: "content", label: "İçerik Slaytı" }, { key: "dashboard", label: "Kapasite Dashboard" }]
     : null;
 
   useEffect(() => {
@@ -374,11 +377,9 @@ export default function JointPresentationPage({ personnel, theme, onToggleTheme 
                   <MiniSlideBox onZoom={() => setZoom({ teamId: r.teamId, tab: "content" })}>
                     {(scale) => <SlideCanvas data={r.sprintData} tab="content" assets={assets} scale={scale} />}
                   </MiniSlideBox>
-                  {r.dashData?.kpis && (
-                    <MiniSlideBox onZoom={() => setZoom({ teamId: r.teamId, tab: "dashboard" })}>
-                      {(scale) => <DashboardSlideCanvas dd={r.dashData} assets={assets} scale={scale} />}
-                    </MiniSlideBox>
-                  )}
+                  <MiniSlideBox onZoom={() => setZoom({ teamId: r.teamId, tab: "dashboard" })}>
+                    {(scale) => <DashboardSlideCanvas dd={r.dashData || {}} assets={assets} scale={scale} />}
+                  </MiniSlideBox>
                 </div>
               </div>
             );

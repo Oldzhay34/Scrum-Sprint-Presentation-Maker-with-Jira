@@ -7,7 +7,7 @@ import {
   createLeavePeriod,
   deleteLeavePeriod,
 } from "../../lib/apiClient";
-import { periodDays, sumFractions } from "../../lib/leaveDays";
+import { periodDays, sumFractionsInWindow } from "../../lib/leaveDays";
 
 function formatRange(p) {
   const fmt = (iso) => {
@@ -26,7 +26,7 @@ function formatRange(p) {
  * ensureTeamMember ile ad'a gore bulunur/olusturulur - bkz. apiClient.js.
  * PersonMappingTable (Excel) VE MemberCard (manuel) TARAFINDAN ORTAK kullanilir.
  */
-export default function LeaveDaysField({ teamId, fullName, role, onTotalChange }) {
+export default function LeaveDaysField({ teamId, fullName, role, onTotalChange, reportDate = null, periodEnd = null }) {
   const [open, setOpen] = useState(false);
   const [teamMemberId, setTeamMemberId] = useState(null);
   const [leaves, setLeaves] = useState(null); // null = henuz yuklenmedi
@@ -64,6 +64,16 @@ export default function LeaveDaysField({ teamId, fullName, role, onTotalChange }
     return () => document.removeEventListener("mousedown", onDocClick);
   }, [open]);
 
+  // "Önce ad soyad girin." hatasi, kullanici İzin Ekle'yi ad HENUZ bosken
+  // actiginda (ensureMemberId) gosteriliyor. Isim SONRADAN yazildiginda bu
+  // eski hata KENDILIGINDEN kalkmiyordu - kullanici bildirimi 2026-08-20:
+  // "izin eklemede de ... isim girdim halde lütfen ad soyad giriniz diyor"
+  // (useManualDashboard.js'teki AYNI sinif hatanin - "En az bir isim
+  // girmelisiniz" - AYNI cozumu: gecerli hale gelince otomatik temizle).
+  useEffect(() => {
+    if (fullName?.trim() && error === "Önce ad soyad girin.") setError(null);
+  }, [fullName, error]);
+
   // Her yeni acilista asagi-varsayimiyla basla; asil tasma kontrolu asagidaki
   // efekt icerigi (loading/leaves/companyLeaves) render edildikce yapilir.
   useEffect(() => {
@@ -78,7 +88,11 @@ export default function LeaveDaysField({ teamId, fullName, role, onTotalChange }
     setOpenUp(overflowsBottom && fitsAbove);
   }, [open, loading, leaves, companyLeaves]);
 
-  const total = leaves ? sumFractions(leaves) : 0;
+  // SADECE rapor tarihinden SONRAYA dusen izin gunleri kapasiteden dusulur -
+  // gecmis izinler zaten "Geçen İş Günü" icinde sayiliyor (bkz. leaveDays.js
+  // sumFractionsInWindow ve kullanici bildirimi 2026-08-20: izin gunu gectikten
+  // sonra kisi eski kapasite seviyesine geri donmeli).
+  const total = leaves ? sumFractionsInWindow(leaves, reportDate, periodEnd) : 0;
 
   useEffect(() => {
     onTotalChange?.(total);

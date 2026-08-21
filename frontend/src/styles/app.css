@@ -56,6 +56,20 @@
   .tabs{display:flex;gap:6px;margin-bottom:10px}
   .tab{font-size:12.5px;font-weight:600;color:var(--mut);border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px 12px;cursor:pointer}
   .tab.active{background:var(--teal);color:#fff;border-color:var(--teal)}
+
+  /* Veri kaynagi secici (Excel'den Yükle / Manuel Gir / Jira'dan) - Canlı
+     Önizleme kartinin ust cubugunda, kare/kart gorunumlu premium sekmeler
+     (bkz. SourceTabs.jsx, kullanici bildirimi 2026-08-17: "güzel kare
+     kartlar kullan daha güzel durur premium olsun"). ".tabs/.tab" ile KASITLI
+     olarak ayri isimlendirilir - o class'lar carousel-nav/zoomtrig butonlariyla
+     paylasilir, buraya karisirsa oralarin gorunumu de istemeden degisirdi.*/
+  .source-tabs{display:flex;justify-content:center;gap:8px;margin-bottom:12px}
+  .source-tab{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;width:76px;height:64px;flex:none;border-radius:12px;border:1px solid var(--line);background:linear-gradient(180deg,#fff,#F8FAFB);color:var(--mut);cursor:pointer;box-shadow:0 1px 2px rgba(15,23,32,.04);transition:transform .15s ease,box-shadow .2s ease,border-color .2s ease,background .2s ease,color .2s ease}
+  .source-tab-icon{width:19px;height:19px;flex:none}
+  .source-tab-label{font-size:10.5px;font-weight:600;line-height:1.15;text-align:center}
+  .source-tab:hover:not(.active){border-color:var(--teal2);color:var(--teal2);transform:translateY(-1px);box-shadow:0 4px 10px rgba(15,23,32,.08)}
+  .source-tab.active{background:linear-gradient(150deg,var(--teal),var(--teal2));border-color:var(--teal2);color:#fff;box-shadow:0 6px 16px rgba(13,94,168,.32),0 1px 2px rgba(13,94,168,.2);transform:translateY(-1px)}
+  .source-tab:focus-visible{outline:2px solid var(--teal2);outline-offset:2px}
   .slidebox{position:relative;width:100%;aspect-ratio:16/9;overflow:hidden;border:1px solid var(--line);border-radius:6px;background:#fff}
   .slidecanvas{position:absolute;top:0;left:0;width:1280px;height:720px;transform-origin:top left}
   /* slide (content) */
@@ -71,15 +85,34 @@
   .card .acc{position:absolute;left:7px;top:11px;bottom:11px;width:7px;border-radius:4px}
   .card .chd{display:flex;align-items:center;gap:11px;padding:11px 12px 4px 29px}
   .card .chd img{width:32px;height:32px}
-  .card .chd .ct{font-size:19px;font-weight:800;letter-spacing:.2px}
+  /* Kart basligi (Tamamlanan İşler / Yapılacak İşler / ...) - PO notu
+     2026-08-19: "yazı tipleri çok bold görünüyor daha soft, ürün geliştirme
+     yazan yazı tipiyle aynı mı kontrol edilebilir mi?". Slayt basligiyla
+     (.s-header) AYNI agirliga (700) indirildi. */
+  .card .chd .ct{font-size:19px;font-weight:700;letter-spacing:.2px}
   .card ul{margin:2px 0 0;padding:0 14px 0 44px;list-style:none}
   .card li{position:relative;margin-bottom:5px;color:#374151;line-height:1.28}
   .card li .dot{position:absolute;left:-15px;top:0.5em;width:8px;height:8px;margin-top:-4px;border-radius:50%;background:var(--bullet-color, #1F2937)}
-  .card li b{display:inline;padding:1px 5px;border-radius:4px;background:#D1FAE5;color:#166534;font-weight:700;box-decoration-break:clone;-webkit-box-decoration-break:clone}
-  .priority-label{display:inline-block;margin-right:5px;padding:0 5px;border-radius:4px;font-size:.72em;font-weight:700;color:#fff;letter-spacing:.2px;vertical-align:1px;white-space:nowrap}
+  /* Sektör/departman etiketi (**kalın** işaretlenmiş parça) - PO notu
+     2026-08-19: "Sektörler çok büyük görünüyor". Madde metninin tam
+     boyutunda değil, ondan bir tık küçük bir rozet olarak gösterilir. */
+  .card li b{display:inline;padding:1px 5px;border-radius:4px;background:#D1FAE5;color:#166534;font-weight:700;font-size:.82em;box-decoration-break:clone;-webkit-box-decoration-break:clone}
+  /* Öncelik etiketi (madde başında "Orta"/"Kritik" vb. rozet) - PO notu
+     2026-08-20: eski (isim yazan) haline geri dönüldü, sadece nokta yeterli
+     değildi. Boyutu artık sektör rozetiyle (.card li b, yukarıda) AYNI - PO
+     notu: "bu label ın büyüklüğü sektör label ı ile aynı olacak" (eskiden
+     .72em idi, sektör rozeti de o zaman 1em'di - ikisi de küçülüp burada
+     tekrar eşitlendi). */
+  .priority-label{display:inline-block;margin-right:5px;padding:1px 5px;border-radius:4px;font-size:.82em;font-weight:700;color:#fff;letter-spacing:.2px;vertical-align:1px;white-space:nowrap}
   .item-comment{margin:2px 0 0;padding:3px 8px;font-size:.86em;font-style:italic;color:#166534;background:linear-gradient(90deg,rgba(22,163,74,.14),rgba(22,163,74,.04));border-left:2px solid #16A34A;border-radius:0 6px 6px 0;line-height:1.25}
   /* cover */
   .cov{position:absolute;inset:0;background-size:cover;background-position:center}
+  .cov-page-bg{position:absolute;inset:0;background-size:cover;background-position:center;opacity:.88}
+  /* "Sunum arka planı" - içerik ve kapasite slaytlarının TAM ZEMİNİ. Kapaktaki
+     .cov-page-bg gibi yarı saydam DEĞİL: burada üstünde opak bir kapak görseli
+     yok, doğrudan zemin olduğu için tam opak çizilir (PO notu 2026-08-20:
+     "tüm pptx ve preview sayfalarına uygulanan background"). */
+  .slide-page-bg{position:absolute;inset:0;background-size:cover;background-position:center}
   .cov .wash{position:absolute;left:0;top:0;width:620px;height:720px;background:linear-gradient(90deg,rgba(255,255,255,.82),rgba(255,255,255,.3))}
   .cov .clogos{position:absolute;left:52px;top:40px;display:flex;align-items:flex-end;gap:16px}
   .cov .clogos img.a{height:26px} .cov .clogos img.b{height:38px}
@@ -112,7 +145,11 @@
   .addseg:disabled,.addbar:disabled{opacity:.5;cursor:not-allowed;border-style:solid}
   /* preview band */
   .pbar{position:absolute;display:flex;align-items:stretch;border-radius:3px;overflow:hidden}
-  .plabel{background:var(--teal);color:#fff;font-weight:700;font-size:9px;display:flex;align-items:center;justify-content:center;text-align:center;padding:0 3px;line-height:1.05}
+  /* Hedefler bandındaki çubuk ETİKETİ (HEDEFLER / FTE) - PO notu 2026-08-19:
+     "Bu alanın renksiz olması gerekiyor sanki barın bir parçasıymış gibi
+     görünmemeli". Dolgu kaldırıldı; etiket artık renkli segmentlerin
+     (değerlerin) dışında, nötr bir başlık gibi durur. */
+  .plabel{background:transparent;color:var(--ink);font-weight:700;font-size:9px;display:flex;align-items:center;justify-content:center;text-align:center;padding:0 3px;line-height:1.05}
   .psegs{display:flex;flex:1;min-width:0}
   .pseg{color:#fff;font-weight:700;display:flex;align-items:center;justify-content:center;font-size:13px;min-width:0;overflow:hidden;white-space:nowrap}
   .modal{position:fixed;inset:0;background:rgba(15,23,32,.55);display:flex;align-items:center;justify-content:center;z-index:50;padding:24px}
@@ -206,3 +243,45 @@
   .dtr.total .c{background:#EFF6FF;border:1px solid #DBEAFE;border-radius:6px;padding:7px 0;font-weight:700;font-size:14px;color:var(--ink)}
   .pill{justify-self:center;font-size:11px;font-weight:700;padding:4px 12px;border-radius:14px;border:1px solid}
   .hidden{display:none}
+  /* Velocity & Burndown slaydi (1280x720) - iki dikey istiflenmis, esit
+     yukseklikte kutu (üstte Burndown, altta Velocity - bkz. kullanici
+     bildirimi 2026-08-20 ve paylastigi ekran goruntusundeki sira). Her
+     kutu icindeki gorsel CSS object-fit:contain ile GERCEK en-boy oranini
+     koruyarak ortalanir - PO'nun yukledigi ekran goruntusu ne boyutta olursa
+     olsun asla ezilmez/tasmaz/komsu kutuyla ust uste binmez (PPTX ciktisinda
+     ayni sonuc pptxgenjs'in sizing:"contain" ozelligiyle elde edilir, bkz.
+     lib/velocityDeckBuilder.js). */
+  .velo-box{position:absolute;left:38px;width:1204px;box-sizing:border-box;background:var(--card,#fff);border:1px solid var(--line);border-radius:10px;box-shadow:0 3px 10px rgba(0,0,0,.08);overflow:hidden;padding:38px 20px 16px;display:flex;align-items:center;justify-content:center}
+  .velo-box-top{top:112px;height:270px}
+  .velo-box-bottom{top:396px;height:270px}
+  .velo-box-label{position:absolute;top:12px;left:16px;font-size:12px;font-weight:700;color:var(--teal);letter-spacing:.02em;text-transform:uppercase}
+  /* width/height:100% (max-width/max-height DEGIL) - onceki haliyle img'e
+     hicbir boyut verilmiyordu, bu yuzden kutudan KUCUK bir gorsel kendi
+     dogal (kucuk) boyutunda ortalanip etrafinda buyuk bos alan birakiyordu
+     (kullanici bildirimi 2026-08-20: "fotoğrafı yatay eksene sığdıracak
+     şekilde"). Simdi img HER ZAMAN kutunun tam boyutunu kaplar, object-fit:
+     contain de gercek en-boy oranini koruyarak (asla ezmeden/kesmeden) genis
+     kutunun GENISLIGINI doldurur - kutu (1204x270) zaten cok genis/kisa
+     oldugu icin normal (yatay) bir grafik ekran goruntusu boylece dogal
+     olarak tam genislige yayilir. */
+  /* Zoom kontrolu (bkz. kullanici bildirimi 2026-08-20: "kullanıcı ... alanına
+     göre eklediği fotoğrafını büyütüp küçültebilsin") - .velo-box-imgwrap,
+     .velo-box'un padding'i cikartilmis ic alanini (innerW/innerH,
+     lib/velocityDeckBuilder.js'teki AYNI olcu) birebir kaplar ve tasan
+     kismini keser; img icinde zoom=1 (varsayilan) BUGUNKU "contain"
+     gorunumunun AYNISI - degisiklik yok, sadece buyutulduginde (transform:
+     scale, merkezden) fazlasi bu wrapper tarafindan kirpilir. PPTX ciktisinda
+     ayni geometri bir canvas ile onceden kirpilarak elde edilir (bkz.
+     lib/velocityDeckBuilder.js cropToZoom). */
+  .velo-box-imgwrap{width:100%;height:100%;overflow:hidden;display:flex;align-items:center;justify-content:center}
+  .velo-box-img{width:100%;height:100%;object-fit:contain;display:block;transform-origin:center;transition:transform .1s linear}
+  .velo-box-empty{color:var(--mut);font-size:13px;font-style:italic}
+  /* Yukleme kartindaki minyatur onizleme (bkz. VelocityBurndownPage.jsx) -
+     .velo-box'un GERCEK ic en-boy orani (1164/216, lib/velocityDeckBuilder.js
+     ile AYNI) ile ciziliyor ki PO slaytta/PPTX'te NASIL gorunecegini burada
+     kucuk halde birebir gorsun. */
+  .velo-zoom-previewbox{width:230px;max-width:100%;aspect-ratio:1164/216;overflow:hidden;border:1px solid var(--line);border-radius:8px;background:var(--card,#fff);display:flex;align-items:center;justify-content:center;flex:none}
+  .velo-zoom-previewimg{width:100%;height:100%;object-fit:contain;display:block;transform-origin:center;transition:transform .1s linear}
+  .velo-zoom-control{display:flex;align-items:center;gap:8px;margin-top:8px;width:100%}
+  .velo-zoom-control input[type=range]{flex:1;accent-color:var(--teal2,#0E7490)}
+  .velo-zoom-control span{font-size:12px;color:var(--mut);min-width:40px;text-align:right}

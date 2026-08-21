@@ -15,6 +15,14 @@ export function addCoverSlide(pptx, data, assets, cornerMesh = DEFAULT_CORNER_ME
   const s1 = pptx.addSlide();
   s1.background = { color: "FFFFFF" };
   if (assets.cover_bg) s1.addImage({ data: assets.cover_bg, x: 0, y: 0, w: 13.333, h: 7.5 });
+  // "Sunum arka planı" (bkz. useCoverBackground.js) - cover_bg (Kapak Görseli)
+  // HER ZAMAN tuvalin tamamini kaplayan OPAK bir gorsel oldugundan, bunun
+  // ARKASINA konan bir katman hic gorunmezdi - bu yuzden USTUNE (metnin/
+  // logolarin ALTINDA kalacak sekilde, asagida eklenirler) yari-saydam
+  // cizilir. Onizlemedeki SlideCanvas.jsx ".cov-page-bg" ile AYNI mantik
+  // (bkz. kullanici bildirimi, 2026-08-17: "yüklenen sunum arka planı resmi
+  // hiçbir zaman sunumun arka planını güncellemiyor").
+  if (assets.slide_bg) s1.addImage({ data: assets.slide_bg, x: 0, y: 0, w: 13.333, h: 7.5, transparency: 12 });
   s1.addShape(pptx.ShapeType.rect, { x: 0, y: 0, w: 6.4, h: 7.5, fill: { color: "FFFFFF", transparency: 22 } });
   // Sablon (Resim1) dekorasyonu - sol (beyaz) panelin alt-sol kosesinde, metnin
   // ARKASINDA (once cizilir) ince bir marka dokusu olarak durur (bkz. kullanici
@@ -22,7 +30,7 @@ export function addCoverSlide(pptx, data, assets, cornerMesh = DEFAULT_CORNER_ME
   // transparency: SADECE bir arka plan dokusu, hicbir metne/ogeye MUDAHALE
   // etmemeli (bkz. kullanici bildirimi: "yanlış yere yüklemişsin ... arka
   // plan olarak olacak, hiçbir yazıya müdahale etmeyecek").
-  if (cornerMesh) {
+  if (cornerMesh && !assets.slide_bg) {
     const cmW = 1.7, cmH = cmW / CORNER_MESH_RATIO;
     s1.addImage({ data: cornerMesh, x: -0.15, y: 7.5 - cmH + 0.15, w: cmW, h: cmH, transparency: 55 });
   }
@@ -37,8 +45,8 @@ export function addCoverSlide(pptx, data, assets, cornerMesh = DEFAULT_CORNER_ME
 // Onizlemedeki koyu tema paleti (bkz. theme.css .theme-dark .slidecanvas.tab-content)
 // ile birebir ayni degerler - "PPTX koyu temada da onizlemeyle eslessin" istegi.
 const CONTENT_PALETTE = {
-  light: { PAGE_BG: "FFFFFF", CARD_BG: "FFFFFF", HEADER: "164E63", CARD_LINE: "E5E7EB", TXT_BOLD: "1F2937", TXT_NORMAL: "374151" },
-  dark: { PAGE_BG: "131C27", CARD_BG: "1C2733", HEADER: "4A9FE0", CARD_LINE: "3A4756", TXT_BOLD: "E7EDF5", TXT_NORMAL: "B7C4D3" },
+  light: { PAGE_BG: "FFFFFF", CARD_BG: "FFFFFF", HEADER: "164E63", CARD_LINE: "E5E7EB", TXT_BOLD: "1F2937", TXT_NORMAL: "374151", CMT_TXT: "166534", CMT_BG: "D1FAE5" },
+  dark: { PAGE_BG: "131C27", CARD_BG: "1C2733", HEADER: "4A9FE0", CARD_LINE: "3A4756", TXT_BOLD: "E7EDF5", TXT_NORMAL: "B7C4D3", CMT_TXT: "9BF0B4", CMT_BG: null },
 };
 
 /** Icerik slaydini verilen pptx'e ekler - buildFullDeck tarafindan kullanilir. cornerMesh: sablon gorseli, verilmezse varsayilan Resim1 temasi kullanilir. */
@@ -49,6 +57,12 @@ export function addContentSlide(pptx, data, assets, theme = "light", cornerMesh 
 
   const s2 = pptx.addSlide();
   s2.background = { color: P.PAGE_BG };
+  // "Sunum arka planı" - PO'nun yukledigi gorsel TUM slaytlarin zeminidir
+  // (kullanici bildirimi 2026-08-20: "tüm pptx ve preview sayfalarına
+  // uygulanan background"). Slaydin ILK ogesi olarak, tam sayfa ve OPAK
+  // cizilir; geri kalan her sey uzerine gelir. Onizlemedeki
+  // SlideCanvas ".slide-page-bg" ile AYNI davranis.
+  if (assets.slide_bg) s2.addImage({ data: assets.slide_bg, x: 0, y: 0, w: 13.333, h: 7.5 });
   // Hafif, dikkat dagitmayan arka plan cilasi - iki buyuk, cok saydam marka
   // rengi daire (aksa mavi/yesil), koselerde. Onizlemedeki (theme.css
   // --page-gradient) radyal gecis hissiyle AYNI fikir; pptxgenjs gercek CSS
@@ -77,8 +91,12 @@ export function addContentSlide(pptx, data, assets, theme = "light", cornerMesh 
     bars.forEach((bar, i) => {
       const bx = BAND.X + i * (barW + BAND.GAP);
       const labelW = Math.min(1.2, Math.max(0.55, barW * 0.32));
-      s2.addShape(pptx.ShapeType.rect, { x: bx, y: BAND.Y, w: labelW, h: BAND.H, fill: { color: TEAL } });
-      s2.addText((bar.label || "").toUpperCase(), { x: bx + 0.03, y: BAND.Y, w: labelW - 0.06, h: BAND.H, fontFace: "Calibri", fontSize: 8.5, bold: true, color: "FFFFFF", align: "center", valign: "middle", margin: 0, fit: "shrink" });
+      // Cubuk ETIKETI (orn. "HEDEFLER"/"FTE") artik RENKSIZ - eskiden koyu
+      // teal bir dolgu vardi ve etiket, degerleri gosteren renkli segmentlerin
+      // (yani "barin") bir parcasiymis gibi gorunuyordu (PO notu 2026-08-19:
+      // "Bu alanın renksiz olması gerekiyor sanki barın bir parçasıymış gibi
+      // görünmemeli"). Sadece metin kalir; onizlemedeki .plabel ile ayni.
+      s2.addText((bar.label || "").toUpperCase(), { x: bx + 0.03, y: BAND.Y, w: labelW - 0.06, h: BAND.H, fontFace: "Calibri", fontSize: 8.5, bold: true, color: P.TXT_NORMAL, align: "center", valign: "middle", margin: 0, fit: "shrink" });
       const segX0 = bx + labelW + 0.04, segW = barW - labelW - 0.04;
       const segs = bar.segments.filter((s) => s && String(s.value).trim() !== "");
       // segmentWidths, degere ORANTILI genislik yerine once her segmentin
@@ -150,6 +168,9 @@ export function addContentSlide(pptx, data, assets, theme = "light", cornerMesh 
             text: r.text,
             options: r.bold ? { bold: true, color: "166534", highlight: "D1FAE5" } : { color: P.TXT_NORMAL },
           }));
+          // Oncelik ADI ("KRİTİK"/"ORTA" gibi) madde basina GERI eklenir -
+          // PO notu 2026-08-20: onizlemedeki (SlideCanvas.jsx) etiketli
+          // gorunume donuldugu icin PPTX ciktisi da AYNI kalsin diye.
           if (priority) {
             // Renkli/kalin bir metin etiketi ("KRİTİK " gibi) - bkz. asagidaki dot
             // ile ayni renk mantigi.
@@ -184,8 +205,13 @@ export function addContentSlide(pptx, data, assets, theme = "light", cornerMesh 
               text: "  * " + comment,
               options: {
                 italic: true,
-                color: "166534",
-                highlight: "D1FAE5",
+                // Koyu temada koyu yesil metin kart zeminine gomulup
+                // okunmuyordu (kullanici bildirimi 2026-08-19): o temada
+                // acik yesil metin kullanilir ve acik yesil vurgu seridi
+                // (highlight) hic uygulanmaz - onizlemedeki
+                // ".theme-dark ... .item-comment" ile ayni tercih.
+                color: P.CMT_TXT,
+                ...(P.CMT_BG ? { highlight: P.CMT_BG } : {}),
                 fontSize: fs2 * 0.84,
                 breakLine: !isLastItem,
                 paraSpaceAfter: gapAt(fs2) * 72,
@@ -219,7 +245,7 @@ export function addContentSlide(pptx, data, assets, theme = "light", cornerMesh 
   // y degeri kullanilinca kart kisa/uzun oldukca "kayık" gorunuyordu (bkz.
   // kullanici bildirimi). flipH ile "sivri uc" sol kenara degil slaytin
   // icine dogru baksin diye yatay olarak aynalanir.
-  if (cornerMesh) {
+  if (cornerMesh && !assets.slide_bg) {
     const cmH = botH * 0.92, cmW = cmH * CORNER_MESH_RATIO;
     // x: eskiden neredeyse tamami slayt disina taşiyordu (bkz. kullanici
     // bildirimi: "hala sayfa dışında kalıyor") - artik gorselin yaklasik

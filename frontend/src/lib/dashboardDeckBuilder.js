@@ -1,7 +1,8 @@
-import { nfmtInt, dStatus, barColor, DAV_COLORS, CARD_TONES, buildSummaryCards, personTotals } from "./format";
+import { nfmt2, dStatus, barColor, DAV_COLORS, CARD_TONES, buildSummaryCards, buildCustomKpiCards, personTotals } from "./format";
 import { logoPositions } from "./geometry";
 import { resolveTableHeaders } from "./dashboardTableHeaders";
 import { DEFAULT_CORNER_MESH } from "../assets/cornerMesh";
+import { emptyDashData } from "./emptyDashData";
 
 // Resim1 kose-mesh dekorasyonunun gercek en-boy orani (658x960 kaynak PNG).
 const CORNER_MESH_RATIO = 658 / 960;
@@ -20,12 +21,27 @@ const DASH_PALETTE = {
  * team, sprintNo, dateRange, reportDate, kpis{toplam,tamamlanan,acik,kapasite,doluluk,acikFazla,durum},
  * persons[{name,role,initials,toplam,tamamlanan,acik,kapasite,doluluk,durum}], delta, deltaRange.
  */
-export function addDashboardSlide(pptx, dd, assets, theme = "light", cornerMesh = DEFAULT_CORNER_MESH) {
+export function addDashboardSlide(pptx, gelenDd, assets, theme = "light", cornerMesh = DEFAULT_CORNER_MESH) {
+  // Kapasite verisi HIC girilmemis olsa bile slayt uretilir - kullanici
+  // istegi (2026-08-19): "veri yoksa bile previewda goruldugu gibi o sayfa
+  // gelecek pptx te de". Gelen veri bos iskeletle birlestirilir; boylece
+  // dd.dateRange gibi alanlar undefined kalip metne "undefined" olarak
+  // yazilmaz, tablo/kart cizimleri de bos dizilerle sorunsuz calisir.
+  const bos = emptyDashData();
+  const dd = {
+    ...bos,
+    ...(gelenDd || {}),
+    kpis: { ...bos.kpis, ...((gelenDd && gelenDd.kpis) || {}) },
+  };
   const P = DASH_PALETTE[theme] || DASH_PALETTE.light;
   const INK = P.INK, MUT = P.MUT, LINE = P.LINE, CARDBG = P.CARDBG, PANEL = P.PANEL;
 
   const s = pptx.addSlide();
   s.background = { color: PANEL };
+  // "Sunum arka planı" - icerik slaytiyla AYNI katman (bkz. sprintDeckBuilder):
+  // PO'nun yukledigi gorsel TUM slaytlarin zemini oldugu icin kapasite
+  // dashboard'una da uygulanir.
+  if (assets.slide_bg) s.addImage({ data: assets.slide_bg, x: 0, y: 0, w: 13.333, h: 7.5 });
   // Hafif, dikkat dagitmayan arka plan cilasi - bkz. sprintDeckBuilder.
   // addContentSlide'daki AYNI teknik/yorum ("PPTX'lere güzel yakışır bir arka
   // tema" - kullanici bildirimi), kapasite dashboard slaydina da uygulanir.
@@ -37,7 +53,7 @@ export function addDashboardSlide(pptx, dd, assets, theme = "light", cornerMesh 
   // "Durum" kolonunun ustune biniyordu (bkz. kullanici bildirimi: "kapasite
   // sayfasında ise çok yanlış bir yerde") - icerik slaytiyla AYNI sol-alt
   // yerlesime tasindi, flipH ile "sivri uc" slaytin icine dogru baksin.
-  if (cornerMesh) {
+  if (cornerMesh && !assets.slide_bg) {
     const cmW = 1.9, cmH = cmW / CORNER_MESH_RATIO;
     // x: eskiden neredeyse tamami slayt disina taşiyordu (bkz. kullanici
     // bildirimi: "hala sayfa dışında kalıyor") - artik gorselin yaklasik
@@ -58,7 +74,7 @@ export function addDashboardSlide(pptx, dd, assets, theme = "light", cornerMesh 
   s.addShape(pptx.ShapeType.rect, { x: 3.4, y: 1.1, w: 13.333 - 3.4, h: 0.045, fill: { color: "E67514" } });
 
   s.addText("Ekip Özet", { x: 0.4, y: 1.14, w: 4, h: 0.2, fontFace: "Calibri", fontSize: 9, bold: true, color: MUT, margin: 0, charSpacing: 1 });
-  const cards = buildSummaryCards(dd);
+  const cards = [...buildSummaryCards(dd), ...buildCustomKpiCards(dd)];
   const KX = 0.4, KW = 12.53, KGAP = 0.16, KY = 1.36, KH = 1.3, cw = (KW - (cards.length - 1) * KGAP) / cards.length;
   cards.forEach((c, i) => {
     const x = KX + i * (cw + KGAP);
@@ -69,18 +85,11 @@ export function addDashboardSlide(pptx, dd, assets, theme = "light", cornerMesh 
     s.addText(c.sub, { x: x + 0.1, y: KY + KH - 0.3, w: cw - 0.2, h: 0.24, fontFace: "Calibri", fontSize: 7.5, color: MUT, margin: 0, valign: "middle", fit: "shrink" });
   });
 
-  let curY = KY + KH + 0.2;
-  if (dd.delta) {
-    const d = dd.delta;
-    const noteParts = [
-      d.kapanan !== "" && d.kapanan != null ? "Dönem Kapanan: " + nfmtInt(d.kapanan) + " A/G" : null,
-      d.fte !== "" && d.fte != null ? "Canlıya Alınan FTE: " + String(d.fte).trim() : null,
-    ].filter(Boolean);
-    if (noteParts.length) {
-      s.addText(noteParts.join("   •   "), { x: 0.42, y: curY, w: 12.4, h: 0.24, fontFace: "Calibri", fontSize: 9, color: MUT, margin: 0 });
-      curY += 0.3;
-    }
-  }
+  const curY = KY + KH + 0.2;
+  // "Dönem Kapanan: .." VE "Canlıya Alınan FTE: .." not satirlari TAMAMEN
+  // KALDIRILDI - kullanici teyidi 2026-08-20 (bkz. DashboardSlideCanvas.jsx'teki
+  // AYNI degisiklik). FTE artik DashboardEditModal.updateDelta uzerinden
+  // dogrudan "Toplam FTE" kartina (customKpis) yazilir.
 
   s.addText("Kişi Bazlı Kapasite Özeti", { x: 0.4, y: curY, w: 6, h: 0.34, fontFace: "Calibri", fontSize: 14, bold: true, color: INK, margin: 0 });
   const TY = curY + 0.42;
@@ -103,26 +112,40 @@ export function addDashboardSlide(pptx, dd, assets, theme = "light", cornerMesh 
   const persons = dd.persons || [];
   const TOTAL_ROW_H = persons.length ? 0.46 : 0;
   const availH = 7.28 - (TY + HH + 0.06) - TOTAL_ROW_H;
-  const rowH = Math.min(0.62, Math.max(0.4, availH / Math.max(1, persons.length)));
+  // Eskiden satir yuksekligi 0.4in'in ALTINA hic inmiyordu (Math.max(0.4, ...))
+  // - 15+ kisilik takimlarda satirlar slaytin altina taşiyor, "EKİP TOPLAMI"
+  // satiri kismen/tamamen gorunmez oluyordu (bkz. onizlemedeki AYNI sorun,
+  // DashboardSlideCanvas.jsx). Kullanici teyidi 2026-08-20: "ne kadar kişi
+  // olursa olsun tabloda kişiler ona göre küçülecek ama ekranın tamamı
+  // korunacak ... toplamlar ... kesilmeden tamamı görünecek" - PPTX'te scroll
+  // diye bir sey yok, tek secenek gercekten kucultmek. rowScale=1 (0.62in)
+  // "rahat" satir yuksekligidir; kucuk takimlarda oldugu gibi kalir, kalabalik
+  // takimlarda tum yazi tipi/rozet boyutlari AYNI oranda kucultulur (onizlemedeki
+  // rowScale mantigiyla birebir ayni - ikisi ayni gorunsun diye).
+  const BASE_ROW_H = 0.62, ROW_H_FLOOR = 0.17;
+  const rowH = Math.min(BASE_ROW_H, Math.max(ROW_H_FLOOR, availH / Math.max(1, persons.length)));
+  const rowScale = rowH / BASE_ROW_H;
+  const fs2 = (px) => Math.max(5, px * rowScale);
   persons.forEach((p, i) => {
     const y = TY + HH + 0.06 + i * rowH, cy = y + rowH / 2, ps = dStatus(p.durum, p.doluluk), av = DAV_COLORS[i % DAV_COLORS.length], ad = Math.min(0.42, rowH - 0.14);
     s.addShape(pptx.ShapeType.ellipse, { x: cols.kisi[0], y: cy - ad / 2, w: ad, h: ad, fill: { color: av }, line: { type: "none" } });
-    s.addText((p.initials || p.name.slice(0, 2)).toUpperCase(), { x: cols.kisi[0], y: cy - ad / 2, w: ad, h: ad, fontFace: "Calibri", fontSize: 8.5, bold: true, color: "FFFFFF", align: "center", valign: "middle", margin: 0 });
+    s.addText((p.initials || p.name.slice(0, 2)).toUpperCase(), { x: cols.kisi[0], y: cy - ad / 2, w: ad, h: ad, fontFace: "Calibri", fontSize: fs2(8.5), bold: true, color: "FFFFFF", align: "center", valign: "middle", margin: 0 });
     s.addText(
-      [{ text: p.name, options: { bold: true, color: INK, fontSize: 11 } }, ...(p.role ? [{ text: "\n" + p.role, options: { color: MUT, fontSize: 8 } }] : [])],
+      [{ text: p.name, options: { bold: true, color: INK, fontSize: fs2(11) } }, ...(p.role ? [{ text: "\n" + p.role, options: { color: MUT, fontSize: fs2(8) } }] : [])],
       { x: cols.kisi[0] + ad + 0.14, y, w: cols.kisi[1] - ad - 0.16, h: rowH, valign: "middle", margin: 0, fontFace: "Calibri" }
     );
-    const nc = (col, val, bold) => s.addText(String(val), { x: col[0], y, w: col[1], h: rowH, fontFace: "Calibri", fontSize: 11.5, bold: !!bold, color: INK, align: "center", valign: "middle", margin: 0 });
-    nc(cols.tam, nfmtInt(p.tamamlanan));
-    nc(cols.acik, nfmtInt(p.acik), true);
-    nc(cols.kap, nfmtInt(p.kapasite));
-    nc(cols.toplam, nfmtInt(p.toplam));
-    const barX = cols.dol[0], barW = 2.15, barH = 0.16, barY = cy - barH / 2;
+    const nc = (col, val, bold) => s.addText(String(val), { x: col[0], y, w: col[1], h: rowH, fontFace: "Calibri", fontSize: fs2(11.5), bold: !!bold, color: INK, align: "center", valign: "middle", margin: 0 });
+    nc(cols.tam, nfmt2(p.tamamlanan));
+    nc(cols.acik, nfmt2(p.acik), true);
+    nc(cols.kap, nfmt2(p.kapasite));
+    nc(cols.toplam, nfmt2(p.toplam));
+    const barX = cols.dol[0], barW = 2.15, barH = Math.min(0.16, rowH * 0.26), barY = cy - barH / 2;
     s.addShape(pptx.ShapeType.roundRect, { x: barX, y: barY, w: barW, h: barH, rectRadius: 0.08, fill: { color: "E5E7EB" }, line: { type: "none" } });
     s.addShape(pptx.ShapeType.roundRect, { x: barX, y: barY, w: Math.max(0.05, Math.min(1, Number(p.doluluk)) * barW), h: barH, rectRadius: 0.08, fill: { color: barColor(p.doluluk) }, line: { type: "none" } });
-    s.addText("%" + Math.round(p.doluluk * 100), { x: barX + barW + 0.08, y, w: 0.7, h: rowH, fontFace: "Calibri", fontSize: 10, bold: true, color: INK, align: "left", valign: "middle", margin: 0 });
-    s.addShape(pptx.ShapeType.roundRect, { x: cols.durum[0] + 0.1, y: cy - 0.16, w: cols.durum[1] - 0.2, h: 0.32, rectRadius: 0.16, fill: { color: ps.bg }, line: { color: ps.fg, width: 0.75 } });
-    s.addText(ps.label, { x: cols.durum[0] + 0.1, y: cy - 0.16, w: cols.durum[1] - 0.2, h: 0.32, fontFace: "Calibri", fontSize: 9, bold: true, color: ps.fg, align: "center", valign: "middle", margin: 0 });
+    s.addText("%" + Math.round(p.doluluk * 100), { x: barX + barW + 0.08, y, w: 0.7, h: rowH, fontFace: "Calibri", fontSize: fs2(10), bold: true, color: INK, align: "left", valign: "middle", margin: 0 });
+    const durumH = Math.min(0.32, rowH * 0.6);
+    s.addShape(pptx.ShapeType.roundRect, { x: cols.durum[0] + 0.1, y: cy - durumH / 2, w: cols.durum[1] - 0.2, h: durumH, rectRadius: durumH / 2, fill: { color: ps.bg }, line: { color: ps.fg, width: 0.75 } });
+    s.addText(ps.label, { x: cols.durum[0] + 0.1, y: cy - durumH / 2, w: cols.durum[1] - 0.2, h: durumH, fontFace: "Calibri", fontSize: fs2(9), bold: true, color: ps.fg, align: "center", valign: "middle", margin: 0 });
     if (i < persons.length - 1) s.addShape(pptx.ShapeType.line, { x: 0.4, y: y + rowH, w: 12.53, h: 0, line: { color: "F1F3F5", width: 0.75 } });
   });
 
@@ -135,10 +158,10 @@ export function addDashboardSlide(pptx, dd, assets, theme = "light", cornerMesh 
       s.addShape(pptx.ShapeType.roundRect, { x: col[0], y: totalY, w: col[1], h: totalH, rectRadius: 0.05, fill: { color: CARDBG }, line: { color: LINE, width: 1 } });
       s.addText(String(val), { x: col[0], y: totalY, w: col[1], h: totalH, fontFace: "Calibri", fontSize: 12, bold: true, color: INK, align: "center", valign: "middle", margin: 0 });
     };
-    totalBox(cols.tam, nfmtInt(totals.tamamlanan));
-    totalBox(cols.acik, nfmtInt(totals.acik));
-    totalBox(cols.kap, nfmtInt(totals.kapasite));
-    totalBox(cols.toplam, nfmtInt(totals.toplam));
+    totalBox(cols.tam, nfmt2(totals.tamamlanan));
+    totalBox(cols.acik, nfmt2(totals.acik));
+    totalBox(cols.kap, nfmt2(totals.kapasite));
+    totalBox(cols.toplam, nfmt2(totals.toplam));
   }
 
   s.addText((dd.team || "") + " Kapasite Dashboard", { x: 8.5, y: 7.16, w: 4.4, h: 0.28, fontFace: "Calibri", fontSize: 8, color: "9AA3AF", align: "right", margin: 0 });

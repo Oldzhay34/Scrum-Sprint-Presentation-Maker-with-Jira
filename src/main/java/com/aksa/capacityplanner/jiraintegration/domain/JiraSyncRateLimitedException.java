@@ -6,10 +6,10 @@ package com.aksa.capacityplanner.jiraintegration.domain;
  *
  * Bu korumanin gercek bir olay sonrasi eklendigini belirtmek gerekir: "Jira'dan
  * Çek" butonuna art arda tiklamak, her tikta 2000+ issue'luk bir Jira taramasi
- * baslatiyor ve RabbitMQ kuyruguna ayni takim icin ust uste mesaj birikiyordu -
- * hem Jira'ya (rate limit riski), hem veritabanina (tekrarlanan upsert), hem de
- * RabbitMQ/consumer'a gereksiz yuk biniyordu. Rate limiter bu istekleri Jira'ya
- * hic ulasmadan, kuyruga bile dusmeden reddeder.
+ * baslatiyor ve ayni takim icin ust uste arka plan isi birikiyordu - hem
+ * Jira.ya (rate limit riski), hem veritabanina (tekrarlanan upsert), hem de
+ * isleyiciye gereksiz yuk biniyordu. Rate limiter bu istekleri Jira.ya hic
+ * ulasmadan, arka plana bile alinmadan reddeder.
  */
 public class JiraSyncRateLimitedException extends RuntimeException {
 

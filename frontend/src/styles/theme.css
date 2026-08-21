@@ -53,6 +53,22 @@
   color-scheme: dark;
 }
 
+/* Native <select> acilir listesi (popup) - "color-scheme:dark" (yukarida)
+   tarayicinin popup'u KOYU render etmesi icin YETERLI olmuyor: element'e daha
+   YAKIN bir yerde de acikca tekrarlanmasi gerekiyor (Chrome/Edge, ic ice
+   .theme-dark X { color:var(--ink) } gibi kurallar varken bunu bazen miras
+   almiyor) - aksi halde popup ACIK (beyaz) zeminde SOLUK/okunaksiz metinle
+   kaliyordu (bkz. kullanici bildirimi, 2026-08-17: "edit ekranında dark modda
+   select okunmuyor"). "option" icin ayrica arka plan/metin rengi de EKLENIR -
+   Chromium bunlari popup satirlarinda genelde onurlandirir. */
+.theme-dark select {
+  color-scheme: dark;
+}
+.theme-dark select option {
+  background: var(--card);
+  color: var(--ink);
+}
+
 .theme-dark body {
   background: var(--page-gradient);
   color: var(--ink);
@@ -86,12 +102,20 @@
   --bg: #F1F5F7;
 }
 .theme-dark .slidecanvas.tab-content,
-.theme-dark .slidecanvas.tab-dashboard {
+.theme-dark .slidecanvas.tab-dashboard,
+.theme-dark .slidecanvas.tab-velocity {
   --ink: #E7EDF5;
   --mut: #9CB0C6;
   --line: rgba(255, 255, 255, 0.14);
   --card: #1c2733;
   --bg: #131c27;
+}
+.theme-dark .slidecanvas.tab-velocity .s-header {
+  color: var(--aksa-blue-light);
+}
+.theme-dark .slidecanvas.tab-velocity .velo-box {
+  background: var(--card);
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.35);
 }
 .theme-dark .slidecanvas.tab-content .card {
   background: var(--card);
@@ -102,6 +126,18 @@
 }
 .theme-dark .slidecanvas.tab-content .card li:before {
   color: var(--mut);
+}
+/* Maddeye eklenen yorum (bkz. SectionEditor "Yorum ekle", app.css
+   .item-comment). Acik temada koyu yesil metin + acik yesil serit
+   okunakli; koyu temada AYNI koyu yesil, koyu kart zeminine gomulup
+   okunmaz ve solgun goruyordu (kullanici bildirimi 2026-08-19). Koyu
+   temada tonlar ters cevrilir: acik yesil metin, cok hafif yesil zemin,
+   parlak yesil serit. PPTX ciktisinda da ayni ayrim var
+   (bkz. sprintDeckBuilder CONTENT_PALETTE.dark CMT_*). */
+.theme-dark .slidecanvas.tab-content .item-comment {
+  color: #9BF0B4;
+  background: linear-gradient(90deg, rgba(155, 240, 180, 0.18), rgba(155, 240, 180, 0.04));
+  border-left-color: #4ADE80;
 }
 .theme-dark .slidecanvas.tab-content .s-header {
   color: var(--aksa-blue-light);
@@ -154,13 +190,23 @@
   z-index: -1;
   background: radial-gradient(220px 140px at 100% 0%, color-mix(in srgb, var(--card-accent, #4a9fe0) 14%, transparent), transparent 70%);
 }
+/* Kart ikonu rozeti. ESKIDEN rozetin zemini bolumun VURGU RENGININ TA
+   KENDISIYDI (yesil kart -> yesil daire) - ikon PNG'leri de ayni renkte
+   oldugu icin sekil zeminin icinde kayboluyordu (PO notu 2026-08-19:
+   "İkonlar renklerin içinde kaybolmuş görünüyor"). Artik zemin ACIK/notr,
+   vurgu rengi sadece ince halka + hafif isik olarak kullanilir; ikon her
+   temada zemine karsi net durur. */
 .slidecanvas.tab-content .card .chd img {
   border-radius: 50%;
   padding: 5px;
   box-sizing: border-box;
-  background: var(--card-accent, #4a9fe0);
-  box-shadow: 0 0 12px color-mix(in srgb, var(--card-accent, #4a9fe0) 55%, transparent);
+  background: #ffffff;
+  border: 1.5px solid color-mix(in srgb, var(--card-accent, #4a9fe0) 60%, transparent);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--card-accent, #4a9fe0) 32%, transparent);
   animation: aksa-badge-breathe 5s ease-in-out infinite;
+}
+.theme-dark .slidecanvas.tab-content .card .chd img {
+  background: #EEF4FA;
 }
 .slidecanvas.tab-content .card-watermark {
   position: absolute;
@@ -277,7 +323,8 @@
 /* kendi durumundan BAGIMSIZ olarak KAZANIR - popup'taki toggle boylece     */
 /* gercekten calisir hale gelir. */
 .zoomstagewrap.preview-dark .slidecanvas.tab-content,
-.zoomstagewrap.preview-dark .slidecanvas.tab-dashboard {
+.zoomstagewrap.preview-dark .slidecanvas.tab-dashboard,
+.zoomstagewrap.preview-dark .slidecanvas.tab-velocity {
   --ink: #E7EDF5;
   --mut: #9CB0C6;
   --line: rgba(255, 255, 255, 0.14);
@@ -285,12 +332,27 @@
   --bg: #131c27;
 }
 .zoomstagewrap.preview-light .slidecanvas.tab-content,
-.zoomstagewrap.preview-light .slidecanvas.tab-dashboard {
+.zoomstagewrap.preview-light .slidecanvas.tab-dashboard,
+.zoomstagewrap.preview-light .slidecanvas.tab-velocity {
   --ink: #1F2937;
   --mut: #6B7280;
   --line: #E5E7EB;
   --card: #FFFFFF;
   --bg: #F1F5F7;
+}
+.zoomstagewrap.preview-dark .slidecanvas.tab-velocity .s-header {
+  color: var(--aksa-blue-light);
+}
+.zoomstagewrap.preview-light .slidecanvas.tab-velocity .s-header {
+  color: var(--teal);
+}
+.zoomstagewrap.preview-dark .slidecanvas.tab-velocity .velo-box {
+  background: var(--card);
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.35);
+}
+.zoomstagewrap.preview-light .slidecanvas.tab-velocity .velo-box {
+  background: var(--card);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 .zoomstagewrap.preview-dark .slidecanvas.tab-content .card {
   background: var(--card);
@@ -381,6 +443,19 @@
 .theme-dark .tab:not(.active) {
   background: rgba(255, 255, 255, 0.05);
   border-color: var(--line);
+}
+
+/* Veri kaynagi kare-kart sekmeleri (Excel'den Yükle / Manuel Gir / Jira'dan,
+   bkz. SourceTabs.jsx) - koyu modda app.css'teki acik zeminli gradient yerine
+   cam (glass) yuzey kullanilir; aktif kart rengi ayni kalir (--teal/--teal2
+   zaten Aksa mavisine yonlendirilmis). */
+.theme-dark .source-tab:not(.active) {
+  background: var(--glass-bg);
+  border-color: var(--glass-border);
+  color: var(--mut);
+}
+.theme-dark .source-tab:hover:not(.active) {
+  color: #cfe0f2;
 }
 
 .theme-dark .btn.soft {
@@ -529,6 +604,30 @@
   transform: scale(1.03);
   border-color: var(--aksa-blue-light);
   box-shadow: 0 6px 18px rgba(74, 159, 224, 0.28);
+}
+
+/* "Sunum arka planı" henüz yüklenmemişken gösterilen tıklanabilir yer tutucu -
+   "Kapak Görseli"nin her zaman dolu (varsayılan gorseli) önizlemesinden farklı
+   olarak bu katmanın varsayılanı BOŞTUR (bkz. useCoverBackground.js). */
+.cover-bg-placeholder {
+  width: 300px;
+  height: 175px;
+  border-radius: 10px;
+  border: 1.5px dashed var(--line);
+  background: rgba(74, 159, 224, 0.05);
+  color: var(--mut);
+  font-size: 12.5px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+.cover-bg-placeholder:hover {
+  border-color: var(--aksa-blue-light);
+  color: var(--aksa-blue-light);
+  background: rgba(74, 159, 224, 0.09);
 }
 
 /* Kapak sayfasindaki "Takım Tipi" premium select - app.css'te sabit beyaz
@@ -1551,15 +1650,35 @@ header.topbar .btn:hover {
   box-sizing: border-box;
   animation: aksa-badge-breathe 4.5s ease-in-out infinite;
 }
-.sec.done .head img { background: linear-gradient(135deg, #22c55e, #16a34a); box-shadow: 0 3px 10px rgba(22, 163, 74, 0.4); }
-.sec.active .head img { background: linear-gradient(135deg, #3b82f6, #2563eb); box-shadow: 0 3px 10px rgba(37, 99, 235, 0.4); }
-.sec.pending .head img { background: linear-gradient(135deg, #a78bfa, #7c3aed); box-shadow: 0 3px 10px rgba(124, 58, 237, 0.4); }
+/* Rozet zemini ACIK/notr, bolumun rengi sadece HALKA + isik olarak kullanilir.
+   Eskiden zemin ikonun KENDISIYLE ayni renkteydi (yesil kart -> yesil daire),
+   bu yuzden ikon sekli zeminin icinde kayboluyordu - slayt kartlarinda
+   duzeltilen AYNI sorun madde ekleme formunda da vardi (kullanici bildirimi
+   2026-08-20: "buradaki logolarda çok aynı şu sorunu içeriyor madde ekleme
+   yeri"). Renkli golge/parlama korundu, sadece dolgu acildi. */
+.sec.done .head img { background: #fff; border: 1.5px solid rgba(22, 163, 74, 0.6); box-shadow: 0 3px 10px rgba(22, 163, 74, 0.28); }
+.sec.active .head img { background: #fff; border: 1.5px solid rgba(37, 99, 235, 0.6); box-shadow: 0 3px 10px rgba(37, 99, 235, 0.28); }
+.sec.pending .head img { background: #fff; border: 1.5px solid rgba(124, 58, 237, 0.6); box-shadow: 0 3px 10px rgba(124, 58, 237, 0.28); }
 
-/* Riskler ikonu - "alev" hissi icin daha buyuk/sicak, iki katmanli parlama */
+/* Riskler ikonu - "alev" hissi icin daha sicak, iki katmanli parlama; zemin
+   yine acik kalir ki ikon kaybolmasin. */
 .sec.risk .head img {
-  background: linear-gradient(135deg, #fbbf24, #e0761f 55%, #c2410c);
-  box-shadow: 0 0 10px rgba(251, 146, 60, 0.55), 0 0 22px rgba(224, 118, 20, 0.45), 0 3px 10px rgba(194, 65, 12, 0.5);
+  background: #fff;
+  border: 1.5px solid rgba(224, 118, 20, 0.65);
+  box-shadow: 0 0 10px rgba(251, 146, 60, 0.4), 0 0 22px rgba(224, 118, 20, 0.28), 0 3px 10px rgba(194, 65, 12, 0.3);
   animation: aksa-flame-breathe 4.5s ease-in-out infinite !important;
+}
+.theme-dark .sec.done .head img,
+.theme-dark .sec.active .head img,
+.theme-dark .sec.risk .head img,
+.theme-dark .sec.pending .head img {
+  background: #EEF4FA;
+}
+
+/* Bolum basligi ("Tamamlanan İşler" vb.) - slayt kartindaki ile ayni
+   gerekce: "yazı tipleri çok bold görünüyor daha soft" (PO notu). */
+.sec .head .t {
+  font-weight: 600;
 }
 
 @keyframes aksa-badge-breathe {
@@ -2308,85 +2427,6 @@ header.topbar .btn:hover {
   font-size: 13px;
   color: var(--mut);
   padding: 6px 0;
-}
-
-/* ---------------------------------------------------------------------- */
-/* Şifre değiştirme ekrani (PasswordChangeModal) - genel amacli ".box"     */
-/* 900px genisliginde ve mhead/mbody duzeni bekliyor; kisa bir form icin   */
-/* cok genis kaliyor, o yuzden burada daraltiliyor. Secici bilerek         */
-/* ".modal .password-modal-box" (tek sinif degil): app.css'teki            */
-/* ".modal .box" ayni ozgullukte oldugundan, tek sinifli bir kural         */
-/* genislik/kose gibi ozelliklerde SESSIZCE ezilirdi. Arka plan ise        */
-/* kasten devralinir - modal kutusunun neredeyse opak olmasi bilincli bir  */
-/* okunabilirlik karari (bkz. ".modal .box" aciklamasi).                   */
-/* Form alanlari profil ekraninin (.profile-field / .profile-input)        */
-/* stillerini yeniden kullanir ki iki ekran arasindaki gecis kopuk         */
-/* hissettirmesin.                                                         */
-/* ---------------------------------------------------------------------- */
-.modal .password-modal-box {
-  width: min(420px, 92vw);
-  border-radius: 18px;
-  padding: 26px 26px 22px;
-  /* Kutu (".modal .box") zaten dikey flex - dusey ritmi tek yerden, gap ile
-     veriyoruz ki hem form hem "şifreniz güncellendi" ekrani ayni araliklara
-     sahip olsun (alt bilesenlerde margin biriktirmeye gerek kalmasin). */
-  gap: 14px;
-  overflow: auto;
-  animation: aksa-pop-in 0.2s cubic-bezier(0.2, 0.9, 0.3, 1.3);
-}
-.password-modal-head {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-.password-modal-icon {
-  width: 44px;
-  height: 44px;
-  flex: none;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  background: linear-gradient(135deg, var(--aksa-blue), var(--aksa-blue-light));
-  box-shadow: 0 4px 14px rgba(13, 94, 168, 0.32);
-}
-.password-modal-title {
-  margin: 0;
-  font-size: 17px;
-  font-weight: 800;
-  color: var(--ink);
-}
-.password-modal-desc {
-  margin: 0;
-  font-size: 13px;
-  line-height: 1.55;
-  color: var(--mut);
-}
-.password-modal-box form {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-.password-modal-reveal {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12.5px;
-  font-weight: 600;
-  color: var(--mut);
-  cursor: pointer;
-  user-select: none;
-}
-.password-modal-reveal input {
-  accent-color: var(--aksa-blue);
-  cursor: pointer;
-}
-.password-modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  margin-top: 8px;
 }
 
 /* ---------------------------------------------------------------------- */
@@ -3385,4 +3425,1083 @@ header.topbar .btn:hover {
     text-transform: uppercase;
     letter-spacing: 0.02em;
   }
+}
+
+/* ---------------------------------------------------------------------- */
+/* Kapasite Dashboard "Düzenle" ekrani (DashboardEditModal) - premium/Apple  */
+/* tarzi redesign (bkz. kullanici bildirimi: "daha apple tasarımı gibi",     */
+/* "normal javascript kutularını falan kullanma premium istiyorum"). Duz    */
+/* .bar/.field kutulari yerine kart tabanli satirlar, buyuk yumusak         */
+/* radius'lar, ince-agirlikli tipografi, focus glow ve giris animasyonlari  */
+/* kullanir. Renk/degisken kaynagi UYGULAMANIN KENDI paletidir (--aksa-blue,*/
+/* --ink/--mut/--card/--line) - yeni bir tasarim sistemi/kutuphane          */
+/* eklenmedi, hem acik hem koyu temada calisir.                            */
+/* ---------------------------------------------------------------------- */
+.modal .dashedit-box {
+  width: min(980px, 95vw);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.97) !important;
+  /* "Düzenle"ye basildiginda ekran BIR ANDA gelmesin - yumusak bir
+     buyuyerek-belirme gecisi (bkz. kullanici bildirimi, 2026-08-17: "edit
+     denildiğinde sayfa bir anda gelmesin ona da bir effekt koy"). */
+  animation: dashedit-box-in 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes dashedit-box-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.theme-dark .modal .dashedit-box {
+  background: rgba(20, 28, 38, 0.97) !important;
+}
+.dashedit-head {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 22px 28px 18px;
+  border-bottom: 1px solid var(--line);
+  background: inherit;
+}
+.dashedit-head-icon {
+  width: 42px;
+  height: 42px;
+  flex: none;
+  border-radius: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  background: linear-gradient(135deg, var(--aksa-blue), var(--aksa-blue-light));
+  box-shadow: 0 6px 16px rgba(13, 94, 168, 0.32);
+}
+.dashedit-head-titles {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.dashedit-title {
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+.dashedit-badge {
+  align-self: flex-start;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--aksa-blue-light);
+  background: rgba(74, 159, 224, 0.14);
+  border: 1px solid rgba(74, 159, 224, 0.28);
+  border-radius: 999px;
+  padding: 3px 10px;
+}
+.dashedit-close {
+  margin-left: auto;
+  width: 34px;
+  height: 34px;
+  flex: none;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--mut);
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+.dashedit-close:hover {
+  background: rgba(217, 83, 79, 0.12);
+  color: #d9534f;
+  transform: scale(1.06);
+}
+.dashedit-body {
+  padding: 24px 28px 28px;
+  overflow: auto;
+}
+.dashedit-section-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--mut);
+  margin: 26px 0 14px;
+}
+.dashedit-section-label:first-child {
+  margin-top: 0;
+}
+.dashedit-section-label i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--aksa-blue-light);
+}
+
+/* KPI "stat tile" grid - Apple Ayarlar tarzi: etiket kucuk/sonuk, deger buyuk,
+   sinir sadece focus'ta belirir (varsayilanda neredeyse gorunmez). Genel
+   (.premium-tile*) isimler EKLENDI ki AYNI premium gorunum Kapasite Dashboard
+   parametre formlarinda (JiraDashboardPanel, ManualDashboardForm - duz .field
+   kutulari) da kullanilabilsin (bkz. kullanici bildirimi, 2026-08-17: "aynı
+   şekilde kapasite dashboard sayfasını bue ekran gibi grandient premium...
+   javacripte özgü kutular ve selectler yerine"). */
+.dashedit-kpi-grid,
+.premium-tile-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 12px;
+}
+.dashedit-tile,
+.premium-tile {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 14px 16px;
+  /* Kartin herhangi bir bos noktasina tiklaninca da kendi input/select'i
+     odaklansin (bkz. asagidaki onClick, JiraDashboardPanel/
+     DashboardTableHeadersEditor) - kullanici bildirimi, 2026-08-17: "üstüne
+     tıklandığında seçilip paramtre değiştirilebilsin". */
+  cursor: text;
+  background:
+    radial-gradient(120% 140% at 0% 0%, rgba(74, 159, 224, 0.16) 0%, rgba(74, 159, 224, 0) 55%),
+    linear-gradient(155deg, var(--card) 0%, var(--card) 55%, rgba(74, 159, 224, 0.08) 100%);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+.theme-dark .dashedit-tile,
+.theme-dark .premium-tile {
+  background:
+    radial-gradient(120% 140% at 0% 0%, rgba(74, 159, 224, 0.22) 0%, rgba(74, 159, 224, 0) 55%),
+    linear-gradient(155deg, var(--card) 0%, var(--card) 55%, rgba(74, 159, 224, 0.16) 100%);
+}
+.dashedit-tile:focus-within,
+.premium-tile:focus-within {
+  border-color: var(--aksa-blue-light);
+  box-shadow: 0 0 0 4px rgba(74, 159, 224, 0.14);
+  transform: translateY(-1px);
+}
+.dashedit-tile-label,
+.premium-tile-label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--mut);
+  letter-spacing: 0.01em;
+  margin-bottom: 6px;
+}
+/* .field-icon'un boyut kurali eskiden SADECE ".field label .field-icon"
+   secicisiyle taniml iydi - .premium-tile-label bu ataya sahip olmadigi icin
+   ikon boyutsuz (SVG'nin ham/intrinsic buyuklugunde, devasa) kaliyordu -
+   bkz. kullanici bildirimi, 2026-08-17: "çok büyük oldu düzelt". */
+.dashedit-tile-label .field-icon,
+.premium-tile-label .field-icon {
+  width: 13px;
+  height: 13px;
+  flex: none;
+  color: var(--aksa-blue-light);
+}
+.dashedit-tile input,
+.premium-tile input {
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--ink);
+  font-family: inherit;
+  outline: none;
+}
+
+/* "Zarif"/kompakt varyant - KPI kart (buyuk sayi) disindaki, sirf metin/tarih
+   giren form alanlari (Kapasite Dashboard parametre panelleri, kolon
+   basliklari editoru) icin .premium-tile'in KUCULTULMUS hali - kullanici
+   bildirimi, 2026-08-17: "kutular çok büyük olmuş daha zarif olsun". */
+/* Grid yerine flex+wrap: eksik son satirda (orn. 7 alan, 5 sutuna sigan bir
+   grid'de son satirda 2 tane kalir) bos hucreleri sola yasli birakmak yerine
+   kalan ogeler ORTALANIR - bkz. kullanici bildirimi, 2026-08-17: "bunları
+   ortala" (Bakımlı Doluluk % / Durum ciftinin sayfanin solunda yalniz
+   kalmasindan bahsediyordu). */
+.premium-tile-grid-compact {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+.premium-tile.premium-tile-compact {
+  flex: 1 1 150px;
+  max-width: 210px;
+  padding: 9px 12px;
+  border-radius: 12px;
+}
+.premium-tile.premium-tile-compact .premium-tile-label {
+  font-size: 10px;
+  margin-bottom: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.premium-tile.premium-tile-compact input,
+.premium-tile.premium-tile-compact select {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.dashedit-tile select,
+.premium-tile select {
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding: 0;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--ink);
+  font-family: inherit;
+}
+
+/* Premium select - hem "Genel Durum" (KPI kart) hem kisi satirindaki "Durum"
+   AYNI kalibi kullanir: tarayicinin varsayilan dropdown gorunumu tamamen
+   kaldirilir (appearance:none), ozel ince bir ok ikonu SVG data-URI ile
+   eklenir - kullanici bildirimi, 2026-08-17: "çıkan select leri de aynı
+   şekil yap". */
+.dashedit-tile select,
+.dashedit-metric select,
+.premium-tile select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%238fa2b8' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1px center;
+  background-size: 10px 6px;
+  padding-right: 15px;
+}
+
+/* Kisi karti - eskiden .bar/.barlabel (duz "javascript kutusu" his veren)
+   idi; simdi avatar + isim on planda, sayisal alanlar kompakt mini-etiketli
+   sutunlar, silme ikonu hover'da belirir. */
+.dashedit-persons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.dashedit-person {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--card);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.12s ease;
+  /* Once bir "kart destesi" gibi ust uste dursun, sonra tek tek asagi acilip
+     yerine otursun - bkz. kullanici bildirimi, 2026-08-17: "takım üyeleri
+     önce sanki bir deste kart gibi dursun sonra aşağıya açılsın". Her satirin
+     JSX'te verdigi --i (kendi sirasi) ile gecikme kademelenir; negatif
+     margin-top, deste ust uste binerken bir SONRAKI karti kendi ustune
+     ceker (gercek fiziksel bir deste gibi), 0'a inince normal siraya gecer. */
+  animation: dashedit-row-in 0.46s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: min(calc(var(--i, 0) * 55ms), 600ms);
+  transform-origin: top center;
+}
+.dashedit-person:hover {
+  border-color: rgba(74, 159, 224, 0.35);
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
+}
+.dashedit-person:focus-within {
+  border-color: var(--aksa-blue-light);
+  box-shadow: 0 0 0 4px rgba(74, 159, 224, 0.12);
+}
+@keyframes dashedit-row-in {
+  0% {
+    opacity: 0;
+    transform: translateY(-58px) scale(0.92);
+    margin-top: -58px;
+    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.18);
+  }
+  55% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    margin-top: 0;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0);
+  }
+}
+.dashedit-avatar {
+  width: 40px;
+  height: 40px;
+  flex: none;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+.dashedit-identity {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1 1 190px;
+  min-width: 140px;
+}
+.dashedit-identity input {
+  border: none;
+  background: transparent;
+  padding: 0;
+  font-family: inherit;
+  outline: none;
+}
+.dashedit-identity .dashedit-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.dashedit-identity .dashedit-role {
+  font-size: 12px;
+  color: var(--mut);
+}
+.dashedit-metrics {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 2 1 420px;
+  /* ESKIDEN flex-wrap:wrap idi - dar ekranlarda/modal genisliginde son kolon
+     olan "Durum" tek basina ALT SATIRA atiliyordu (kullanici bildirimi
+     2026-08-20: "kişilerin yanında yazan durum selectni aşağı satıra atma").
+     Artik hicbir kolon alt satira kaymiyor; bunun yerine asagidaki
+     .dashedit-metric'ler ESNEK genislikte (flex:1 1 auto + min-width), yer
+     daralinca hep BIRLIKTE kuculuyor - tek bir kolonun disariya "kacip" yeni
+     satira dusmesi yerine hepsi orantili sikisiyor. */
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+/* Kolon genisligi (58px) "TAMAMLANAN" gibi uzun bir mini-etiketi tasiyamiyordu:
+   etiket kutusunun disina taşip yanindaki "AÇIK" etiketinin ustune biniyordu
+   (PO notu 2026-08-19: "Yazılar üst üste biniyor"). Kolonlar genisletildi ve
+   etiketler her ihtimale karsi tek satirda kirpilir - hicbir kosulda komsu
+   kolonun uzerine taşamaz. */
+.dashedit-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1 1 56px;
+  min-width: 44px;
+}
+.dashedit-metric.dashedit-metric-select {
+  flex: 1.15 1 66px;
+  min-width: 56px;
+}
+.dashedit-metric span {
+  display: block;
+  max-width: 100%;
+  font-size: 9.5px;
+  font-weight: 700;
+  color: var(--mut);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dashedit-metric input,
+.dashedit-metric select {
+  width: 100%;
+  min-width: 0;
+}
+.dashedit-metric input,
+.dashedit-metric select {
+  border: none;
+  border-bottom: 1.5px solid var(--line);
+  background: transparent;
+  padding: 2px 0 3px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+.dashedit-metric input:focus,
+.dashedit-metric select:focus {
+  border-color: var(--aksa-blue-light);
+}
+.dashedit-remove {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--mut);
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0.45;
+  transition: opacity 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+.dashedit-person:hover .dashedit-remove {
+  opacity: 1;
+}
+.dashedit-remove:hover {
+  background: rgba(217, 83, 79, 0.12);
+  color: #d9534f;
+  border-color: rgba(217, 83, 79, 0.24);
+}
+
+.dashedit-add {
+  margin-top: 12px;
+  width: 100%;
+  padding: 13px;
+  border-radius: 16px;
+  border: 1.5px dashed var(--line);
+  background: transparent;
+  color: var(--mut);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease, transform 0.1s ease;
+}
+.dashedit-add:hover {
+  border-color: var(--aksa-blue-light);
+  color: var(--aksa-blue-light);
+  background: rgba(74, 159, 224, 0.06);
+  transform: translateY(-1px);
+}
+
+.dashedit-foot {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 16px 28px;
+  margin: 22px -28px -28px;
+  border-top: 1px solid var(--line);
+  background: inherit;
+  backdrop-filter: blur(6px);
+}
+
+@media (max-width: 640px) {
+  .dashedit-metrics {
+    gap: 10px;
+  }
+  .dashedit-metric {
+    width: 56px;
+  }
+}
+
+/* ---------------------------------------------------------------------- */
+/* Manuel Gir - "Ekip üyeleri ve iş kalemleri" (bkz. MemberCard.jsx)       */
+/* Eskiden duz .bar/.barrow/.barlabel/.segrow kutulariydi - ayni "Apple"   */
+/* tasarim dili (.dashedit-* ile AYNI renk/radius/golge/animasyon dili)    */
+/* burada da uygulanir (bkz. kullanici bildirimi, 2026-08-17: "ekip üyesi  */
+/* ekleme yeri kötü duruyor ... apple UI/UX tasarım stilini esas al").    */
+/* ---------------------------------------------------------------------- */
+.mcards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.mcard {
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 14px 16px 16px;
+  background: var(--card);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  animation: dashedit-row-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: min(calc(var(--i, 0) * 55ms), 500ms);
+}
+.mcard:hover {
+  border-color: rgba(74, 159, 224, 0.35);
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
+}
+.mcard:focus-within {
+  border-color: var(--aksa-blue-light);
+  box-shadow: 0 0 0 4px rgba(74, 159, 224, 0.12);
+}
+.mcard-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.mcard-avatar {
+  width: 38px;
+  height: 38px;
+  flex: none;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  background: linear-gradient(135deg, var(--aksa-blue), var(--aksa-blue-light));
+}
+.mcard-identity {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1 1 200px;
+  min-width: 120px;
+}
+.mcard-identity input {
+  border: none;
+  background: transparent;
+  padding: 0;
+  font-family: inherit;
+  outline: none;
+  color: var(--ink);
+}
+.mcard-identity .mcard-name {
+  font-size: 15px;
+  font-weight: 700;
+}
+.mcard-identity .mcard-role {
+  font-size: 12px;
+  color: var(--mut);
+}
+.mcard-remove {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--mut);
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  white-space: nowrap;
+  opacity: 0.55;
+  transition: opacity 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+.mcard:hover .mcard-remove {
+  opacity: 1;
+}
+.mcard-remove:hover {
+  background: rgba(217, 83, 79, 0.12);
+  color: #d9534f;
+  border-color: rgba(217, 83, 79, 0.24);
+}
+.mcard-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 14px;
+  margin: 12px 0 4px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+.mcard-meta-field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 118px;
+  flex: none;
+}
+.mcard-meta-field span {
+  font-size: 9.5px;
+  font-weight: 700;
+  color: var(--mut);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+.mcard-meta-field input,
+.mcard-meta-field select {
+  border: none;
+  border-bottom: 1.5px solid var(--line);
+  background: transparent;
+  padding: 2px 0 4px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink);
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+.mcard-meta-field input:focus,
+.mcard-meta-field select:focus {
+  border-color: var(--aksa-blue-light);
+}
+.mcard-meta-field select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%238fa2b8' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1px center;
+  background-size: 10px 6px;
+  padding-right: 13px;
+}
+.mcard-items-label {
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--mut);
+  margin: 14px 0 8px;
+}
+.mcard-items {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.mitem {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: rgba(74, 159, 224, 0.05);
+  border: 1px solid transparent;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.theme-dark .mitem {
+  background: rgba(255, 255, 255, 0.04);
+}
+.mitem:focus-within {
+  border-color: rgba(74, 159, 224, 0.35);
+  background: rgba(74, 159, 224, 0.09);
+}
+.mitem input[type="text"],
+.mitem input:not([type]) {
+  border: none;
+  background: transparent;
+  padding: 0;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  outline: none;
+}
+.mitem-title {
+  flex: 1 1 170px;
+  min-width: 100px;
+}
+.mitem-effort {
+  flex: 0 0 64px;
+}
+.mitem-effort::placeholder,
+.mitem-title::placeholder {
+  color: var(--mut);
+  font-weight: 500;
+}
+.mitem-done {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--mut);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.mitem-date {
+  flex: 0 0 118px;
+  border: none;
+  border-bottom: 1.5px solid var(--line);
+  background: transparent;
+  padding: 2px 0;
+  font-family: inherit;
+  font-size: 11.5px;
+  color: var(--ink);
+  outline: none;
+}
+.mitem-date:focus {
+  border-color: var(--aksa-blue-light);
+}
+.mitem-remove {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  margin-left: auto;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--mut);
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0.5;
+  transition: opacity 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+.mitem:hover .mitem-remove {
+  opacity: 1;
+}
+.mitem-remove:hover {
+  background: rgba(217, 83, 79, 0.12);
+  color: #d9534f;
+}
+.mcard-additem {
+  border: 1.5px dashed var(--line);
+  background: transparent;
+  color: var(--mut);
+  border-radius: 999px;
+  padding: 7px 16px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease, transform 0.1s ease;
+}
+.mcard-additem:hover {
+  border-color: var(--aksa-blue-light);
+  color: var(--aksa-blue-light);
+  background: rgba(74, 159, 224, 0.06);
+  transform: translateY(-1px);
+}
+
+/* Ana "ekle" eylemleri ("+ Ekip üyesi ekle", "+ Gösterge ekle") - eskiden
+   ".mcard-additem" ile AYNI soluk/kesikli-cizgili butondu, arka planla neredeyse
+   ayni tonda kaybolup gidiyordu (bkz. kullanici bildirimi, 2026-08-17: "daha
+   belirgin yap ... benzesin birbirine"). Artik ikisi de AYNI dolu-gradyanli,
+   golgeli, ikonlu "premium" buton - .btn.primary'nin (turuncu) yaninda ikinci
+   bir vurgu rengi olarak Aksa mavisini kullanir, boylece "Hesapla"dan (yesil)
+   ve "İleri" (turuncu) eylemlerinden gorsel olarak ayrisir ama kendi
+   aralarinda birebir tutarlidir. */
+.premium-add-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  border: none;
+  border-radius: 16px;
+  padding: 13px;
+  font-size: 13.5px;
+  font-weight: 700;
+  font-family: inherit;
+  color: #fff;
+  cursor: pointer;
+  background: linear-gradient(135deg, var(--aksa-blue), var(--aksa-blue-light));
+  box-shadow: 0 6px 16px rgba(13, 94, 168, 0.28), 0 1px 2px rgba(13, 94, 168, 0.2);
+  transition: transform 0.15s ease, box-shadow 0.2s ease, filter 0.15s ease;
+}
+.premium-add-btn .add-btn-icon {
+  width: 15px;
+  height: 15px;
+  flex: none;
+}
+.premium-add-btn:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.06);
+  box-shadow: 0 9px 22px rgba(13, 94, 168, 0.36), 0 2px 4px rgba(13, 94, 168, 0.24);
+}
+.premium-add-btn:active {
+  transform: translateY(0);
+  filter: brightness(0.98);
+}
+
+/* ---------------------------------------------------------------------- */
+/* Sunum yüzeyi (.zoombox.stage-dark) — "⤢ Preview" ve "Sunumu Başlat"     */
+/* ---------------------------------------------------------------------- */
+/* PO notu 2026-08-19, üç ayrı madde aynı kök nedene işaret ediyordu:
+   1) "Sunu yapılırken tüm ekranı kaplayacak şekilde yapabilir miyiz arka plan
+      dikkat dağıtabilir."
+   2) "Sayfa yapısına uygun yerleşmiyor. Ekran çözünürlüğünü küçültünce de her
+      yerinden beyaz alanlar çıkıyor."
+   3) "Arka planı da blurlamak gerek veya ekrana tam yerleştirmek daha uygun
+      olacak arka plan dikkati bozuyor."
+   Kök neden: .zoombox, paylasilan "glassmorphism" kuralindan (yukarida,
+   !important ile) YARI SAYDAM bir cam yuzey aliyordu - arkasindaki uygulama
+   ekrani (form alanlari, takim kartlari) sunum sirasinda slaydin cevresinden
+   gorunuyordu. Sunum yuzeyi artik OPAK ve notr koyu; backdrop da yogun
+   sekilde blurlanir. Tuvalin (16:9) doldurmadigi kenar seritleri boylece
+   "beyaz alan" degil, sunum yapan kisiyi rahatsiz etmeyen notr bir cerceve.
+   Fiziksel tam ekran (Fullscreen API) tarafi useFullscreen ile hallediliyor. */
+.modal:has(.zoombox.stage-dark) {
+  background: rgba(8, 13, 20, 0.94);
+  backdrop-filter: blur(20px) saturate(120%);
+  -webkit-backdrop-filter: blur(20px) saturate(120%);
+}
+.zoombox.stage-dark {
+  background: #0c131d !important;
+  border: 0 !important;
+  border-radius: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+/* DIKKAT: burada .zoomstage'in ZEMIN rengine DOKUNULMAZ. Koyu yapilmisti ve
+   slayt tuvalinin kendi (seffaf) zemini bu rengi gosterdigi icin acik temada
+   hazirlanmis icerik slayti "Preview"da koyu moda gecmis gibi gorunuyordu
+   (kullanici bildirimi 2026-08-20). Zemin app.css'teki .zoomstage (beyaz) ve
+   .theme-dark .zoomstage (#16212f) kurallarindan gelmeye devam eder - yani
+   slayt HER ZAMAN uygulamanin/PPTX'in temasini yansitir. Koyu olan SADECE
+   tuvalin CEVRESINDEKI cerceve (.zoombox). */
+.zoombox.stage-dark .zoomstage {
+  border: 0;
+  border-radius: 10px;
+  box-shadow: 0 20px 70px rgba(0, 0, 0, 0.6);
+}
+/* Ust cubuktaki metin/oklar koyu yuzeyde okunakli kalsin. */
+.zoombox.stage-dark .carousel-label,
+.zoombox.stage-dark .presentation-runner-team {
+  color: #E7EDF5;
+}
+.zoombox.stage-dark .carousel-arrow {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.18);
+  color: #E7EDF5;
+}
+.zoombox.stage-dark .carousel-dot {
+  background: rgba(255, 255, 255, 0.28);
+}
+.zoombox.stage-dark .btn.close {
+  background: rgba(255, 255, 255, 0.12);
+  color: #E7EDF5;
+}
+.zoombox.stage-dark .btn.close:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Ekip Özet KPI kutulari artik SALT OKUNUR - degerler kisi bazli satirlardan
+   hesaplanir (bkz. DashboardEditModal.computeKpisFromPersons, PO notu
+   2026-08-19: "Alttaki verileri hesaplayıp yukarıya yazsak daha uygun olmaz
+   mı? Bu şekilde veri doğruluğu sapabilir."). Duzenlenebilir kutulardan
+   gorsel olarak ayrilir ki kullanici bosuna tiklamasin. */
+.dashedit-tile.dashedit-tile-readonly {
+  opacity: 0.92;
+}
+.dashedit-tile.dashedit-tile-readonly input {
+  cursor: default;
+  color: var(--mut);
+}
+
+/* ---------------------------------------------------------------------- */
+/* Sunum arka planı önizlemesindeki "×" (kaldır)                           */
+/* ---------------------------------------------------------------------- */
+/* PO notu 2026-08-19: "Arka plan görseli koydum diyelim x butonu bulunmuyor
+   kaldırmak istediğimde. Sadece üzerine görsel ekleyebiliyorum full."
+   Butonlar arasindaki "Kaldır"a ek olarak, gorselin KENDI kosesinde de
+   dogrudan bir "×" bulunur (bkz. CoverPage.jsx). */
+.cover-preview-wrap {
+  position: relative;
+  display: inline-flex;
+  line-height: 0;
+}
+.cover-preview-remove {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1px solid rgba(185, 28, 28, 0.35);
+  background: #fff;
+  color: #B91C1C;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(15, 23, 32, 0.18);
+  transition: background 0.15s ease, transform 0.12s ease;
+}
+.cover-preview-remove:hover {
+  background: #FEE2E2;
+  transform: scale(1.08);
+}
+.theme-dark .cover-preview-remove {
+  background: #1c2733;
+  color: #FCA5A5;
+  border-color: rgba(252, 165, 165, 0.4);
+}
+
+/* ---------------------------------------------------------------------- */
+/* Öneri listesi (Excel'den Yükle / Jira'dan Getir) — SuggestionList.jsx    */
+/* ---------------------------------------------------------------------- */
+/* PO notu 2026-08-19 (ek istek): "excel yükleme ve jiradan çek denilince gelen
+   işler çok demode ve rastgele gözüküyor bunları bir liste gibi (önceliğe /
+   ekleniş tarihine göre sıralama vs yap ve react componentleri kullan)".
+   Eski ".chip" balon yigini yerine; basligi, aramasi, siralamasi ve satir
+   satir meta bilgisi olan gercek bir liste. */
+.sugg {
+  margin-top: 10px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--card);
+  overflow: hidden;
+}
+.sugg-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 9px 11px;
+  border-bottom: 1px solid var(--line);
+  background: rgba(74, 159, 224, 0.06);
+}
+.sugg-title {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--mut);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.sugg-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--aksa-blue, #0d5ea8);
+  color: #fff;
+  font-size: 10.5px;
+  letter-spacing: 0;
+}
+.sugg-search,
+.sugg-sort {
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 5px 8px;
+  font-size: 12px;
+  font-family: inherit;
+  background: var(--card);
+  color: var(--ink);
+}
+.sugg-search {
+  flex: 1 1 120px;
+  min-width: 90px;
+}
+.sugg-sort {
+  flex: none;
+  cursor: pointer;
+}
+.sugg-head .addseg {
+  margin-left: auto;
+}
+.sugg-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 340px;
+  overflow-y: auto;
+}
+.sugg-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 11px;
+  border-bottom: 1px solid var(--line);
+}
+.sugg-item:last-child {
+  border-bottom: 0;
+}
+.sugg-item:hover {
+  background: rgba(74, 159, 224, 0.07);
+}
+.sugg-dot {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}
+.sugg-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.sugg-label {
+  font-size: 13px;
+  color: var(--ink);
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sugg-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 10.5px;
+  color: var(--mut);
+}
+.sugg-prio {
+  font-weight: 700;
+}
+.sugg-sector,
+.sugg-childcount {
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(74, 159, 224, 0.12);
+  color: var(--aksa-blue, #0d5ea8);
+  font-weight: 600;
+}
+.sugg-date {
+  font-variant-numeric: tabular-nums;
+}
+.sugg-add {
+  flex: none;
+  border: 1px dashed var(--aksa-blue-light, #4a9fe0);
+  background: transparent;
+  color: var(--aksa-blue, #0d5ea8);
+  border-radius: 999px;
+  padding: 4px 11px;
+  font-size: 11.5px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+}
+.sugg-add:hover {
+  border-style: solid;
+  background: rgba(74, 159, 224, 0.12);
+}
+.sugg-more {
+  width: 100%;
+  border: 0;
+  border-top: 1px solid var(--line);
+  background: transparent;
+  color: var(--aksa-blue, #0d5ea8);
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  padding: 8px;
+  cursor: pointer;
+}
+.sugg-more:hover {
+  background: rgba(74, 159, 224, 0.08);
 }

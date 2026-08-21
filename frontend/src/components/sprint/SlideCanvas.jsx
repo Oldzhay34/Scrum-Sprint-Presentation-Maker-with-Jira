@@ -74,6 +74,12 @@ function Card({ x, y, w, h, items, sec, fontSize }) {
           const { text: withoutComment, comment } = extractComment(t);
           const { priority, text } = extractPriority(withoutComment);
           const bulletColor = priority ? PRIORITY_COLORS[priority] : PRIORITY_UNSET_COLOR;
+          // Oncelik ADI ("Orta"/"Kritik") madde basina rozet olarak GERI
+          // YAZILIR - PO notu 2026-08-20: onceki "sadece nokta" hali
+          // (2026-08-19'daki degisiklik) geri alindi, eski (etiketli)
+          // gorunume donuldu. Rozet boyutu sektor etiketiyle (.card li b)
+          // AYNI (PO notu: "bu label ın büyüklüğü sektör label ı ile aynı
+          // olacak").
           return (
             <li key={i} style={{ "--bullet-color": "#" + bulletColor }}>
               <span className="dot" />
@@ -137,8 +143,22 @@ export default function SlideCanvas({ data, tab, assets, scale }) {
   if (tab === "cover") {
     content = (
       <div className="cov" style={{ backgroundImage: `url(${assets.cover_bg || ""})` }}>
+        {/* "Sunum arka planı" (bkz. useCoverBackground.js) - varsayilan
+            "Kapak Görseli" (cover_bg, yukarida .cov'un KENDI CSS zemini) HER
+            ZAMAN tuvalin TAMAMINI kaplayan OPAK bir gorseldir (tek bir
+            duzlestirilmis PNG - gradyan + illustrasyon birlikte) - bu yuzden
+            arkasina konan bir katman ASLA gorunmezdi (bkz. kullanici
+            bildirimi, 2026-08-17: "yüklenen sunum arka planı resmi hiçbir
+            zaman sunumun arka planını güncellemiyor"). Duzeltme: bu katman
+            cover_bg'nin USTUNE (ama metnin/logolarin ALTINA) yari-saydam
+            cizilir - boylece yuklendiginde GERCEKTEN gorunur bir degisiklik
+            olur, hicbir sey yuklenmezse (varsayilan) hic render edilmeyip
+            bugunku gorunum AYNEN korunur. */}
+        {assets.slide_bg && (
+          <div className="cov-page-bg" style={{ backgroundImage: `url(${assets.slide_bg})` }} />
+        )}
         <div className="wash" />
-        <CornerMesh w={1.7} x={-0.15} y={5.169} opacity={0.45} />
+        {!assets.slide_bg && <CornerMesh w={1.7} x={-0.15} y={5.169} opacity={0.45} />}
         <div className="clogos">
           <img className="a" src={assets.logo_a} alt="" />
           <img className="b" src={assets.logo_b} alt="" />
@@ -156,6 +176,16 @@ export default function SlideCanvas({ data, tab, assets, scale }) {
     const footerTeam = (data.teamName || "Ekip").trim();
     content = (
       <>
+        {/* "Sunum arka planı" (bkz. useCoverBackground.js) - PO'nun yukledigi
+            gorsel SADECE kapagin degil, TUM slaytlarin zeminidir (kullanici
+            bildirimi 2026-08-20: "sunum arka planı dediğim şey tüm pptx ve
+            preview sayfalarına uygulanan background"). Ilk cocuk olarak,
+            konumlandirilmis diger tum ogelerin (bant/kartlar/logo/altbilgi)
+            ALTINDA cizilir. Yukleme yoksa hic render edilmez - bugunku duz
+            zemin gorunumu aynen korunur. */}
+        {assets.slide_bg && (
+          <div className="slide-page-bg" style={{ backgroundImage: `url(${assets.slide_bg})` }} />
+        )}
         <div className="s-header">{data.subtitle}</div>
         <div className="s-logos">
           <img src={assets.logo_b} alt="" />
@@ -168,13 +198,18 @@ export default function SlideCanvas({ data, tab, assets, scale }) {
             "hala kayık" (sabit y kullanildiginda kart kisa/uzun oldukca
             hizasi kayiyordu). sprintDeckBuilder.addContentSlide ile AYNI
             hesap (botH*0.92, dikey ortalanmis). */}
-        <CornerMesh
-          w={(botH * 0.92) * CORNER_MESH_RATIO}
-          x={-((botH * 0.92) * CORNER_MESH_RATIO) * 0.42}
-          y={yBot + (botH - botH * 0.92) / 2}
-          opacity={0.55}
-          flip
-        />
+        {/* Ozel bir sunum arka plani yuklendiyse sablonun kose deseni CIZILMEZ -
+            zemini tamamen yuklenen gorsel belirlesin (kullanici teyidi
+            2026-08-20: "Gizlensin"). */}
+        {!assets.slide_bg && (
+          <CornerMesh
+            w={(botH * 0.92) * CORNER_MESH_RATIO}
+            x={-((botH * 0.92) * CORNER_MESH_RATIO) * 0.42}
+            y={yBot + (botH - botH * 0.92) / 2}
+            opacity={0.55}
+            flip
+          />
+        )}
         <Band bars={bars} />
         <Card x={G.X_L} y={cardsTop} w={G.COL_W} h={topH} items={sections.done} sec={SEC.done} fontSize={fsByKey.done} />
         <Card x={G.X_L} y={yBot} w={G.COL_W} h={botH} items={sections.risk} sec={SEC.risk} fontSize={fsByKey.risk} />

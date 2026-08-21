@@ -1,4 +1,5 @@
 import { sanitizeDecimalInput } from "../../lib/format";
+import { IconPlusCircle } from "../shared/icons";
 
 /**
  * Takima ozgu ek gostergeler (orn. RPA'da "FTE Hedef", "Hedef Süreç Sayısı").
@@ -45,8 +46,9 @@ export default function CustomKpiEditor({ kpis, onAdd, onUpdate, onRemove, hasFt
           </div>
         </div>
       ))}
-      <button type="button" className="addbar" onClick={onAdd}>
-        + Gösterge ekle
+      <button type="button" className="premium-add-btn" onClick={onAdd} style={{ marginTop: 4 }}>
+        <IconPlusCircle className="add-btn-icon" />
+        Gösterge ekle
       </button>
     </div>
   );

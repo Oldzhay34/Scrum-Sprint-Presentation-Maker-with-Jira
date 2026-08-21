@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { parseDashboardExcel } from "../lib/excelParsers";
-import { num, autoRange } from "../lib/format";
+import { num, autoRange, nfmt1 } from "../lib/format";
 import { hasFteTracking } from "../lib/teamTypes";
 
 const DEFAULT_META = { team: "", dateRange: "01 Haziran – 31 Aralık 2026", reportDate: "", reportObj: null };
@@ -15,6 +15,14 @@ export function useDashboardData(dTeam, setDTeam, dSprint, setDSprint, teamType)
   const [persons, setPersons] = useState([]);
   const [kpis, setKpis] = useState(null);
   const [meta, setMeta] = useState(DEFAULT_META);
+  // "İş_Listesi" sayfasindaki "FTE" sutunu baska hicbir hesaplamada kullanilmiyor -
+  // toplamini burada tutup dashData.customKpis uzerinden ek bir kart olarak gosteriyoruz.
+  // SADECE RPA'da (bkz. asagidaki hasFte kontrolu) - diger takim tiplerinin
+  // Excel'inde bu sutun zaten olmuyor ama teamType degismeden Excel yeniden
+  // yuklenirse eski totalFte deger yanlislikla baska bir takimda kalmasin diye
+  // ayrica hasFte ile de kapatiliyor (bkz. kullanici bildirimi, 2026-08-17:
+  // "bu sadece RPA takımında olacak diğer takımlarda olmasın").
+  const [totalFte, setTotalFte] = useState(null);
 
   const [dKapanan, setDKapanan] = useState("");
   const [dEklenen, setDEklenen] = useState("");
@@ -36,6 +44,7 @@ export function useDashboardData(dTeam, setDTeam, dSprint, setDSprint, teamType)
         setPersons(parsed.persons);
         setKpis(parsed.kpis);
         setMeta(parsed.meta);
+        setTotalFte(parsed.totalFte);
         // Her yeni Excel yuklendiginde ekip adi da o dosyadan gelenle
         // guncellensin - "sadece bossa doldur" mantigi, alan zaten dolu
         // (varsayilan) oldugu icin hicbir zaman tetiklenmiyordu.
@@ -83,7 +92,14 @@ export function useDashboardData(dTeam, setDTeam, dSprint, setDSprint, teamType)
     const tamamlanan = mappedPersons.reduce((s, p) => s + p.tamamlanan, 0);
     const acik = toplam - tamamlanan;
     const kapasite = mappedPersons.reduce((s, p) => s + p.kapasite, 0);
-    const kpisOut = { toplam, tamamlanan, acik, kapasite, doluluk: k0.doluluk, acikFazla: kapasite - acik, durum: k0.durum };
+    // Kapasite Farkı: Excel'in Rapor sayfasinda ARTIK hazir bir alan var
+    // (Rapor!B32 = "Bakım Hariç Kalan Kapasite" − "Kalan Efor") - varsa
+    // dogrudan o kullanilir ki PO'nun Excel'de gordugu rakamla birebir aynisi
+    // gorunsun. Eski sablonlarda alan yoksa, AYNI formul kisi satirlarindaki
+    // "Bakım Hariç Kalan Kapasite" (p.kapasite - bkz. excelParsers, Kapasite
+    // sayfasindaki K kolonu) uzerinden hesaplanir.
+    const acikFazla = k0.kapasiteFarki != null ? k0.kapasiteFarki : kapasite - acik;
+    const kpisOut = { toplam, tamamlanan, acik, kapasite, doluluk: k0.doluluk, acikFazla, durum: k0.durum };
 
     let delta = null;
     if (loaded) {
@@ -95,6 +111,14 @@ export function useDashboardData(dTeam, setDTeam, dSprint, setDSprint, teamType)
         range: autoRange(meta.reportObj),
       };
     }
+    // "Toplam FTE" sadece RPA'da (hasFteTracking) gosterilir - baska takim
+    // tipinde Excel'de bu sutun zaten olmayacagi icin totalFte null gelir,
+    // ama teamType degismeden ayni oturumda onceki (RPA) Excel'den kalma bir
+    // deger varsa hasFte kontrolu bunu ekstra guvenceye alir.
+    const customKpis = hasFteTracking(teamType) && totalFte != null
+      ? [{ label: "Toplam FTE", value: nfmt1(totalFte), unit: "İş kalemlerinden (Excel)" }]
+      : [];
+
     return {
       team,
       sprintNo: dSprint,
@@ -104,8 +128,9 @@ export function useDashboardData(dTeam, setDTeam, dSprint, setDSprint, teamType)
       persons: mappedPersons,
       delta,
       deltaRange: delta ? delta.range : "",
+      customKpis,
     };
-  }, [dTeam, dSprint, dKapanan, dEklenen, dFte, dNet, persons, kpis, meta, loaded]);
+  }, [dTeam, dSprint, dKapanan, dEklenen, dFte, dNet, persons, kpis, meta, loaded, totalFte, teamType]);
 
   // Ekip adi (dTeam) her degistiginde bu mesaj da guncellensin - Excel'den okunan
   // ismi donup kalmasin, kapak sayfasindaki gibi guncel degeri yansitsin.
@@ -117,11 +142,19 @@ export function useDashboardData(dTeam, setDTeam, dSprint, setDSprint, teamType)
     );
   }, [loaded, dTeam, meta, persons.length]);
 
+  // Excel'in "Rapor Tarihi" degeri ISO (YYYY-MM-DD) olarak - izin gunlerinin
+  // SADECE bu tarihten sonrasi kapasiteden dusulsun diye LeaveDaysField'a
+  // pencere alt siniri olarak gecilir (bkz. lib/leaveDays.js
+  // sumFractionsInWindow, kullanici bildirimi 2026-08-20).
+  const reportDateIso = meta.reportObj instanceof Date && !isNaN(meta.reportObj)
+    ? meta.reportObj.toISOString().slice(0, 10)
+    : null;
+
   return {
     loaded, persons, loading, error, info,
     dTeam, setDTeam, dSprint, setDSprint,
     dKapanan, setDKapanan, dEklenen, setDEklenen, dFte, setDFte, dNet, setDNet,
-    loadFile, updatePerson, dashData,
+    loadFile, updatePerson, dashData, reportDateIso,
     hasFte: hasFteTracking(teamType),
   };
 }

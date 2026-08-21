@@ -24,14 +24,14 @@ import java.util.Map;
  * "senkronizasyon" eylemi tanim geregi HER ZAMAN Jira'dan TAZE veri cekmeli -
  * cache'lenirse ayni takim icin art arda tetiklenen bir sync, Jira'dan degil
  * eski sonuctan servis edilir ki bu "Jira'dan Çek" butonunun butun amacina
- * aykiri olurdu. Ayrica gercekte bir CIDDI HATAYA da yol acmisti: L1 (Caffeine,
- * JVM-ici) her backend restart'inda sifirlaniyor ama L2 (Redis) container'lar
- * arasi kalici - restart sonrasi L1 miss + L2 hit olunca, TwoLevelCache'in
- * Redis'ten JSON'dan geri okudugu List<JiraIssueSnapshot>, generic/record
- * tipini dogru geri kuramayip List<LinkedHashMap> olarak donuyor, bu da
- * JiraSyncRequestConsumer'da ClassCastException'a ve mesajin RabbitMQ DLQ'ya
- * dusup senkronizasyonun sessizce hic gerceklesmemesine yol aciyordu (bkz.
- * kullanici bildirimi: "kuyruğa alındı diyor ama veri akışı gerçekleşmiyor").
+ * aykiri olurdu. Ayrica o donemde CIDDI BIR HATAYA da yol acmisti: cache o
+ * zaman iki katmanliydi (Caffeine L1 + Redis L2) ve restart sonrasi L1 miss +
+ * L2 hit olunca Redis.ten JSON olarak geri okunan List<JiraIssueSnapshot>,
+ * record tipini kuramayip List<LinkedHashMap> donuyordu - senkronizasyon
+ * ClassCastException ile sessizce hic gerceklesmiyordu (bkz. kullanici
+ * bildirimi: "kuyruğa alındı diyor ama veri akışı gerçekleşmiyor"). Redis o
+ * gunden beri kaldirildi (bkz. JvmCacheManager), ama bu metodun
+ * cache.lenmeme gerekcesi yukaridaki BIRINCI sebep yuzunden aynen gecerli.
  * Discovery uc noktalari (JiraDiscoveryService) duz Map donduren, nadiren
  * degisen referans verisi oldugu icin cache'lenmeye devam eder - sorun sadece
  * ozel record tipi tasiyan bu metoda ozgudur.
@@ -60,7 +60,22 @@ public class JiraRestClientAdapter implements JiraGatewayPort {
             "created", "updated", "resolutiondate", "labels", "subtasks", "parent",
             JiraEstimationFieldMapper.EFFORT_MINUTES_FIELD_ID,
             JiraEstimationFieldMapper.STORY_POINTS_PRIMARY_FIELD_ID,
-            JiraEstimationFieldMapper.STORY_POINTS_FALLBACK_FIELD_ID);
+            JiraEstimationFieldMapper.STORY_POINTS_FALLBACK_FIELD_ID,
+            // Icerik Slayti'nin "Jira'dan Cek" ile otomatik dolmasi icin (bkz.
+            // JiraSyncProcessor, kullanici bildirimi 2026-08-17): Flagged
+            // (customfield_10021) -> Riskler kutusu, Sektör (customfield_10498)
+            // -> madde etiketi. Jira field discovery ile dogrulandi (schema.type):
+            // Flagged=array/option (multicheckboxes), Sektör=option (select).
+            "customfield_10021", "customfield_10498",
+            // "Sprint" alani (Jira Software'in "gh-sprint" custom field tipi) -
+            // HEDEFLER cubugunun guncel sprint'e ozgu sayilmasi icin (bkz.
+            // JiraSyncProcessor.extractActiveSprint, kullanici bildirimi
+            // 2026-08-17). customfield_10020, Jira Cloud'da scrum board'lar icin
+            // bu alanin standart/varsayilan id'sidir (site kurulumunda otomatik
+            // olusturulur); instance'da farkliysa GET /api/jira-discovery/fields
+            // (schema.custom="com.pyxis.greenhopper.jira:gh-sprint") ile dogrulanip
+            // burada guncellenmelidir.
+            "customfield_10020");
 
     /** Yalnizca RPA icin: Jira'da bu label'i tasiyan isler, kisinin kendi (sirkete dahil olmayan) projesi oldugu icin kapsam disi. */
     private static final String RPA_OUT_OF_SCOPE_LABEL = "rpa";
@@ -136,7 +151,7 @@ public class JiraRestClientAdapter implements JiraGatewayPort {
      * degisiklik etkisizdir.
      *
      * Bu yuzden artik TUM projelerde alt gorevler BILEREK DAHIL edilir; eski
-     * "4 kat sisme" sorunu, JiraSyncRequestConsumer'daki "alt gorevi olan
+     * "4 kat sisme" sorunu, JiraSyncProcessor'daki "alt gorevi olan
      * parent'in kendi eforunu 0 say" kuraliyla (cift sayimi onler, artik tum
      * projeler icin gecerli) ve is kalemi SAYISININ artik gercegi yansitmasiyla
      * (alt gorevler de gercek is kalemleridir) kabul edilebilir hale geldi.
@@ -159,6 +174,92 @@ public class JiraRestClientAdapter implements JiraGatewayPort {
                     + ") OR labels IS EMPTY) ORDER BY updated DESC";
         }
         return "project = " + query.jiraProjectKey() + " ORDER BY updated DESC";
+    }
+
+    /**
+     * DA/DSYS/YZ gibi takimlarda Sektor (customfield_10498) Gorev/Alt Gorev
+     * seviyesinde bos, sadece bagli Epic'te dolu (bkz. referans "Jira
+     * Dashboard" projesinin jiraClient.js#resolveSectorFromEpic ile ayni
+     * desen) - JiraSyncProcessor bu metodla o Epic'lerin kendi sektor
+     * degerini tek seferde toplu getirir. 100'luk gruplar halinde sorgulanir
+     * (Jira'nin "key in (...)" JQL ifadesi cok uzun bir liste icin pratik
+     * olmayabilir - referans projeyle ayni chunk boyutu).
+     */
+    @Override
+    @SuppressWarnings("unchecked")
+    public Map<String, String> fetchSectorByIssueKeys(List<String> issueKeys) {
+        Map<String, String> result = new LinkedHashMap<>();
+        List<String> keys = issueKeys.stream().distinct().toList();
+        for (int i = 0; i < keys.size(); i += PAGE_SIZE) {
+            List<String> chunk = keys.subList(i, Math.min(i + PAGE_SIZE, keys.size()));
+            Map<String, Object> body = new LinkedHashMap<>();
+            body.put("jql", "key in (" + String.join(",", chunk) + ")");
+            body.put("fields", List.of("customfield_10498"));
+            body.put("maxResults", chunk.size());
+
+            Map<String, Object> response = jiraRestClient.post()
+                    .uri("/rest/api/3/search/jql")
+                    .body(body)
+                    .retrieve()
+                    .body(Map.class);
+            if (response == null) {
+                continue;
+            }
+            List<Map<String, Object>> issues = (List<Map<String, Object>>) response.getOrDefault("issues", List.of());
+            for (Map<String, Object> issue : issues) {
+                String key = String.valueOf(issue.get("key"));
+                Map<String, Object> fields = (Map<String, Object>) issue.getOrDefault("fields", Map.of());
+                Object sectorField = fields.get("customfield_10498");
+                if (sectorField instanceof Map<?, ?> option) {
+                    Object value = option.get("value");
+                    if (value != null) {
+                        result.put(key, String.valueOf(value));
+                    }
+                }
+            }
+        }
+        return result;
+    }
+
+    /**
+     * fetchSectorByIssueKeys ile AYNI "key in (...)" chunk deseni - tek fark
+     * cekilen alan (labels, sabit bir dizi - option nesnesi degil) ve birden
+     * fazla degerin virgulle birlestirilmesi. bkz. JiraGatewayPort'taki notu.
+     */
+    @Override
+    @SuppressWarnings("unchecked")
+    public Map<String, String> fetchLabelsByIssueKeys(List<String> issueKeys) {
+        Map<String, String> result = new LinkedHashMap<>();
+        List<String> keys = issueKeys.stream().distinct().toList();
+        for (int i = 0; i < keys.size(); i += PAGE_SIZE) {
+            List<String> chunk = keys.subList(i, Math.min(i + PAGE_SIZE, keys.size()));
+            Map<String, Object> body = new LinkedHashMap<>();
+            body.put("jql", "key in (" + String.join(",", chunk) + ")");
+            body.put("fields", List.of("labels"));
+            body.put("maxResults", chunk.size());
+
+            Map<String, Object> response = jiraRestClient.post()
+                    .uri("/rest/api/3/search/jql")
+                    .body(body)
+                    .retrieve()
+                    .body(Map.class);
+            if (response == null) {
+                continue;
+            }
+            List<Map<String, Object>> issues = (List<Map<String, Object>>) response.getOrDefault("issues", List.of());
+            for (Map<String, Object> issue : issues) {
+                String key = String.valueOf(issue.get("key"));
+                Map<String, Object> fields = (Map<String, Object>) issue.getOrDefault("fields", Map.of());
+                Object labelsField = fields.get("labels");
+                if (labelsField instanceof List<?> labels && !labels.isEmpty()) {
+                    String joined = labels.stream().map(String::valueOf).reduce((a, b) -> a + "," + b).orElse(null);
+                    if (joined != null) {
+                        result.put(key, joined);
+                    }
+                }
+            }
+        }
+        return result;
     }
 
     @SuppressWarnings("unchecked")

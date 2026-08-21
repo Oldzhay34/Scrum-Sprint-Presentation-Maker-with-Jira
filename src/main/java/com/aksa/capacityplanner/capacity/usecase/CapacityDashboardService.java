@@ -47,7 +47,20 @@ public class CapacityDashboardService implements CapacityDashboardUseCase {
     @Cacheable(value = "capacity-dashboard", key = "#query")
     public CapacityDashboard getDashboard(DashboardQuery query) {
         Team team = teamUseCase.getTeam(query.teamId());
-        List<TeamMember> members = teamMemberUseCase.listByTeam(query.teamId());
+        // Bu endpoint SADECE "Jira'dan" sekmesi tarafindan cagirilir (bkz.
+        // useJiraDashboard.js) - Excel/Manuel modlari kendi ayri yollarindan
+        // besleniyor (Excel istemci tarafinda parse edilir, Manuel stateless
+        // bir uca gider), ikisi de bu DB tablosuna hic dokunmuyor. Buradaki
+        // team_members tablosu ise HEM Jira senkronundan (jiraAccountId dolu)
+        // HEM de baska bir yoldan (orn. Excel yuklerken izin gunu takibi icin
+        // otomatik olusturulan kayitlar, bkz. autoApplyCompanyHolidays.js)
+        // doluyor. Jira gorunumu SADECE gercekten Jira'dan gelen kisileri
+        // gostermeli - kullanici teyidi 2026-08-20: "jiradan çekildiğinde bu
+        // excelden gelen isimler gelmesin" (ekranda Jira'dan gelen tek gercek
+        // kisinin yaninda sifir veriyle bir sürü "hayalet" kisi gorunuyordu).
+        List<TeamMember> members = teamMemberUseCase.listByTeam(query.teamId()).stream()
+                .filter(m -> m.getJiraAccountId() != null)
+                .toList();
         List<WorkItem> workItems = workItemRepository.findByTeamId(query.teamId());
         int year = query.periodEnd().getYear();
 

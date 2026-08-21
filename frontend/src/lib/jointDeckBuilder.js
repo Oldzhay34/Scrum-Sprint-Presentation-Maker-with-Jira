@@ -101,7 +101,10 @@ export function buildJointDeck(teamsPayload, assets, theme = "light", cornerMesh
   addJointCoverSlide(pptx, teamsPayload, assets, mesh);
   teamsPayload.forEach((t) => {
     addContentSlide(pptx, t.sprintData, assets, theme, mesh);
-    if (t.dashData && t.dashData.kpis) addDashboardSlide(pptx, t.dashData, assets, theme, mesh);
+    // Kapasite verisi olmayan takimlarda da slayt eklenir (bos iskeletle,
+    // bkz. addDashboardSlide) - eskiden o takimin kapasite sayfasi ortak
+    // sunumdan sessizce dusuyordu.
+    addDashboardSlide(pptx, t.dashData, assets, theme, mesh);
   });
   return pptx;
 }

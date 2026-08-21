@@ -11,7 +11,7 @@ import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.*;
 
 /**
- * Tam kara-kutu (blackbox) sistem testi: uygulamayi gercek Postgres/Redis/RabbitMQ
+ * Tam kara-kutu (blackbox) sistem testi: uygulamayi gercek Postgres
  * container'lariyla tamamen ayaga kaldirir ve sadece HTTP sinirindan, harici bir
  * istemci gibi davranarak dogrular. Ic yapiyi (hangi sinif hangi katmanda) bilmez.
  */

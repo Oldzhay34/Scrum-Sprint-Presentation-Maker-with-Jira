@@ -5,6 +5,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Jira entegrasyonu henuz aktif degilken (jira.enabled=false, varsayilan) kullanilan stub adaptor.
@@ -20,5 +21,15 @@ public class NoOpJiraGatewayAdapter implements JiraGatewayPort {
     @Override
     public List<JiraIssueSnapshot> fetchIssues(JiraFetchQuery query) {
         return List.of();
+    }
+
+    @Override
+    public Map<String, String> fetchSectorByIssueKeys(List<String> issueKeys) {
+        return Map.of();
+    }
+
+    @Override
+    public Map<String, String> fetchLabelsByIssueKeys(List<String> issueKeys) {
+        return Map.of();
     }
 }

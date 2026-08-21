@@ -19,7 +19,10 @@ export function buildTeamAllSprintsDeck(sprints, assets, theme = "light", corner
   sprints.forEach(({ sprintData, dashData }) => {
     addCoverSlide(pptx, sprintData, assets, mesh);
     addContentSlide(pptx, sprintData, assets, theme, mesh);
-    if (dashData && dashData.kpis) addDashboardSlide(pptx, dashData, assets, theme, mesh);
+    // Kapasite verisi olmayan sprintlerde de slayt eklenir (bos iskeletle,
+    // bkz. addDashboardSlide) - eskiden sessizce atlaniyordu ve sunumda
+    // sayfa hic gorunmuyordu.
+    addDashboardSlide(pptx, dashData, assets, theme, mesh);
   });
   return pptx;
 }

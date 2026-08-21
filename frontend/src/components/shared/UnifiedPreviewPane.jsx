@@ -1,11 +1,14 @@
 import SlideCanvas from "../sprint/SlideCanvas";
 import DashboardSlideCanvas from "../dashboard/DashboardSlideCanvas";
+import VelocityBurndownSlideCanvas from "../sprint/VelocityBurndownSlideCanvas";
+import SourceTabs from "./SourceTabs";
 import { useCanvasFit } from "../../hooks/useCanvasFit";
 
 const TABS = [
   { key: "cover", label: "Kapak" },
   { key: "content", label: "İçerik Slaytı" },
   { key: "dashboard", label: "Kapasite Dashboard" },
+  { key: "velocity", label: "Velocity & Burndown" },
 ];
 
 /**
@@ -13,7 +16,11 @@ const TABS = [
  * birlestirir - kullanici hangi adimda (sprint parametreleri / dashboard
  * parametreleri) olursa olsun uc goruntuyu de sekmelerle gorebilir.
  */
-export default function UnifiedPreviewPane({ sprintData, dashData, assets, activeTab, onTabChange, onZoom }) {
+export default function UnifiedPreviewPane({
+  sprintData, dashData, assets, activeTab, onTabChange, onZoom, onEdit,
+  showDataSource, dataSource, onDataSourceChange,
+  burndownUrl, velocityUrl, burndownZoomX, burndownZoomY, velocityZoomX, velocityZoomY,
+}) {
   const { boxRef, scale } = useCanvasFit();
   const idx = Math.max(0, TABS.findIndex((t) => t.key === activeTab));
   const goTo = (delta) => onTabChange(TABS[(idx + delta + TABS.length) % TABS.length].key);
@@ -22,6 +29,7 @@ export default function UnifiedPreviewPane({ sprintData, dashData, assets, activ
     <section className="previewwrap">
       <p className="panelttl">Canlı önizleme</p>
       <div className="stage">
+        {showDataSource && <SourceTabs source={dataSource} onSourceChange={onDataSourceChange} />}
         <div className="tabs carousel-nav">
           <button type="button" className="carousel-arrow" aria-label="Önceki slayt" onClick={() => goTo(-1)}>
             ‹
@@ -47,16 +55,39 @@ export default function UnifiedPreviewPane({ sprintData, dashData, assets, activ
           <button type="button" className="tab zoomtrig" title="Slaydı büyük önizlemede aç" onClick={onZoom}>
             ⤢ Preview
           </button>
+          {activeTab === "dashboard" && onEdit && (
+            <button
+              type="button"
+              className="tab zoomtrig"
+              title="Kapasite Dashboard verilerini düzenle - sadece bu sunumun versiyonuna kaydedilir"
+              onClick={onEdit}
+            >
+              ✎ Düzenle
+            </button>
+          )}
         </div>
         <div className="slidebox" ref={boxRef}>
           {activeTab === "dashboard" ? (
             <DashboardSlideCanvas dd={dashData || {}} assets={assets} scale={scale} />
+          ) : activeTab === "velocity" ? (
+            <VelocityBurndownSlideCanvas
+              data={sprintData}
+              burndownUrl={burndownUrl}
+              velocityUrl={velocityUrl}
+              burndownZoomX={burndownZoomX}
+              burndownZoomY={burndownZoomY}
+              velocityZoomX={velocityZoomX}
+              velocityZoomY={velocityZoomY}
+              assets={assets}
+              scale={scale}
+            />
           ) : (
             <SlideCanvas data={sprintData} tab={activeTab} assets={assets} scale={scale} />
           )}
         </div>
         <div className="note">
-          Kapak, içerik slaytı ve kapasite dashboard'u arasında oklarla/noktalarla geçiş yapabilirsin — hepsi aynı anda güncel tutulur.
+          Kapak, içerik slaytı, kapasite dashboard'u ve Velocity &amp; Burndown arasında oklarla/noktalarla geçiş
+          yapabilirsin — hepsi aynı anda güncel tutulur.
         </div>
       </div>
     </section>

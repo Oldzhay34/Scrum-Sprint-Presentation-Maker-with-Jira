@@ -33,7 +33,8 @@ public class WorkItemController {
     @PostMapping
     public WorkItemDto create(@PathVariable Long teamId, @Valid @RequestBody WorkItemRequest request) {
         WorkItem item = new WorkItem(null, teamId, request.teamMemberId(), request.title(), request.jiraIssueKey(),
-                request.plannedEffortDays(), request.statusCode(), WorkItemSource.MANUAL, request.addedDate(), null);
+                request.plannedEffortDays(), request.statusCode(), WorkItemSource.MANUAL, request.addedDate(), null,
+                false, null, null, null, false, null, null, false, null, null, null, null);
         return toDto(capacityFacade.addWorkItem(item));
     }
 
@@ -41,7 +42,8 @@ public class WorkItemController {
     public WorkItemDto update(@PathVariable Long teamId, @PathVariable Long id,
                                @Valid @RequestBody WorkItemRequest request) {
         WorkItem item = new WorkItem(id, teamId, request.teamMemberId(), request.title(), request.jiraIssueKey(),
-                request.plannedEffortDays(), request.statusCode(), WorkItemSource.MANUAL, request.addedDate(), null);
+                request.plannedEffortDays(), request.statusCode(), WorkItemSource.MANUAL, request.addedDate(), null,
+                false, null, null, null, false, null, null, false, null, null, null, null);
         return toDto(capacityFacade.updateWorkItem(id, item));
     }
 
@@ -68,6 +70,9 @@ public class WorkItemController {
     private WorkItemDto toDto(WorkItem item) {
         return new WorkItemDto(item.getId(), item.getTeamId(), item.getTeamMemberId(), item.getTitle(),
                 item.getJiraIssueKey(), item.getPlannedEffortDays(), item.getStatusCode(), item.getSource(),
-                item.getAddedDate(), item.getClosedDate());
+                item.getAddedDate(), item.getClosedDate(), item.isFlagged(), item.getSector(), item.getPriority(),
+                item.getSprintName(), item.isActiveSprint(),
+                item.isPreviousSprint(), item.getIssueType(), item.getParentKey(), item.getParentTitle(),
+                item.getParentLabels());
     }
 }

@@ -9,7 +9,7 @@ package com.aksa.capacityplanner.jiraintegration.domain;
  * hesabi) ile calisirken, token'in gormedigi bir takim/proje/board icin
  * istek atildiginda Jira 403 doner. Bu durum genel bir RestClientException
  * yerine kendi tipiyle yakalanabilsin diye ayri bir exception olarak
- * modellenir - cagiran taraf (orn. JiraSyncRequestConsumer) bunu "gecici
+ * modellenir - cagiran taraf (orn. JiraSyncProcessor) bunu "gecici
  * hata, tekrar dene" durumundan (5xx/429) ayirt edip farkli ele alabilir
  * (orn. tekrar denemeden direkt kullaniciya "bu takim icin yetkiniz yok"
  * mesaji gosterebilir).

@@ -22,6 +22,17 @@ public class CapacityDashboard {
     private LocalDate periodEnd;
     private LocalDate reportDate;
 
+    /**
+     * Jira'daki GUNCEL aktif sprintin adi/tarihleri (bkz. WorkItem.sprintName,
+     * activeSprint=true olan is kalemlerinden turetilir) - kapak sayfasindaki
+     * "Sprint no"/"Tarih araligi" alanlarinin otomatik doldurulmasi icin (bkz.
+     * kullanici bildirimi 2026-08-18). Hicbir is kalemi aktif sprintte degilse
+     * (veya takim Jira'dan senkronize edilmediyse) hepsi null kalir.
+     */
+    private String activeSprintName;
+    private LocalDate activeSprintStartDate;
+    private LocalDate activeSprintEndDate;
+
     // 1-3
     private BigDecimal totalPlannedEffort;
     private BigDecimal completedEffort;

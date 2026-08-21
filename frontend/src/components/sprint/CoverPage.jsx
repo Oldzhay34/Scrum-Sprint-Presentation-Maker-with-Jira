@@ -33,12 +33,14 @@ export default function CoverPage({
   range,
   setRange,
   cover,
+  coverBackground,
   canEdit = true,
   timerMinutes,
   setTimerMinutes,
   readOnlyView = null,
 }) {
   const fileInputRef = useRef(null);
+  const bgFileInputRef = useRef(null);
   const [sprintAlert, setSprintAlert] = useState(false);
 
   const handleSprintBlur = () => {
@@ -148,6 +150,79 @@ export default function CoverPage({
               Değiştirmezseniz varsayılan kapak görseli kullanılır. Seçtiğiniz görsel bu oturuma özeldir.
             </div>
           </div>
+
+          {coverBackground && (
+            <>
+              <p className="panelttl" style={{ marginTop: 14 }}>Sunum arka planı</p>
+              <div className="sec cover-image-sec">
+                <div style={{ display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap" }}>
+                  {coverBackground.bg ? (
+                    // Yuklenen arka plani kaldirmak icin gorselin KENDI kosesinde
+                    // bir "×" - PO notu 2026-08-19: "x butonu bulunmuyor kaldırmak
+                    // istediğimde. Sadece üzerine görsel ekleyebiliyorum".
+                    <span className="cover-preview-wrap">
+                      <img
+                        src={coverBackground.bg}
+                        alt="Sunum arka planı önizleme"
+                        className="cover-preview-img"
+                      />
+                      <button
+                        type="button"
+                        className="cover-preview-remove"
+                        title="Arka planı kaldır"
+                        aria-label="Arka planı kaldır"
+                        onClick={coverBackground.reset}
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ) : (
+                    <div className="cover-bg-placeholder" onClick={() => bgFileInputRef.current?.click()}>
+                      Arka plan yok
+                    </div>
+                  )}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    <input
+                      ref={bgFileInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        if (e.target.files[0]) coverBackground.setFromFile(e.target.files[0]);
+                        e.target.value = "";
+                      }}
+                    />
+                    <span style={{ display: "flex", gap: 10 }}>
+                      <Button variant="soft" loading={coverBackground.uploading} loadingLabel="Yükleniyor…" onClick={() => bgFileInputRef.current?.click()}>
+                        <IconUpload className="navbar-icon" />
+                        {coverBackground.bg ? "Arka Planı Değiştir" : "Arka Plan Yükle"}
+                      </Button>
+                      {coverBackground.bg && (
+                        <Button variant="ghost" onClick={coverBackground.reset}>
+                          Kaldır
+                        </Button>
+                      )}
+                      {/* Tek tusla ANA SABLONA donus - PO notu 2026-08-19:
+                          "Sıfırla butonu da olabilir ana templete geçebilmek
+                          için". Hem kapak gorselini hem sunum arka planini
+                          varsayilana alir. */}
+                      {(coverBackground.bg || cover.isCustom) && (
+                        <Button variant="ghost" onClick={() => { coverBackground.reset(); cover.reset(); }}>
+                          Sıfırla (ana şablon)
+                        </Button>
+                      )}
+                    </span>
+                    {coverBackground.uploadError && <div className="hint" style={{ color: "#B45309" }}>{coverBackground.uploadError}</div>}
+                  </div>
+                </div>
+                <div className="hint" style={{ marginTop: 10 }}>
+                  Yüklediğiniz görsel <b>tüm slaytların</b> (kapak, içerik ve kapasite dashboard) zemini olur —
+                  hem canlı önizlemede hem PPTX çıktısında. Yüklenmezse varsayılan şablon zemini kullanılır. Görselin köşesindeki <b>×</b> ile
+                  kaldırabilir, <b>Sıfırla</b> ile kapak görseli dahil ana şablona dönebilirsiniz.
+                </div>
+              </div>
+            </>
+          )}
         </>
       )}
     </section>

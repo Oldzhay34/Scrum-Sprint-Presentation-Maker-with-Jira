@@ -16,7 +16,8 @@ public class CapacityDashboardMapper {
                 dashboard.getRemainingCapacity(), dashboard.getMaintainedOccupancyPercent(), dashboard.getCapacityGap(),
                 dashboard.getPeriodClosedEffort(), dashboard.getNewlyAddedEffort(), dashboard.getNetChange(),
                 dashboard.getOverallRiskLevel(),
-                dashboard.getMemberMetrics().stream().map(this::toDto).toList());
+                dashboard.getMemberMetrics().stream().map(this::toDto).toList(),
+                dashboard.getActiveSprintName(), dashboard.getActiveSprintStartDate(), dashboard.getActiveSprintEndDate());
     }
 
     private MemberCapacityMetricsDto toDto(MemberCapacityMetrics m) {

@@ -2,38 +2,37 @@ package com.aksa.capacityplanner.jiraintegration.adapter;
 
 import com.aksa.capacityplanner.jiraintegration.config.JiraProperties;
 import com.aksa.capacityplanner.jiraintegration.domain.JiraSyncRateLimitedException;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
-import java.time.Duration;
-import java.util.concurrent.TimeUnit;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Redis'te atomik "SET IF NOT EXISTS + TTL" ile takim basina sabit-pencere
- * (fixed-window) rate limit uygular. jira.enabled degerinden BAGIMSIZ her
- * zaman aktiftir - NoOp adaptor devredeyken de bos donse dahi ayni takim icin
- * RabbitMQ'ya art arda mesaj yigilmasini engeller.
+ * Takim basina sabit-pencere (fixed-window) rate limit. jira.enabled
+ * degerinden BAGIMSIZ her zaman aktiftir - NoOp adaptor devredeyken de bos
+ * donse dahi ayni takim icin arka arkaya sync isi yigilmasini engeller.
  *
- * Neden Redis (uygulama-ici bir Map/Guava RateLimiter degil): backend birden
- * fazla replikayla calisabilir (Railway/prod) - limit tek bir JVM'e degil,
- * TUM instance'lar arasinda PAYLASILAN bir sayaca dayanmali. TwoLevelCache'in
- * kullandigi ayni RedisTemplate bean'i (bkz. CacheConfig) burada da kullanilir,
- * ama bu bir "cache" degil - TTL'i dolana kadar KESINLIKLE silinmeyen bir kilit
- * (jira-issues cache'inde yasanan ClassCastException nedeniyle - bkz.
- * JiraRestClientAdapter javadoc'u - burada deger olarak sadece "1" string'i
- * tutulur, karmasik/generic bir tip DEGIL, boylece ayni serialization sorunu
- * tekrar yasanmaz).
+ * ONCEDEN Redis'te atomik "SET IF NOT EXISTS + TTL" ile tutuluyordu; Redis
+ * kaldirildi (bkz. JvmCacheManager javadoc'u). Ayni atomiklik burada
+ * ConcurrentHashMap.compute ile saglaniyor - tek bir kilit altinda "suresi
+ * dolmus mu?" kontrolu ve yeni pencerenin yazilmasi birlikte yapilir, iki
+ * es zamanli istek ayni anda gecemez.
+ *
+ * KISIT: sayac artik TEK JVM'e ait. Backend birden fazla replika ile
+ * calisirsa her replika kendi cooldown'unu tutar ve limit delinir - bu
+ * yuzden backend TEK REPLIKA calismak zorunda (ayni kisit cache icin de
+ * gecerli). Yeniden baslatmada cooldown sifirlanir; bu zararsizdir, en
+ * kotu ihtimalle kullanici bir sync'i erken tekrar tetikleyebilir.
  */
 @Component
 public class JiraSyncRateLimiter {
 
-    private static final String KEY_PREFIX = "jira-sync-cooldown::";
+    /** teamId -> pencerenin bittigi an (System.nanoTime tabanli, saat degisiminden etkilenmez). */
+    private final Map<Long, Long> windowEndNanosByTeamId = new ConcurrentHashMap<>();
 
-    private final RedisTemplate<String, Object> redisTemplate;
     private final JiraProperties jiraProperties;
 
-    public JiraSyncRateLimiter(RedisTemplate<String, Object> redisTemplate, JiraProperties jiraProperties) {
-        this.redisTemplate = redisTemplate;
+    public JiraSyncRateLimiter(JiraProperties jiraProperties) {
         this.jiraProperties = jiraProperties;
     }
 
@@ -42,16 +41,27 @@ public class JiraSyncRateLimiter {
      * JiraSyncRateLimitedException firlatir (kalan saniye ile).
      */
     public void checkAndRecord(Long teamId) {
-        String key = KEY_PREFIX + teamId;
-        Duration cooldown = Duration.ofSeconds(jiraProperties.getSyncCooldownSeconds());
+        long cooldownSeconds = jiraProperties.getSyncCooldownSeconds();
+        long now = System.nanoTime();
+        long cooldownNanos = cooldownSeconds * 1_000_000_000L;
 
-        Boolean acquired = redisTemplate.opsForValue().setIfAbsent(key, "1", cooldown);
-        if (Boolean.TRUE.equals(acquired)) {
+        Long windowEnd = windowEndNanosByTeamId.compute(teamId, (id, existingEnd) -> {
+            if (existingEnd != null && existingEnd - now > 0) {
+                return existingEnd; // pencere hala acik - dokunma, asagida reddedilecek
+            }
+            return now + cooldownNanos; // pencere yok/dolmus - yenisini baslat
+        });
+
+        long remainingNanos = windowEnd - now;
+        boolean acquired = remainingNanos == cooldownNanos;
+        if (acquired) {
             return;
         }
 
-        Long ttl = redisTemplate.getExpire(key, TimeUnit.SECONDS);
-        long retryAfter = (ttl != null && ttl > 0) ? ttl : jiraProperties.getSyncCooldownSeconds();
+        // Redis'in getExpire'i saniyeye YUVARLIYORDU; ayni kullanici deneyimi
+        // icin kalan sure yukari yuvarlanir (0 saniye "hemen tekrar dene"
+        // izlenimi vermesin).
+        long retryAfter = Math.max(1L, (remainingNanos + 999_999_999L) / 1_000_000_000L);
         throw new JiraSyncRateLimitedException(retryAfter);
     }
 }

@@ -145,24 +145,6 @@ export async function updateUserProfile(profile) {
   return requestJson("/api/auth/profile", { method: "PUT", body: JSON.stringify(profile) });
 }
 
-/**
- * Profil ekranindaki "Şifre Değiştir" formunu kaydeder. Backend basarili
- * durumda 204 (govdesiz) doner - requestJson bunu null'a cevirir. Sifre,
- * access token claim'lerini degistirmedigi icin yeni cookie yazilmaz:
- * kullanicinin BU oturumu devam eder, diger cihazlardaki oturumlari ise
- * sunucu tarafinda kapatilir (bkz. backend PasswordService).
- *
- * Hata durumunda backend'in ApiErrorResponse'u (orn. "Mevcut şifreniz
- * hatalı." / şifre kuralı mesajlari) oldugu gibi firlatilir - cagiran taraf
- * mesaji dogrudan gosterebilir.
- */
-export async function changePassword({ currentPassword, newPassword }) {
-  return requestJson("/api/auth/password", {
-    method: "POST",
-    body: JSON.stringify({ currentPassword, newPassword }),
-  });
-}
-
 export async function logout() {
   await fetch(`${API_BASE_URL}/api/auth/logout`, {
     method: "POST",
@@ -319,16 +301,16 @@ export async function fetchAuditLogs(filters = {}) {
 }
 
 /**
- * Kapak gorseli MinIO'ya yuklenir ve erisim URL'i geri doner. Tek kullanimlik
- * bir ozellik oldugu icin bu istek best-effort'tur - cagiran taraf (useCoverImage)
- * hata durumunda kullaniciyi engellemez, gorseli zaten kendi tarafinda (base64)
- * kullanmaya devam eder.
+ * Kapak gorseli/arka plani MinIO'ya yuklenir ve erisim URL'i geri doner. Tek
+ * kullanimlik bir ozellik oldugu icin bu istek best-effort'tur - cagiran taraf
+ * (useCoverImage/useCoverBackground) hata durumunda kullaniciyi engellemez,
+ * gorseli zaten kendi tarafinda (base64) kullanmaya devam eder.
  */
-export async function uploadCoverImage(file) {
+async function uploadAssetImage(path, file) {
   const form = new FormData();
   form.append("file", file);
 
-  const response = await authFetch("/api/assets/cover-image", () => ({
+  const response = await authFetch(path, () => ({
     method: "POST",
     credentials: "include",
     headers: csrfHeaders(),
@@ -346,6 +328,24 @@ export async function uploadCoverImage(file) {
   }
 
   return response.json();
+}
+
+export async function uploadCoverImage(file) {
+  return uploadAssetImage("/api/assets/cover-image", file);
+}
+
+/** Kapak slaydinin tam zemin arka plani - "Kapak Görseli"nin SEFFAF bölgelerinden görünen alt katman (bkz. useCoverBackground). */
+export async function uploadCoverBackground(file) {
+  return uploadAssetImage("/api/assets/cover-background", file);
+}
+
+/** Velocity & Burndown adimindaki ekran goruntuleri (bkz. useVelocityBurndown). */
+export async function uploadBurndownChart(file) {
+  return uploadAssetImage("/api/assets/burndown-chart", file);
+}
+
+export async function uploadVelocityChart(file) {
+  return uploadAssetImage("/api/assets/velocity-chart", file);
 }
 
 /** Bir takımın (persisted) üye listesini döner - izin günü kaydı için gerçek bir team_member_id bulmak/oluşturmak üzere kullanılır. */
@@ -412,8 +412,20 @@ export async function fetchCapacityDashboard(teamId, { reportDate, periodStart, 
 }
 
 /**
- * Jira senkronizasyonunu tetikler (backend RabbitMQ kuyruğuna düşürür,
- * asenkron işlenir - bkz. JiraSyncRequestConsumer). jira.enabled=false ise
+ * Bir takımın DB'de kayıtlı TÜM iş kalemlerini (Jira'dan senkronize edilmiş
+ * veya elle girilmiş) HAM (kişi bazlı toplanmamış, her biri kendi başlık/
+ * status/flagged/sektör/öncelik alanlarıyla) döner - İçerik Slaytı'nın
+ * "Jira'dan Getir" akışı (bkz. useJiraContentSuggestions.js) bunu kullanır.
+ * fetchCapacityDashboard'dan farkı budur: o sadece kişi bazlı TOPLAM sayıları
+ * döner, tek tek iş kalemi başlıklarını taşımaz.
+ */
+export async function fetchWorkItems(teamId) {
+  return requestJson(`/api/teams/${teamId}/work-items`);
+}
+
+/**
+ * Jira senkronizasyonunu tetikler (backend arka planda işler,
+ * bkz. JiraSyncProcessor). jira.enabled=false ise
  * (API anahtarı tanımlı değilse) istek yine kabul edilir ama hiçbir veri
  * gelmez (NoOpJiraGatewayAdapter boş liste döner) - bu durumda kullanıcıya
  * "Jira bağlantısı henüz yapılandırılmadı" gibi bir yanıt DÖNMEZ, backend
@@ -424,4 +436,15 @@ export async function triggerJiraSync(teamId, { jiraProjectKey, jql } = {}) {
     method: "POST",
     body: JSON.stringify({ jiraProjectKey, jql }),
   });
+}
+
+/**
+ * İçerik Slaytı'ndaki "madde ekle" satırının "Sektör (ops.)" dropdown'u için -
+ * her takımın Jira'da GERÇEKTEN kullandığı sektör listesi (her "Jira'dan Çek"
+ * ile JiraSyncProcessor tarafından yeniden hesaplanır, bkz. kullanıcı
+ * bildirimi 2026-08-18: takımlar arasında sektör kümesi farklı). Henüz hiç
+ * senkronize edilmemiş bir takım için boş liste döner.
+ */
+export async function fetchSectorOptions(teamId) {
+  return requestJson(`/api/teams/${teamId}/sector-options`);
 }

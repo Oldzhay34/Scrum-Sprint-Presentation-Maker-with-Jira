@@ -71,6 +71,12 @@ public class TeamController {
         return ResponseEntity.noContent().build();
     }
 
+    /** Icerik Slayti'ndaki "Sektor (ops.)" dropdown'u icin - Jira'dan senkronize edilir, elle eklenemez. */
+    @GetMapping("/{teamId}/sector-options")
+    public List<String> listSectorOptions(@PathVariable Long teamId) {
+        return teamFacade.listSectorOptions(teamId);
+    }
+
     public record CustomFieldRequest(@NotBlank String fieldKey, @NotBlank String label,
                                       com.aksa.capacityplanner.team.domain.CustomFieldType type,
                                       boolean required, int sortOrder) {
@@ -84,7 +90,7 @@ public class TeamController {
     private Team toDomain(TeamRequest request) {
         return new Team(null, request.name(), request.description(),
                 request.maintenanceAllocationPercent(), request.defaultTargetWorkDays(), request.teamType(),
-                request.jiraProjectKey(), request.jiraBoardId());
+                request.jiraProjectKey(), request.jiraBoardId(), false);
     }
 
     private TeamDto toDto(Team team) {

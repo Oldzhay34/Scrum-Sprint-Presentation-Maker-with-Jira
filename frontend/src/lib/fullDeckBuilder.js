@@ -1,16 +1,23 @@
 import PptxGenJS from "pptxgenjs";
 import { addCoverSlide, addContentSlide } from "./sprintDeckBuilder";
 import { addDashboardSlide } from "./dashboardDeckBuilder";
+import { addVelocityBurndownSlide } from "./velocityDeckBuilder";
 import { DEFAULT_CORNER_MESH } from "../assets/cornerMesh";
 
 /**
- * Kapak + icerik slayti + kapasite dashboard'unu TEK bir PPTX icinde uretir -
- * "PPTX İndir" hangi sihirbaz adimindan tetiklenirse tetiklensin ayni birlesik
- * dosya iner. cornerMesh: PPTX indirme popup'inda kullanici kendi sablon
- * gorselini yuklerse buraya gelir (bkz. PptxTemplateModal) - verilmezse
- * varsayilan (Resim1) temasi kullanilir.
+ * Kapak + icerik slayti + kapasite dashboard'u + (varsa) Velocity & Burndown
+ * slaydini TEK bir PPTX icinde uretir - "PPTX İndir" hangi sihirbaz
+ * adimindan tetiklenirse tetiklensin ayni birlesik dosya iner. cornerMesh:
+ * PPTX indirme popup'inda kullanici kendi sablon gorselini yuklerse buraya
+ * gelir (bkz. PptxTemplateModal) - verilmezse varsayilan (Resim1) temasi
+ * kullanilir.
+ *
+ * veloData: { burndownUrl, velocityUrl } - sihirbazin 4. adiminda yuklenen
+ * ekran goruntuleri (bkz. useVelocityBurndown). Ikisi de bossa slayt yine
+ * de "yüklenmedi" notuyla eklenir - kullaniciyi sasirtmasin diye adim var
+ * oldugu surece ciktida da HER ZAMAN karsiligi bulunur.
  */
-export function buildFullDeck(sprintData, dashData, assets, theme = "light", cornerMesh) {
+export async function buildFullDeck(sprintData, dashData, veloData, assets, theme = "light", cornerMesh) {
   // Varsayilani BURADA bir kez cozup her addXSlide cagrisina ACIKCA gecirir -
   // bkz. jointDeckBuilder.buildJointDeck'teki AYNI yorum/gerekce.
   const mesh = cornerMesh || DEFAULT_CORNER_MESH;
@@ -22,5 +29,11 @@ export function buildFullDeck(sprintData, dashData, assets, theme = "light", cor
   addCoverSlide(pptx, sprintData, assets, mesh);
   addContentSlide(pptx, sprintData, assets, theme, mesh);
   addDashboardSlide(pptx, dashData, assets, theme, mesh);
+  // Burndown/Velocity gorselleri PO'nun sectigi zoom oranina gore ONCE
+  // kirpilip (canvas ile, bkz. lib/velocityDeckBuilder.js cropToZoom) SONRA
+  // slayda eklenir - bu adim bir <img> yuklemesi (async) gerektirir, bu
+  // yuzden buildFullDeck de async oldu (bkz. cagiran taraflardaki `await`,
+  // App.jsx handleGenerateFullDeck ve PresentationListPanel.handleDownloadPptx).
+  await addVelocityBurndownSlide(pptx, sprintData, veloData, assets, theme);
   return pptx;
 }

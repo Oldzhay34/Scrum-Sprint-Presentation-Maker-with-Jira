@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { computeStatelessDashboard } from "../lib/apiClient";
 import { riskLevelToLabel } from "../lib/format";
 import { validateDateOrder } from "../lib/dateValidation";
@@ -16,6 +16,16 @@ function defaultPeriod() {
   return { periodStart: `${year}-06-01`, periodEnd: `${year}-12-31`, reportDate: todayIso() };
 }
 
+/**
+ * Statü kataloğu artık SABİT (kullanıcı ekleyip silemez, özel statü yazamaz) -
+ * eskiden StatusEditor ile serbestçe yönetilen bir listeydi, ama bu, her iş
+ * kalemi için "kod/etiket seç + Tamamlandı sayılır işaretle" gibi gereksiz bir
+ * karmaşıklık getiriyordu. Artık iş kalemi satırında tek bir "Tamamlandı"
+ * onay kutusu var (bkz. MemberCard.jsx) - backend'e yine bu iki kod
+ * gönderilir, hesaplama mantığı (CapacityCalculationService.isCompleted)
+ * DEĞİŞMEDİ (bkz. kullanıcı bildirimi, 2026-08-17: "daha basit yapamaz mıyız
+ * ... kullanıcı daha basit seçse").
+ */
 const DEFAULT_STATUSES = [
   { code: "OPEN", label: "Açık", countsAsCompleted: false },
   { code: "DONE", label: "Tamamlandı", countsAsCompleted: true },
@@ -36,7 +46,7 @@ export function useManualDashboard(team, setTeam, sprintNo, setSprintNo, teamTyp
 
   const [members, setMembers] = useState([]);
   const [workItems, setWorkItems] = useState([]);
-  const [statuses, setStatuses] = useState(DEFAULT_STATUSES);
+  const statuses = DEFAULT_STATUSES;
   // Takima ozgu, backend'in genel formulune girmeyen ek gostergeler (orn. RPA'da
   // "FTE Hedef", "Hedef Sürec Sayisi") - tamamen istemci tarafinda, sadece onizlemede
   // ekstra kart olarak gosterilir, hesaplamaya karismaz.
@@ -69,10 +79,6 @@ export function useManualDashboard(team, setTeam, sprintNo, setSprintNo, teamTyp
     setWorkItems([]);
   };
 
-  const addStatus = () => setStatuses((prev) => [...prev, { code: "", label: "", countsAsCompleted: false }]);
-  const updateStatus = (index, patch) => setStatuses((prev) => prev.map((s, i) => (i === index ? { ...s, ...patch } : s)));
-  const removeStatus = (index) => setStatuses((prev) => prev.filter((_, i) => i !== index));
-
   const addCustomKpi = () => setCustomKpis((prev) => [...prev, { label: "", value: "", unit: "" }]);
   const updateCustomKpi = (index, patch) => setCustomKpis((prev) => prev.map((k, i) => (i === index ? { ...k, ...patch } : k)));
   const removeCustomKpi = (index) => setCustomKpis((prev) => prev.filter((_, i) => i !== index));
@@ -86,27 +92,19 @@ export function useManualDashboard(team, setTeam, sprintNo, setSprintNo, teamTyp
     return map;
   }, [workItems]);
 
-  const compute = async () => {
+  /** "En az bir isim var mı / tüm isimler dolu mu / tarih sırası doğru mu" - hem "Hesapla" butonu hem otomatik hesaplama BU kontrolden geçer. */
+  const validationIssue = () => {
     const hasAnyName = members.some((m) => m.fullName.trim());
-    if (members.length === 0 || !hasAnyName) {
-      setAlertTitle("Eksik bilgi");
-      setAlertMessage("En az bir isim girmelisiniz.");
-      return;
+    if (members.length === 0 || !hasAnyName) return { title: "Eksik bilgi", message: "En az bir isim girmelisiniz." };
+    if (members.some((m) => !m.fullName.trim())) {
+      return { title: "Eksik bilgi", message: "İsim alanı boş bırakılamaz. Lütfen tüm ekip üyeleri için isim girin." };
     }
-    const blankNameMember = members.find((m) => !m.fullName.trim());
-    if (blankNameMember) {
-      setAlertTitle("Eksik bilgi");
-      setAlertMessage("İsim alanı boş bırakılamaz. Lütfen tüm ekip üyeleri için isim girin.");
-      return;
-    }
-
     const dateIssue = validateDateOrder({ periodStart: period.periodStart, periodEnd: period.periodEnd, members, workItems });
-    if (dateIssue) {
-      setAlertTitle("Tarih hatası");
-      setAlertMessage(dateIssue);
-      return;
-    }
+    if (dateIssue) return { title: "Tarih hatası", message: dateIssue };
+    return null;
+  };
 
+  const runCompute = async () => {
     setLoading(true);
     setError(null);
     try {
@@ -158,6 +156,52 @@ export function useManualDashboard(team, setTeam, sprintNo, setSprintNo, teamTyp
     }
   };
 
+  /** "Hesapla" butonu - gecersiz/eksik veri varsa ACIKCA uyarir (AlertModal), gecerliyse hemen (debounce beklemeden) hesaplar. */
+  const compute = async () => {
+    const issue = validationIssue();
+    if (issue) {
+      setAlertTitle(issue.title);
+      setAlertMessage(issue.message);
+      return;
+    }
+    // ESKI UYARIYI TEMIZLE. Bu satir yokken su hata olusuyordu (kullanici
+    // bildirimi 2026-08-20: "manuel kişi eklemede bir sıkıntı var hata veriyor
+    // 'En az bir isim girmelisiniz.' diyor zaten bir kişi girdiğim halde"):
+    // "Ekip üyesi ekle"ye basildiginda kart ADI BOS olarak gelir; kullanici
+    // dogal olarak once "Hesapla"ya basiyor, uyari cikiyor ve alertMessage
+    // set ediliyor. Sonra ismi yazip tekrar "Hesapla"ya bastiginda dogrulama
+    // ARTIK GECIYOR ama alertMessage hic temizlenmedigi icin AYNI uyari
+    // ekranda duruyordu - kullaniciya "isim girdim ama hala isim istiyor"
+    // gibi gorunuyordu.
+    setAlertMessage(null);
+    await runCompute();
+  };
+
+  // Otomatik hesaplama: kullanici herhangi bir alani (isim, efor, tarih, oran
+  // vb.) degistirdiginde "Hesapla"ya basmaya GEREK KALMADAN, kisa bir
+  // suskunluktan sonra (debounce - her tus vurusunda degil) Canli Onizleme
+  // kendiliginden guncellenir (bkz. kullanici bildirimi, 2026-08-17: "burada
+  // yapılan değişiklikler hesaplamaya basılmadan auto olsun ... otomatik
+  // dashboardtta dolsun"). Veri HENUZ eksik/gecersizken (isim yok, tarih
+  // hatasi vb.) "Hesapla" butonundaki gibi uyari popup'i GOSTERILMEZ - kullanici
+  // muhtemelen hala yaziyordur, sessizce atlanip bir sonraki degisiklikte
+  // tekrar denenir. "Hesapla" butonu KALDIRILMADI - kullanici isterse ayni anda
+  // (debounce beklemeden) tetikleyebilir, gecersiz veri icin acik uyari da hala
+  // ondan gelir.
+  const AUTO_COMPUTE_DEBOUNCE_MS = 700;
+  useEffect(() => {
+    if (validationIssue()) return;
+    // Eksik bilgi giderilir gidermez (orn. isim yazilir yazilmaz) ekranda
+    // duran eski uyari KENDILIGINDEN kalksin - kullanicinin "Anladım"a basip
+    // sorunun cozuldugunu ayrica dogrulamasi gerekmesin.
+    setAlertMessage((prev) => (prev == null ? prev : null));
+    const timer = setTimeout(() => {
+      runCompute();
+    }, AUTO_COMPUTE_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [team, sprintNo, period, previousSnapshotDate, maintenanceAllocationPercent, members, workItems, customKpis]);
+
   return {
     team, setTeam, sprintNo, setSprintNo,
     period, setPeriod, previousSnapshotDate, setPreviousSnapshotDate,
@@ -165,7 +209,7 @@ export function useManualDashboard(team, setTeam, sprintNo, setSprintNo, teamTyp
     alertMessage, alertTitle, clearAlert: () => setAlertMessage(null),
     members, addMember, updateMember, removeMember,
     workItems, workItemsByMember, addWorkItem, updateWorkItem, removeWorkItem, clearEntries,
-    statuses, addStatus, updateStatus, removeStatus,
+    statuses,
     customKpis, addCustomKpi, updateCustomKpi, removeCustomKpi,
     dashData, loading, error, compute,
     hasFte: hasFteTracking(teamType),
@@ -202,6 +246,10 @@ export function toDashData(dto, team, sprintNo, period, previousSnapshotDate, cu
       tamamlanan: m.completedEffort,
       acik: m.remainingEffort,
       kapasite: m.rawRemainingCapacity,
+      // "Bakim Haric Kalan Kapasite" - Kapasite Farki formulunun (tamamlanan -
+      // bakim haric kapasite) ikinci terimi; Duzenle ekrani bunu satirlardan
+      // yeniden hesaplayabilsin diye kisi nesnesine de tasinir.
+      bakimliKapasite: m.maintainedCapacity,
       doluluk: (m.occupancyPercent || 0) / 100,
       durum: riskLevelToLabel(m.riskLevel),
       bakimOrani: m.maintenanceAllocationPercent,

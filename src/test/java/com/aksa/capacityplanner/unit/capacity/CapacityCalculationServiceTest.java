@@ -61,6 +61,26 @@ class CapacityCalculationServiceTest {
     }
 
     @Test
+    void capacityGap_isMaintenanceExcludedCapacityMinusRemainingEffort() {
+        // Kapasite Farki = Bakim Haric Kalan Kapasite - Kalan Efor.
+        // PO Excel'indeki hucre formulunun (Rapor!B32 = B26 - B22) birebir karsiligi;
+        // ornek dosyada 355,2 - 580,5 = -225,3.
+        TeamMember member = member(1L, LocalDate.of(2026, 1, 1));
+        WorkItem open = workItem(1L, member.getId(), new BigDecimal("100"), "OPEN", null);
+        WorkItem done = workItem(2L, member.getId(), new BigDecimal("40"), "DONE", LocalDate.of(2026, 6, 10));
+
+        CapacityDashboard dashboard = service.calculate(new CapacityCalculationInput(
+                1L, PERIOD_START, PERIOD_END, LocalDate.of(2026, 6, 15), null,
+                new BigDecimal("0.20"), List.of(open, done), List.of(member), statuses,
+                Map.of(), Map.of(), Set.of(), Set.of()));
+
+        BigDecimal bakimHaricKapasite = dashboard.getMemberMetrics().get(0).getMaintainedCapacity();
+        assertThat(dashboard.getRemainingEffort()).isEqualByComparingTo("100");
+        assertThat(dashboard.getCapacityGap())
+                .isEqualByComparingTo(bakimHaricKapasite.subtract(new BigDecimal("100")));
+    }
+
+    @Test
     void maintenanceAllocation_reducesUsableCapacity() {
         TeamMember member = member(1L, LocalDate.of(2026, 1, 1));
         WorkItem item = workItem(1L, member.getId(), new BigDecimal("10"), "OPEN", null);
@@ -129,7 +149,8 @@ class CapacityCalculationServiceTest {
         TeamMember member = member(1L, LocalDate.of(2026, 1, 1));
         WorkItem closedRecently = workItem(1L, member.getId(), new BigDecimal("8"), "DONE", LocalDate.of(2026, 6, 15));
         WorkItem addedRecently = new WorkItem(2L, 1L, member.getId(), "Yeni is", null,
-                new BigDecimal("6"), "OPEN", WorkItemSource.MANUAL, LocalDate.of(2026, 6, 16), null);
+                new BigDecimal("6"), "OPEN", WorkItemSource.MANUAL, LocalDate.of(2026, 6, 16), null,
+                false, null, null, null, false, null, null, false, null, null, null, null);
 
         CapacityDashboard dashboard = service.calculate(new CapacityCalculationInput(
                 1L, PERIOD_START, PERIOD_END, LocalDate.of(2026, 6, 20),
@@ -151,6 +172,6 @@ class CapacityCalculationServiceTest {
 
     private WorkItem workItem(Long id, Long memberId, BigDecimal effort, String statusCode, LocalDate closedDate) {
         return new WorkItem(id, 1L, memberId, "Is " + id, null, effort, statusCode,
-                WorkItemSource.MANUAL, LocalDate.of(2026, 1, 1), closedDate);
+                WorkItemSource.MANUAL, LocalDate.of(2026, 1, 1), closedDate, false, null, null, null, false, null, null, false, null, null, null, null);
     }
 }

@@ -5,6 +5,7 @@ import SlideCanvas from "../sprint/SlideCanvas";
 import DashboardSlideCanvas from "../dashboard/DashboardSlideCanvas";
 import { useCanvasFit } from "../../hooks/useCanvasFit";
 import { useCountdown, formatMmSs } from "../../hooks/useCountdown";
+import { useFullscreen } from "../../hooks/useFullscreen";
 
 // PO bir takimin sunumu icin sure girmemisse (Kapak adiminda "Sunum süresi"
 // bos/0 birakilmissa) bu takim aninda atlanmasin diye kullanilan varsayilan.
@@ -36,7 +37,17 @@ function teamSeconds(item) {
  * kullanici "Kapat" ile cikar ya da ‹ ile geri donebilir.
  */
 export default function PresentationRunnerModal({ open, onClose, queue, assets }) {
-  const { boxRef, scale } = useCanvasFit();
+  // fitParent: tuval kutusunu (16:9) EBEVEYNININ olcusune gore piksel piksel
+  // kendisi hesaplar - CSS aspect-ratio ile birakildiginda kucuk cozunurluklerde
+  // saginda/altinda beyaz seritler kaliyordu (PO notu 2026-08-19: "Sayfa
+  // yapısına uygun yerleşmiyor. Ekran çözünürlüğünü küçültünce de her yerinden
+  // beyaz alanlar çıkıyor"). ZoomModal zaten bu modu kullaniyordu.
+  const { boxRef, scale } = useCanvasFit({ fitParent: true, active: open });
+  // Sunum yapilirken tarayici sekmesi/adres cubugu da gizlenip TUM ekran
+  // kaplanir - PO notu 2026-08-19: "Sunu yapılırken tüm ekranı kaplayacak
+  // şekilde yapabilir miyiz arka plan dikkat dağıtabilir. Toplu sunumda nasıl
+  // oluyor?" (Toplu sunum ekrani buydu, "⤢ Preview"da zaten vardi.)
+  useFullscreen(open);
   const [slideIndex, setSlideIndex] = useState(0);
   const [finished, setFinished] = useState(false);
 
@@ -132,7 +143,7 @@ export default function PresentationRunnerModal({ open, onClose, queue, assets }
   }, [queue, teamIndex, remaining, finished]);
 
   return (
-    <Modal open={open} onClose={onClose} boxClassName="zoombox">
+    <Modal open={open} onClose={onClose} boxClassName="zoombox stage-dark">
       <div className="zoombar presentation-runner-bar">
         <div className={`presentation-runner-status${critical ? " timer-critical" : ""}`}>
           {finished ? (

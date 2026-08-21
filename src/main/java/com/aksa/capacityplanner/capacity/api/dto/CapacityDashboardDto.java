@@ -10,5 +10,6 @@ public record CapacityDashboardDto(Long teamId, LocalDate periodStart, LocalDate
                                     BigDecimal totalPlannedEffort, BigDecimal completedEffort, BigDecimal remainingEffort,
                                     BigDecimal remainingCapacity, BigDecimal maintainedOccupancyPercent, BigDecimal capacityGap,
                                     BigDecimal periodClosedEffort, BigDecimal newlyAddedEffort, BigDecimal netChange,
-                                    RiskLevel overallRiskLevel, List<MemberCapacityMetricsDto> memberMetrics) {
+                                    RiskLevel overallRiskLevel, List<MemberCapacityMetricsDto> memberMetrics,
+                                    String activeSprintName, LocalDate activeSprintStartDate, LocalDate activeSprintEndDate) {
 }

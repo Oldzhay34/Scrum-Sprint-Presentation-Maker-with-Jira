@@ -58,6 +58,18 @@ public class CapacityCalculationService {
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         BigDecimal occupancyPercent = percentOf(remaining, maintainedCapacity);
+        // Kapasite Farki = "Bakim Haric Kalan Kapasite" - "Kalan Efor".
+        //
+        // PO'larin RPA_Kapasite_Takip Excel'indeki HUCRE FORMULU birebir budur
+        // (Rapor!B32 = B26 - B22, dosya incelemesi 2026-08-20):
+        //   B26 "Bakım Hariç Kalan Kapasite" = SUM(Kapasite!K)  ve  K = KalanİşGünü x (1 - BakımOranı)
+        //   B22 "Kalan Efor"                 = B20 - B21        (Toplam Planlanan - Tamamlanan)
+        // Ornek dosyada: 355,2 - 580,5 = -225,3 (B32'nin gercek degeri).
+        //
+        // NOT: Bir ara "Tamamlanan Efor - Bakim Haric Kalan Kapasite" olarak
+        // degistirilmisti (sozlu tarif B21 satirini isaret ediyordu) ama o formul
+        // ayni dosyada 328 - 355,2 = -27,2 verir, yani Excel'in kendi sonucuyla
+        // ORTUSMEZ. Excel formulu esas alinarak geri alindi.
         BigDecimal capacityGap = maintainedCapacity.subtract(remaining).setScale(SCALE, RoundingMode.HALF_UP);
 
         CapacityDashboard dashboard = new CapacityDashboard();
@@ -76,6 +88,16 @@ public class CapacityCalculationService {
         dashboard.setNetChange(scale(netChange));
         dashboard.setOverallRiskLevel(riskLevelOf(occupancyPercent));
         dashboard.setMemberMetrics(memberMetrics);
+
+        input.workItems().stream()
+                .filter(WorkItem::isActiveSprint)
+                .filter(wi -> wi.getSprintName() != null)
+                .findFirst()
+                .ifPresent(wi -> {
+                    dashboard.setActiveSprintName(wi.getSprintName());
+                    dashboard.setActiveSprintStartDate(wi.getSprintStartDate());
+                    dashboard.setActiveSprintEndDate(wi.getSprintEndDate());
+                });
         return dashboard;
     }
 

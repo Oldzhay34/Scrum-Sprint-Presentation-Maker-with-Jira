@@ -53,12 +53,29 @@ public class WorkItemPersistenceAdapter implements WorkItemRepositoryPort {
         entity.setSource(item.getSource());
         entity.setAddedDate(item.getAddedDate());
         entity.setClosedDate(item.getClosedDate());
+        entity.setFlagged(item.isFlagged());
+        entity.setSector(item.getSector());
+        entity.setPriority(item.getPriority());
+        entity.setSprintName(item.getSprintName());
+        entity.setActiveSprint(item.isActiveSprint());
+        entity.setSprintStartDate(item.getSprintStartDate());
+        entity.setSprintEndDate(item.getSprintEndDate());
+        entity.setPreviousSprint(item.isPreviousSprint());
+        entity.setIssueType(item.getIssueType());
+        entity.setParentKey(item.getParentKey());
+        entity.setParentTitle(item.getParentTitle());
+        entity.setParentLabels(item.getParentLabels());
         return entity;
     }
 
     private WorkItem toDomain(WorkItemJpaEntity entity) {
         return new WorkItem(entity.getId(), entity.getTeamId(), entity.getTeamMemberId(), entity.getTitle(),
                 entity.getJiraIssueKey(), entity.getPlannedEffortDays(), entity.getStatusCode(),
-                entity.getSource(), entity.getAddedDate(), entity.getClosedDate());
+                entity.getSource(), entity.getAddedDate(), entity.getClosedDate(),
+                entity.isFlagged(), entity.getSector(), entity.getPriority(),
+                entity.getSprintName(), entity.isActiveSprint(),
+                entity.getSprintStartDate(), entity.getSprintEndDate(),
+                entity.isPreviousSprint(), entity.getIssueType(),
+                entity.getParentKey(), entity.getParentTitle(), entity.getParentLabels());
     }
 }

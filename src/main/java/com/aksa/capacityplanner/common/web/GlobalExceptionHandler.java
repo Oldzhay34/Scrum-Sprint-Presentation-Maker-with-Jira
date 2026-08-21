@@ -1,7 +1,6 @@
 package com.aksa.capacityplanner.common.web;
 
 import com.aksa.capacityplanner.asset.adapter.out.storage.StorageException;
-import com.aksa.capacityplanner.auth.domain.InvalidCredentialsException;
 import com.aksa.capacityplanner.common.domain.DomainValidationException;
 import com.aksa.capacityplanner.common.domain.NotFoundException;
 import com.aksa.capacityplanner.document.adapter.out.storage.DocumentStorageException;
@@ -28,11 +27,6 @@ public class GlobalExceptionHandler {
     @ExceptionHandler({DomainValidationException.class, IllegalArgumentException.class})
     public ResponseEntity<ApiErrorResponse> handleBadRequest(RuntimeException ex, HttpServletRequest request) {
         return build(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
-    }
-
-    @ExceptionHandler(InvalidCredentialsException.class)
-    public ResponseEntity<ApiErrorResponse> handleInvalidCredentials(InvalidCredentialsException ex, HttpServletRequest request) {
-        return build(HttpStatus.UNAUTHORIZED, ex.getMessage(), request);
     }
 
     @ExceptionHandler(AccessDeniedException.class)

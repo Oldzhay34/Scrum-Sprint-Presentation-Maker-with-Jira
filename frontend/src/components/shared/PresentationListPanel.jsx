@@ -114,7 +114,7 @@ export default function PresentationListPanel({ teamId, teamName, canManage, sho
         throw new Error("Bu sunumda kapasite dashboard verisi yok, PPTX indirilemedi.");
       }
       const sprintData = sprintDataFromContent(content);
-      const pptx = buildFullDeck(sprintData, dashData, ASSETS, "light", cornerMesh);
+      const pptx = await buildFullDeck(sprintData, dashData, ASSETS, "light", cornerMesh);
       const sp = (p.sprintNo || "X").toString().replace(/[^\w]/g, "");
       await pptx.writeFile({ fileName: `Sprint_Kapasite_${sp}.pptx` });
       recordPresentationDownload("INDIVIDUAL", [teamId]).catch(() => {});

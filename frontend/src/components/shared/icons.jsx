@@ -84,6 +84,16 @@ export function IconHistory(props) {
   );
 }
 
+/** "Excel'den Yükle" sekmesi icin - sutunlu bir tablo/e-tablo simgesi. */
+export function IconSpreadsheet(props) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
+      <rect x="3.5" y="4" width="17" height="16" rx="2.2" stroke="currentColor" strokeWidth="1.7" />
+      <path d="M3.5 9.5h17M9.5 9.5V20M15 9.5V20" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 export function IconEdit(props) {
   return (
     <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>

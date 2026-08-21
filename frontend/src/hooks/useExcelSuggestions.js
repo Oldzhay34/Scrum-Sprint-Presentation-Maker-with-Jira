@@ -40,7 +40,7 @@ export function useExcelSuggestions() {
   };
 
   const removeSuggestion = (section, text) => {
-    setSuggestions((prev) => ({ ...prev, [section]: prev[section].filter((t) => t !== text) }));
+    setSuggestions((prev) => ({ ...prev, [section]: prev[section].filter((s) => s.text !== text) }));
   };
 
   const clear = () => setSuggestions({ done: [], active: [], risk: [], pending: [] });

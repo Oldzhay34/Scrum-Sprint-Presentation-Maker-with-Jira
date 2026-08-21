@@ -1,0 +1,11 @@
+-- Icerik Slayti "Tamamlanan Isler" kutusunda, bir takimin Jira'da KENDI adiyla
+-- etiketledigi Epic'lerin altindaki isler (orn. RPA'da "RPA Ekibi Agile
+-- Toplantilar" / "RPA Ekibi PO" - RPA-2206/RPA-949, ikisi de "RPA" label'i
+-- tasiyor) idari/toplanti isleri, gercek teslim edilen is degil - kullanici
+-- teyidi 2026-08-20: "label ında takımın adı yazan epicteki işler gelmeyecek".
+--
+-- Bunun icin her is kaleminin bagli oldugu ust ogenin (Epic) Jira Labels
+-- alani senkronize edilir. Virgulle ayrilmis TEK bir metin sutunu olarak
+-- tutulur (parent_key/parent_title ile AYNI konvansiyon) - bir Epic'te
+-- genelde 1-2 label oluyor, ayri bir tabloya gerek yok.
+alter table work_items add column parent_labels varchar(500);

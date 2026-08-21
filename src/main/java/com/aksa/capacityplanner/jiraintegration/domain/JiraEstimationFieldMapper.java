@@ -6,7 +6,7 @@ import java.util.Map;
  * Jira'daki efor/buyukluk alanlarinin id'lerini ve cozumleme sirasini tutar.
  *
  * Birincil efor kaynagi ARTIK customfield_10503 (Efor A/DK, DAKIKA) - bkz.
- * JiraSyncRequestConsumer.extractPlannedEffortDays. Bu alan, kullanicinin
+ * JiraSyncProcessor.extractPlannedEffortDays. Bu alan, kullanicinin
  * paylastigi dogrulanmis formul dokumaninda ("dk(issue) = customfield_10503,
  * doluluk = Σ[dk(issue)÷480]") VE full-audit.json'daki PASS sonuclu
  * "capacity-sample-member" kontrolunde teyit edilmistir - TUM takimlar icin

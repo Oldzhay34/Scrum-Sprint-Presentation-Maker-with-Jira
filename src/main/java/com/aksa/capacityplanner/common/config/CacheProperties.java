@@ -5,7 +5,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "app.cache")
 public class CacheProperties {
 
-    /** Hem L1 (Caffeine) hem L2 (Redis) icin hard TTL - erisimle uzamaz. */
+    /** Caffeine cache icin hard TTL (bkz. JvmCacheManager) - erisimle uzamaz. */
     private long ttlSeconds = 300;
 
     public long getTtlSeconds() {

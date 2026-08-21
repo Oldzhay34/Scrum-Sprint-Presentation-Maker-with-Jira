@@ -34,6 +34,22 @@ export function nfmt1(n) {
   return (Math.round(v * 10) / 10).toLocaleString("tr-TR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 }
 
+/**
+ * Kapasite Dashboard'undaki A/G degerlerinin STANDART bicimi: 2 ondalik
+ * basamak (orn. "12,50"). Kisi bazli satirlar ve "EKİP TOPLAMI" satiri
+ * eskiden nfmtInt ile TAM SAYIYA yuvarlaniyordu - backend zaten BigDecimal
+ * SCALE=2 ile hesapladigi icin ekranda gorunen rakam gercek degerden
+ * sapiyordu ve satirlarin toplami ekrandaki toplamla tutmuyordu (kullanici
+ * bildirimi 2026-08-20: "int değil de double decimal sayı olarak gösterip
+ * işlemleri bu sayılarla yapmamızı istediler, altlarında yazan total
+ * değerlerde double olacak"). Onizleme (DashboardSlideCanvas) ve PPTX
+ * (dashboardDeckBuilder) AYNI fonksiyonu kullanir.
+ */
+export function nfmt2(n) {
+  const v = Number(n);
+  return (Number.isFinite(v) ? v : 0).toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
 export function npct(r) {
   return "%" + Math.round(Number(r) * 100);
 }
@@ -78,19 +94,43 @@ export function buildSummaryCards(dd) {
     { label: "Kapasite", value: npct(k.doluluk), sub: "Bakım/SR sonrası %", toneName: null },
     {
       label: "Kapasite Farkı",
-      value: nfmt1(k.acikFazla) + " A/G",
+      value: nfmt2(k.acikFazla) + " A/G",
       sub: "Açık kapasite karşılaştırması",
       toneName: k.acikFazla < 0 ? "risk" : k.acikFazla > 0 ? "good" : null,
     },
   ];
   if (d) {
-    cards.push({ label: "Yeni Eklenen İş Yükü", value: nfmtInt(d.eklenen) + " A/G", sub: "Son 2 hafta", toneName: "info" });
-    // Kapanan is (yuk azaltan bir "delta") negatif gosterilir - kapatilan is
-    // acik is yukunu AZALTIR, bu yuzden isaret negatif olmali - kart etiketi
-    // de bu yuzden "Net İş Yükü Değişimi" (bkz. kullanici bildirimi).
-    cards.push({ label: "Net İş Yükü Değişimi", value: nfmtInt(-Number(d.kapanan)) + " A/G", sub: "Son 2 hafta", toneName: "good" });
+    cards.push({ label: "Yeni Eklenen İş Yükü", value: nfmt2(d.eklenen) + " A/G", sub: "Son 2 hafta", toneName: "info" });
+    // Net İş Yükü Değişimi = Dönem Kapanan İş Yükü − Yeni Eklenen İş Yükü.
+    // ESKIDEN sadece "-kapanan" basiliyordu (yeni eklenen is yuku formule hic
+    // girmiyordu) - kullanici bildirimi 2026-08-20: "Net İş Yükü Değişiminde
+    // bir sıkıntı var = -Dönem Kapanan Ag yapıyor ama gerçek formülü şu:
+    // dönem kapanan iş yükü - yeni eklenen iş yükü". Backend de AYNI formulu
+    // kullaniyor (CapacityCalculationService: netChange = periodClosed -
+    // newlyAdded), bu yuzden hazir gelen d.net varsa dogrudan o kullanilir.
+    const net = d.net !== "" && d.net != null ? num(d.net) : num(d.kapanan) - num(d.eklenen);
+    cards.push({
+      label: "Net İş Yükü Değişimi",
+      value: nfmt2(net) + " A/G",
+      sub: "Son 2 hafta",
+      // Pozitif = kapanan is, yeni eklenenden fazla (yuk azaldi) -> iyi.
+      // Negatif = yuk buyudu -> riskli. Once her zaman yesil basiliyordu.
+      toneName: net < 0 ? "risk" : net > 0 ? "good" : null,
+    });
   }
   return cards;
+}
+
+/**
+ * "Ekip Özet" sabit 5 kartina EK olarak, takima ozgu ek gostergeleri (dd.customKpis -
+ * orn. RPA'da "Toplam FTE") kart seklinde uretir. buildSummaryCards'tan BILEREK
+ * AYRI: o fonksiyon HER ZAMANayni 5 sabit karti dondurur (bkz. kendi yorumu),
+ * ozel KPI'lar cagiran tarafta (DashboardSlideCanvas, dashboardDeckBuilder)
+ * bu fonksiyonla AYRICA eklenir - boylece customKpis olmayan takimlarda o 5
+ * kart degismeden kalir.
+ */
+export function buildCustomKpiCards(dd) {
+  return (dd.customKpis || []).map((k) => ({ label: k.label, value: k.value, sub: k.unit || "", toneName: "info" }));
 }
 
 /** Kisi tablosundaki tamamlanan/acik/kapasite/toplam kolonlarinin "EKİP TOPLAMI" satiri icin toplamlarini hesaplar. */
@@ -190,4 +230,16 @@ export function autoRange(rd) {
 
 export function esc(s) {
   return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+/**
+ * Kapasite Dashboard'undaki "Dönem Kapanan" gibi delta alanlarinin slaytta
+ * GORUNMEYE deger olup olmadigini soyler. PO notu 2026-08-19: "Dönem kapanan
+ * 0 AG alanı silinecek" - deger bos/null OLMASI yetmez, SIFIR da bilgi
+ * tasimadigi icin not satirina hic yazilmaz. Onizleme (DashboardSlideCanvas)
+ * ve PPTX ciktisi (dashboardDeckBuilder) AYNI kurali kullanir.
+ */
+export function hasDeltaValue(value) {
+  if (value === "" || value == null) return false;
+  return num(value) !== 0;
 }

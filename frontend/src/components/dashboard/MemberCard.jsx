@@ -1,133 +1,136 @@
-import { sanitizeDecimalInput, sanitizeIntegerInput, sanitizeRatioInput } from "../../lib/format";
+import { DAV_COLORS, sanitizeDecimalInput, sanitizeIntegerInput, sanitizeRatioInput } from "../../lib/format";
 import LeaveDaysField from "./LeaveDaysField";
+
+function initialsOf(name) {
+  return (name || "?").trim().slice(0, 2).toUpperCase() || "?";
+}
 
 /**
  * Tek bir ekip uyesi karti: kisi bilgileri + o kisiye ait is kalemleri.
- * Pressman - User Help Facilities: startDate icin "1 Haziran'dan once ise
- * hedef 145 gun olur" bilgisini hint olarak veririz.
+ * Gorsel tasarim DashboardEditModal'daki ".dashedit-*" kart dili (avatar +
+ * kompakt mini-etiketli alanlar, hover'da beliren silme ikonu) ile AYNI -
+ * eskiden duz .bar/.barrow/.barlabel kutulariydi (bkz. kullanici bildirimi,
+ * 2026-08-17: "ekip üyesi ekleme yeri kötü duruyor ... apple UI/UX tasarım
+ * stilini esas al"). Pressman - User Help Facilities: startDate icin "1
+ * Haziran'dan once ise hedef 145 gun olur" bilgisini hint olarak veririz.
  */
-export default function MemberCard({ member, statuses, items, onUpdateMember, onRemoveMember, onAddItem, onUpdateItem, onRemoveItem, teamId }) {
+export default function MemberCard({ member, index, statuses, items, onUpdateMember, onRemoveMember, onAddItem, onUpdateItem, onRemoveItem, teamId, reportDate = null, periodEnd = null }) {
+  const avatarColor = "#" + DAV_COLORS[(index || 0) % DAV_COLORS.length];
+
   return (
-    <div className="bar">
-      <div className="barrow" style={{ flexWrap: "wrap" }}>
-        <input
-          className="barlabel"
-          style={{ flex: "1 1 160px" }}
-          placeholder="Ad Soyad"
-          value={member.fullName}
-          onChange={(e) => onUpdateMember({ fullName: e.target.value })}
-        />
-        <input
-          className="barlabel"
-          style={{ flex: "1 1 120px" }}
-          placeholder="Rol (örn: Geliştirici)"
-          value={member.role}
-          onChange={(e) => onUpdateMember({ role: e.target.value })}
-        />
-        <input
-          type="date"
-          className="barlabel"
-          style={{ flex: "0 0 150px" }}
-          title="İşe başlama tarihi — 1 Haziran'dan önceyse hedef iş günü otomatik 145 olur"
-          value={member.startDate}
-          onChange={(e) => onUpdateMember({ startDate: e.target.value })}
-        />
-        <select
-          className="premium-select premium-select-sm"
-          style={{ flex: "0 0 150px" }}
-          value={member.statusCode}
-          onChange={(e) => onUpdateMember({ statusCode: e.target.value })}
-        >
-          {statuses.map((s) => (
-            <option key={s.code} value={s.code}>
-              {s.label || s.code}
-            </option>
-          ))}
-        </select>
-        <input
-          className="barlabel"
-          style={{ flex: "0 0 130px" }}
-          placeholder="Hedef gün (opsiyonel)"
-          title="Boş bırakılırsa 1 Haziran kuralına göre otomatik hesaplanır, sonradan değiştirilebilir"
-          inputMode="numeric"
-          value={member.targetWorkDays || ""}
-          onChange={(e) => onUpdateMember({ targetWorkDays: sanitizeIntegerInput(e.target.value) })}
-        />
-        <input
-          className="barlabel"
-          style={{ flex: "0 0 130px" }}
-          placeholder="Kişiye özel bakım oranı"
-          title="Boş bırakılırsa takım seviyesindeki genel bakım/SR oranı kullanılır (örn: 0.2 = %20)"
-          inputMode="decimal"
-          value={member.maintenanceAllocationPercent || ""}
-          onChange={(e) => onUpdateMember({ maintenanceAllocationPercent: sanitizeRatioInput(e.target.value) })}
-        />
-        <LeaveDaysField
-          teamId={teamId}
-          fullName={member.fullName}
-          role={member.role}
-          onTotalChange={(total) => {
-            if (total !== (member.leaveDays || 0)) onUpdateMember({ leaveDays: total });
-          }}
-        />
-        <button type="button" className="delbar" onClick={onRemoveMember}>
+    <div className="mcard" style={{ "--i": index || 0 }}>
+      <div className="mcard-head">
+        <span className="mcard-avatar" style={{ background: avatarColor }}>{initialsOf(member.fullName)}</span>
+        <div className="mcard-identity">
+          <input
+            className="mcard-name"
+            placeholder="Ad Soyad"
+            value={member.fullName}
+            onChange={(e) => onUpdateMember({ fullName: e.target.value })}
+          />
+          <input
+            className="mcard-role"
+            placeholder="Rol (örn: Geliştirici)"
+            value={member.role}
+            onChange={(e) => onUpdateMember({ role: e.target.value })}
+          />
+        </div>
+        <button type="button" className="mcard-remove" onClick={onRemoveMember}>
           Kişiyi sil
         </button>
       </div>
 
-      <div className="mhint" style={{ marginBottom: 6 }}>
-        İş kalemleri
-      </div>
-      {items.map((item) => (
-        <div className="segrow" key={item.clientId} style={{ marginBottom: 6 }}>
-          <input
-            className="mitem-input"
-            style={{ flex: "1 1 180px" }}
-            placeholder="İş adı"
-            value={item.title}
-            onChange={(e) => onUpdateItem(item.clientId, { title: e.target.value })}
-          />
-          <input
-            className="mitem-input"
-            style={{ width: 90 }}
-            placeholder="Efor (AG)"
-            inputMode="decimal"
-            value={item.plannedEffortDays}
-            onChange={(e) => onUpdateItem(item.clientId, { plannedEffortDays: sanitizeDecimalInput(e.target.value) })}
-          />
-          <select
-            className="premium-select premium-select-sm"
-            value={item.statusCode}
-            onChange={(e) => onUpdateItem(item.clientId, { statusCode: e.target.value })}
-          >
+      <div className="mcard-meta">
+        <label className="mcard-meta-field" title="İşe başlama tarihi — 1 Haziran'dan önceyse hedef iş günü otomatik 145 olur">
+          <span>İşe başlama</span>
+          <input type="date" value={member.startDate} onChange={(e) => onUpdateMember({ startDate: e.target.value })} />
+        </label>
+        <label className="mcard-meta-field">
+          <span>Statü</span>
+          <select value={member.statusCode} onChange={(e) => onUpdateMember({ statusCode: e.target.value })}>
             {statuses.map((s) => (
               <option key={s.code} value={s.code}>
                 {s.label || s.code}
               </option>
             ))}
           </select>
+        </label>
+        <label className="mcard-meta-field" title="Boş bırakılırsa 1 Haziran kuralına göre otomatik hesaplanır, sonradan değiştirilebilir">
+          <span>Hedef gün</span>
           <input
-            type="date"
-            title="Eklenme tarihi (opsiyonel — Yeni Eklenen Efor hesaplaması için)"
-            className="mitem-input"
-            style={{ fontSize: 12 }}
-            value={item.addedDate}
-            onChange={(e) => onUpdateItem(item.clientId, { addedDate: e.target.value })}
+            inputMode="numeric"
+            placeholder="opsiyonel"
+            value={member.targetWorkDays || ""}
+            onChange={(e) => onUpdateMember({ targetWorkDays: sanitizeIntegerInput(e.target.value) })}
           />
+        </label>
+        <label className="mcard-meta-field" title="Boş bırakılırsa takım seviyesindeki genel bakım/SR oranı kullanılır (örn: 0.2 = %20)">
+          <span>Bakım oranı</span>
           <input
-            type="date"
-            title="Kapanma tarihi (opsiyonel — Dönem Kapanan Efor hesaplaması için)"
-            className="mitem-input"
-            style={{ fontSize: 12 }}
-            value={item.closedDate}
-            onChange={(e) => onUpdateItem(item.clientId, { closedDate: e.target.value })}
+            inputMode="decimal"
+            placeholder="opsiyonel"
+            value={member.maintenanceAllocationPercent || ""}
+            onChange={(e) => onUpdateMember({ maintenanceAllocationPercent: sanitizeRatioInput(e.target.value) })}
           />
-          <button type="button" className="delseg" title="İş kalemini sil" onClick={() => onRemoveItem(item.clientId)}>
-            ×
-          </button>
-        </div>
-      ))}
-      <button type="button" className="addseg" onClick={onAddItem}>
+        </label>
+        <LeaveDaysField
+          teamId={teamId}
+          fullName={member.fullName}
+          role={member.role}
+          reportDate={reportDate}
+          periodEnd={periodEnd}
+          onTotalChange={(total) => {
+            if (total !== (member.leaveDays || 0)) onUpdateMember({ leaveDays: total });
+          }}
+        />
+      </div>
+
+      <div className="mcard-items-label">İş kalemleri</div>
+      <div className="mcard-items">
+        {items.map((item) => (
+          <div className="mitem" key={item.clientId}>
+            <input
+              className="mitem-title"
+              placeholder="İş adı"
+              value={item.title}
+              onChange={(e) => onUpdateItem(item.clientId, { title: e.target.value })}
+            />
+            <input
+              className="mitem-effort"
+              placeholder="Efor (AG)"
+              inputMode="decimal"
+              value={item.plannedEffortDays}
+              onChange={(e) => onUpdateItem(item.clientId, { plannedEffortDays: sanitizeDecimalInput(e.target.value) })}
+            />
+            <label className="mitem-done" title="İşaretlenirse eforu Tamamlanan'a, işaretlenmezse Açık (Kalan)'a sayılır">
+              <input
+                type="checkbox"
+                checked={item.statusCode === "DONE"}
+                onChange={(e) => onUpdateItem(item.clientId, { statusCode: e.target.checked ? "DONE" : "OPEN" })}
+              />
+              Tamamlandı
+            </label>
+            <input
+              type="date"
+              className="mitem-date"
+              title="Eklenme tarihi (opsiyonel — Yeni Eklenen Efor hesaplaması için)"
+              value={item.addedDate}
+              onChange={(e) => onUpdateItem(item.clientId, { addedDate: e.target.value })}
+            />
+            <input
+              type="date"
+              className="mitem-date"
+              title="Kapanma tarihi (opsiyonel — Dönem Kapanan Efor hesaplaması için)"
+              value={item.closedDate}
+              onChange={(e) => onUpdateItem(item.clientId, { closedDate: e.target.value })}
+            />
+            <button type="button" className="mitem-remove" title="İş kalemini sil" onClick={() => onRemoveItem(item.clientId)}>
+              ×
+            </button>
+          </div>
+        ))}
+      </div>
+      <button type="button" className="mcard-additem" onClick={onAddItem}>
         + İş kalemi ekle
       </button>
     </div>

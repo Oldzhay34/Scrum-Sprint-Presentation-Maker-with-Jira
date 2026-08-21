@@ -29,3 +29,39 @@ export function periodDays(p) {
 export function sumFractions(periods) {
   return periods.reduce((s, p) => s + periodDays(p), 0);
 }
+
+/**
+ * Bir izin kaydinin SADECE verilen pencereye ([fromIso, toIso]) dusen kismini
+ * sayar. Pencere disindaysa 0 doner.
+ *
+ * Neden gerekli: "Kalan Kapasite" ILERIYE donuk bir sayidir (Hedef İş Günü −
+ * Geçen İş Günü − İzin). Gecmiste kalan bir izin gunu zaten "Geçen İş Günü"
+ * icinde sayildigi icin, ayrica izin olarak da dusulurse kapasite KALICI
+ * olarak eksik gorunur. Kullanici bildirimi 2026-08-20: "10 eylülde tam gün
+ * izin tanımlı diyelim adama, 10 kapasite-1 adamın kapasitesi; 10 eylülden
+ * sonra ise bu kapasite düzelecek, hiçbir gün çıkarılmamış gibi." Kullanici
+ * teyidi: olcut RAPOR TARIHI.
+ *
+ * Backend'in DB tabanli akisi (CapacityDashboardService) bu pencereyi ZATEN
+ * uyguluyordu - calculateApprovedLeaveDays(memberId, reportDate, periodEnd).
+ * Manuel/Excel akisinda ise izin toplami frontend'de hesaplanip backend'e
+ * hazir gonderildigi icin pencere hic uygulanmiyordu; bu fonksiyon o farki
+ * kapatir.
+ */
+export function periodDaysInWindow(p, fromIso, toIso = null) {
+  const start = p.startDate > fromIso ? p.startDate : fromIso;
+  const end = toIso && p.endDate > toIso ? toIso : p.endDate;
+  if (start > end) return 0;
+  return businessDaysInRange(start, end) * Number(p.dayFraction || 0);
+}
+
+/**
+ * sumFractions'in pencere uygulanmis hali - bkz. periodDaysInWindow.
+ * `toIso` opsiyoneldir: kurali belirleyen ALT sinirdir (rapor tarihi), ust
+ * sinir sadece donem sonu biliniyorsa daraltma amacli verilir.
+ * fromIso verilmezse eski (penceresiz) davranisa duser.
+ */
+export function sumFractionsInWindow(periods, fromIso, toIso = null) {
+  if (!fromIso) return sumFractions(periods);
+  return (periods || []).reduce((s, p) => s + periodDaysInWindow(p, fromIso, toIso), 0);
+}

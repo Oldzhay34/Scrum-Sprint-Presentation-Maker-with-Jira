@@ -103,6 +103,6 @@ public class StatelessCapacityDashboardService {
     private WorkItem toWorkItem(StatelessDashboardRequest.WorkItemInput input) {
         return new WorkItem(null, null, input.memberClientId(), input.title(), null,
                 input.plannedEffortDays(), input.statusCode(), WorkItemSource.MANUAL,
-                input.addedDate(), input.closedDate());
+                input.addedDate(), input.closedDate(), false, null, null, null, false, null, null, false, null, null, null, null);
     }
 }

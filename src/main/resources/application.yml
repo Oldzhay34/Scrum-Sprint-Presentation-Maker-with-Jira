@@ -21,17 +21,6 @@ spring:
     locations: classpath:db/migration
     baseline-on-migrate: true
 
-  data:
-    redis:
-      host: ${REDIS_HOST:localhost}
-      port: ${REDIS_PORT:6379}
-
-  rabbitmq:
-    host: ${RABBITMQ_HOST:localhost}
-    port: ${RABBITMQ_PORT:5672}
-    username: ${RABBITMQ_USERNAME:capacity_planner}
-    password: ${RABBITMQ_PASSWORD:capacity_planner}
-
   servlet:
     multipart:
       max-file-size: 10MB
@@ -39,7 +28,13 @@ spring:
 
 app:
   cors:
+    # Not: Yayinda bu liste APP_CORS_ALLOWED_ORIGINS ile eziliyor (Railway).
+    # Odyssey kabugu API cagrilarini kendi nginx'i uzerinden proxy'ledigi
+    # icin tarayici acisindan istek same-origin; ama backend, proxy'nin
+    # ilettigi Origin basligini (Odyssey alan adi) gordugunden bu alan adi
+    # listede OLMAK ZORUNDA - yoksa POST /api/auth/login 403 doner.
     allowed-origins:
+      - http://localhost:4173
       - http://localhost:5173
       - http://localhost:5174
       - http://localhost:5175

@@ -43,6 +43,9 @@ public class TeamJpaEntity {
     @Column(name = "jira_board_id")
     private Long jiraBoardId;
 
+    @Column(name = "roster_locked", nullable = false)
+    private boolean rosterLocked;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private Instant createdAt;

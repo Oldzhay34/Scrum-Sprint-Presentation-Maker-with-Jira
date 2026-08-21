@@ -9,7 +9,7 @@ import LeaveDaysField from "./LeaveDaysField";
  * gosterilir (Pressman - User Help Facilities: kullanici hesaplamayi elle
  * yapmak zorunda kalmaz, sonucu aninda gorur).
  */
-export default function PersonMappingTable({ persons, onUpdate, teamId }) {
+export default function PersonMappingTable({ persons, onUpdate, teamId, reportDate = null }) {
   if (!persons.length) {
     return <div className="mhint">Önce Excel yükleyin.</div>;
   }
@@ -58,6 +58,7 @@ export default function PersonMappingTable({ persons, onUpdate, teamId }) {
               teamId={teamId}
               fullName={p.name}
               role={p.role}
+              reportDate={reportDate}
               onTotalChange={(total) => {
                 if (total !== (p.leaveDays || 0)) onUpdate(i, { leaveDays: total });
               }}

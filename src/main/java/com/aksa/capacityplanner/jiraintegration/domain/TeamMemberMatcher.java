@@ -29,9 +29,9 @@ import java.util.regex.Pattern;
  *    bir kimlikle - Jira'nin accountId'siyle - yapilir. Bu ad degisikliklerinden
  *    etkilenmez ve TEK dogru anahtar. jiraAccountId'si henuz kayitli olmayan
  *    (manuel girilmis eski) uyeler icin email/isim fallback'i hala calisir -
- *    eslesirse jiraAccountId geriye doldurulur (bkz. JiraSyncRequestConsumer),
+ *    eslesirse jiraAccountId geriye doldurulur (bkz. JiraSyncProcessor),
  *    boylece bir dahaki sefere dogrudan accountId ile eslesir. HICBIR eslesme
- *    yoksa cagiran taraf (JiraSyncRequestConsumer) YENI bir TeamMember otomatik
+ *    yoksa cagiran taraf (JiraSyncProcessor) YENI bir TeamMember otomatik
  *    olusturur - artik "takimda 8 kisi var ama 3'u gorunuyor" sorunu olmamali.
  */
 public final class TeamMemberMatcher {

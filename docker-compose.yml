@@ -44,34 +44,6 @@ services:
       timeout: 5s
       retries: 10
 
-  redis:
-    image: redis:7-alpine
-    container_name: capacity-planner-redis
-    restart: unless-stopped
-    ports:
-      - "${REDIS_PORT:-6379}:6379"
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-
-  rabbitmq:
-    image: rabbitmq:3.13-management-alpine
-    container_name: capacity-planner-rabbitmq
-    restart: unless-stopped
-    environment:
-      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USERNAME:-capacity_planner}
-      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-capacity_planner}
-    ports:
-      - "${RABBITMQ_PORT:-5672}:5672"
-      - "${RABBITMQ_MANAGEMENT_PORT:-15672}:15672"
-    healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-
   minio:
     image: minio/minio:latest
     container_name: capacity-planner-minio
@@ -103,12 +75,6 @@ services:
       DB_NAME: ${DB_NAME:-capacity_planner}
       DB_USERNAME: ${DB_USERNAME:-capacity_planner}
       DB_PASSWORD: ${DB_PASSWORD:-capacity_planner}
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      RABBITMQ_HOST: rabbitmq
-      RABBITMQ_PORT: 5672
-      RABBITMQ_USERNAME: ${RABBITMQ_USERNAME:-capacity_planner}
-      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-capacity_planner}
       MINIO_ENDPOINT: http://minio:9000
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-capacity_planner}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-capacity_planner}
@@ -122,10 +88,6 @@ services:
       - "${BACKEND_PORT:-8080}:8080"
     depends_on:
       postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      rabbitmq:
         condition: service_healthy
       minio:
         condition: service_healthy

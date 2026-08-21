@@ -22,7 +22,7 @@ import java.util.Map;
  * erisebiliyor - bu yuzden listAllBoards/listActiveSprintsAcrossAllTeams tek bir
  * takimla sinirli degil, instance genelindeki her takimi kapsar.
  *
- * Sonuclar iki katmanli cache'e (Caffeine L1 + Redis L2) yazilir; bu veriler
+ * Sonuclar JVM-ici cache'e (Caffeine, bkz. JvmCacheManager) yazilir; bu veriler
  * Jira tarafinda nadiren degistigi icin tekrar tekrar cekilmesine gerek yoktur.
  */
 @Component

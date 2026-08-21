@@ -16,7 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * capacity modulunun team + leave modulleriyle orkestrasyonunu, iki katmanli cache'i
- * ve RabbitMQ jira-sync akisini gercek Postgres/Redis/RabbitMQ container'lari uzerinde dogrular.
+ * ve arka plandaki jira-sync akisini gercek Postgres container.i uzerinde dogrular.
  * Tek bir modulun degil, birden fazla modulun birlikte calismasinin testidir.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -87,7 +87,7 @@ class CapacityDashboardSubsystemIT extends AbstractTestcontainersSupport {
     }
 
     @Test
-    void jiraSyncTrigger_isConsumedAsynchronouslyViaRabbitMq() {
+    void jiraSyncTrigger_isProcessedAsynchronouslyInBackground() {
         int teamId = given().contentType("application/json")
                 .body("{\"name\":\"Jira Sync Test Ekibi\"}")
                 .when().post("/api/teams")
@@ -98,8 +98,8 @@ class CapacityDashboardSubsystemIT extends AbstractTestcontainersSupport {
                 .when().post("/api/teams/{teamId}/jira-sync", teamId)
                 .then().statusCode(202);
 
-        // Jira devre disi (NoOp adaptor) oldugu icin issue donmez; ama mesaj kuyruktan
-        // tuketilip akis hatasiz tamamlanmali - is kalemi listesi bos kalmaya devam eder.
+        // Jira devre disi (NoOp adaptor) oldugu icin issue donmez; ama istek arka planda
+        // islenip akis hatasiz tamamlanmali - is kalemi listesi bos kalmaya devam eder.
         Awaitility.await().atMost(Duration.ofSeconds(5)).untilAsserted(() ->
                 given().when().get("/api/teams/{teamId}/work-items", teamId)
                         .then().statusCode(200).body("size()", equalTo(0)));
