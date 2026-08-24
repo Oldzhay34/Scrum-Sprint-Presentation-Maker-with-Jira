@@ -24,6 +24,15 @@ export const GROW_MAX = 16;
 export const GROW_CANDIDATES = [16, 15.5, 15, 14.5, 14, 13.5, 13, FS_BASE];
 export const GROW_ITEM_THRESHOLD = 5;
 
+// Bir kartta gosterilecek EN FAZLA madde sayisi. Bu sinir olmadan tek olcut
+// geometriydi: yazi FS_MIN'e (4pt) kadar kuculdukten SONRA kirpma basliyordu,
+// yani "+N madde daha" uyarisi ancak okunamayacak kadar kucuk bir yazida
+// goruluyordu. Ustelik ayni satirdaki iki kart yuksekligi paylastigi icin bir
+// kartin cok maddeli olmasi digerini de kucultuyordu. 7 madde, dort kart da
+// dolu oldugunda (ust satir 7+7, alt satir 7+7) yazinin FS_BASE civarinda
+// kalmasini garanti eder.
+export const MAX_ITEMS_PER_CARD = 7;
+
 /** Maddeler arasi bosluk, yazi boyutuyla orantili kuculur (sabit kalirsa kucuk fontlarda oranti bozulur). */
 export function gapAt(f) {
   return Math.max(0.01, f * 0.0052);
@@ -241,9 +250,11 @@ const ROW_KEYS = { top: ["done", "active"], bottom: ["risk", "pending"] };
  * fontlari birbirinden bagimsizdir - onceki surumde TUM slayt TEK bir paylasilan
  * fontu kullaniyordu (bir kart cok maddeliyse digerleri de gereksiz kuculuyordu).
  *
- * En kucuk font boyutunda (FS_MIN) bile icerik sigmiyorsa (asiri sayida madde),
- * fazlalik maddeleri gorunmeden sessizce kaybetmek yerine en dolu karttan kirpip
- * yerine "+N madde daha" notu birakir.
+ * Kirpma IKI asamalidir: once kart basina MAX_ITEMS_PER_CARD siniri uygulanir
+ * (okunabilirlik icin sabit ust sinir), sonra -metinler cok uzunsa- en kucuk
+ * font boyutunda (FS_MIN) bile sigmayan maddeler en dolu karttan atilir. Her
+ * iki durumda da fazlalik gorunmeden kaybolmaz, yerine "+N madde daha" notu
+ * birakilir.
  *
  * Onizleme (SlideCanvas) ve PPTX (sprintDeckBuilder) AYNI fonksiyonu kullanir,
  * ikisi de senkron kalir.
@@ -251,19 +262,52 @@ const ROW_KEYS = { top: ["done", "active"], bottom: ["risk", "pending"] };
 export function fitContent(d, cardsTop) {
   const avail = G.Y_BOT - cardsTop;
 
-  const sections = { done: [...d.done], active: [...d.active], risk: [...d.risk], pending: [...d.pending] };
+  const items = { done: [...d.done], active: [...d.active], risk: [...d.risk], pending: [...d.pending] };
   const ladder = {};
   const idx = {};
-  const removed = { done: 0, active: 0, risk: 0, pending: 0 };
+  // Kirpma iki AYRI sebeple olabilir; uyari metni dogru sebebi soylesin diye
+  // ayri sayilir: capped = madde sayisi sinirini asti, shrunk = yazi en kucuk
+  // boyuta indigi halde metinler slayda sigmadi.
+  const capped = { done: 0, active: 0, risk: 0, pending: 0 };
+  const shrunk = { done: 0, active: 0, risk: 0, pending: 0 };
+  const removedOf = (k) => capped[k] + shrunk[k];
+
+  // Once SAYI sinirini uygula (geometriden bagimsiz): fazlasi zaten okunabilir
+  // bir yazi boyutuyla sigmazdi, kirpmayi FS_MIN'e kadar ertelemek yerine
+  // burada kirpip kullaniciya "+N madde daha" uyarisini ERKEN gosteriyoruz.
   SECTION_KEYS.forEach((k) => {
-    ladder[k] = ladderFor(sections[k]);
+    if (items[k].length > MAX_ITEMS_PER_CARD) {
+      capped[k] = items[k].length - MAX_ITEMS_PER_CARD;
+      items[k] = items[k].slice(0, MAX_ITEMS_PER_CARD);
+    }
+  });
+
+  function noteText(k) {
+    const n = removedOf(k);
+    if (capped[k] > 0 && shrunk[k] === 0) return `+${n} madde daha (kart başına en fazla ${MAX_ITEMS_PER_CARD} madde gösterilir)`;
+    if (capped[k] === 0) return `+${n} madde daha (slayda sığmadı — metinleri kısaltın)`;
+    return `+${n} madde daha (en fazla ${MAX_ITEMS_PER_CARD} madde gösterilir, kalanlar da sığmadı — metinleri kısaltın)`;
+  }
+
+  /**
+   * Kartta GERCEKTEN cizilecek satirlar: maddeler + (varsa) "+N madde daha"
+   * notu. Not, olcumlerin TAMAMINDA hesaba katilmalidir - onceki surumde
+   * kartlar not eklenmeden once olculuyor, not en sonda push ediliyordu; iki
+   * satira saran bu uyari kartlari buyutup alt satiri slayt zemininin (ve mavi
+   * altbilgi seridinin) disina tasiriyordu - uyari da o gorunmeyen alanda
+   * kaldigi icin Riskler/Bekleyen Konular kartlarinda hic okunamiyordu.
+   */
+  const shown = (k) => (removedOf(k) > 0 ? items[k].concat(noteText(k)) : items[k]);
+
+  SECTION_KEYS.forEach((k) => {
+    ladder[k] = ladderFor(shown(k));
     idx[k] = 0;
     // Tek basina (satir ortagi olmadan) avail'e bile sigmiyorsa onceden kucult.
-    while (idx[k] < ladder[k].length - 1 && cardH(sections[k], ladder[k][idx[k]]) > avail) idx[k]++;
+    while (idx[k] < ladder[k].length - 1 && cardH(shown(k), ladder[k][idx[k]]) > avail) idx[k]++;
   });
 
   const fsOf = (k) => ladder[k][idx[k]];
-  const rowH = (row) => Math.max(...ROW_KEYS[row].map((k) => cardH(sections[k], fsOf(k))));
+  const rowH = (row) => Math.max(...ROW_KEYS[row].map((k) => cardH(shown(k), fsOf(k))));
 
   let guard = 0;
   while (guard++ < 2000) {
@@ -271,22 +315,19 @@ export function fitContent(d, cardsTop) {
     if (topH + G.GAP_Y + botH <= avail) break;
     const row = topH >= botH ? "top" : "bottom";
     const [a, b] = ROW_KEYS[row];
-    const tallerKey = cardH(sections[a], fsOf(a)) >= cardH(sections[b], fsOf(b)) ? a : b;
+    const tallerKey = cardH(shown(a), fsOf(a)) >= cardH(shown(b), fsOf(b)) ? a : b;
     if (idx[tallerKey] < ladder[tallerKey].length - 1) {
       idx[tallerKey]++;
       continue;
     }
-    if (sections[tallerKey].length <= 1) break; // daha fazla kucultulemez/kirpilamiz, tasmaya izin ver
-    sections[tallerKey].pop();
-    removed[tallerKey]++;
+    if (items[tallerKey].length <= 1) break; // daha fazla kucultulemez/kirpilamiz, tasmaya izin ver
+    items[tallerKey].pop();
+    shrunk[tallerKey]++;
   }
 
-  SECTION_KEYS.forEach((k) => {
-    if (removed[k] > 0) sections[k].push(`+${removed[k]} madde daha (slayda sığmadı — metni kısaltın veya madde sayısını azaltın)`);
-  });
-
+  const sections = {};
   const fsByKey = {};
-  SECTION_KEYS.forEach((k) => { fsByKey[k] = fsOf(k); });
+  SECTION_KEYS.forEach((k) => { sections[k] = shown(k); fsByKey[k] = fsOf(k); });
 
   const natural = { topH: rowH("top"), botH: rowH("bottom") };
   const { topH, botH } = stretchRowHeights(natural.topH, natural.botH, cardsTop);
