@@ -523,7 +523,21 @@ function MainApp({ theme, toggleTheme, personnel, presentationId, newForTeamId, 
   }, [activeDashDataBase]);
 
   const effectiveDashDataBase = dashDataOverride || activeDashDataBase;
-  const activeDashData = effectiveDashDataBase ? { ...effectiveDashDataBase, tableHeaders } : effectiveDashDataBase;
+  // Henuz hicbir veri kaynagi hesaplanmamisken (Manuel Gir'de "Hesapla"
+  // basilmadi, Excel yuklenmedi vb. - effectiveDashDataBase null) ESKIDEN
+  // tableHeaders BURADA tamamen kaybediliyordu (asagidaki satir hicbir sey
+  // dondurmuyordu, DashboardSlideCanvas'a bos obje gidiyordu) - kullanici
+  // "Kişi Tablosu Başlıkları"nı degistirse bile onizlemede hicbir zaman
+  // gorulmuyordu (kullanici bildirimi 2026-08-24: "manuel girmede kişi
+  // tablosu başlıkları çalışmıyor ... previewda göremiyorum"). tableHeaders
+  // varsa, veri henuz yokken de EN AZINDAN o alani tasiyan bir nesne
+  // dondurulur ki DashboardSlideCanvas'in "veri yok" dalinda (emptyDashData +
+  // dd.tableHeaders) baslikları görsün.
+  const activeDashData = effectiveDashDataBase
+    ? { ...effectiveDashDataBase, tableHeaders }
+    : tableHeaders
+      ? { tableHeaders }
+      : effectiveDashDataBase;
 
   // "Jira'dan Çek" - backend'e senkronizasyon istegini tetikler (arka plan
   // isleyicisine devredilir - bkz. JiraSyncProcessor / JiraSyncAsyncConfig).

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import Modal from "../shared/Modal";
 import Button from "../shared/Button";
-import { IconEdit, IconCheckCircle, IconRocket } from "../shared/icons";
+import { IconEdit, IconCheckCircle, IconRocket, IconPlusCircle } from "../shared/icons";
 import { sanitizeDecimalInput, sanitizeIntegerInput, DAV_COLORS, initialsOf } from "../../lib/format";
 import { emptyDashData } from "../../lib/emptyDashData";
 
@@ -246,6 +246,17 @@ export default function DashboardEditModal({ open, onClose, dashData, onApply, h
               placeholder="örn: 37"
             />
           </div>
+          <div className="dashedit-tile">
+            <div className="dashedit-tile-label">
+              <IconPlusCircle className="field-icon" />Yeni Eklenen İş Yükü (A/G)
+            </div>
+            <input
+              inputMode="numeric"
+              value={draft.delta?.eklenen ?? ""}
+              onChange={(e) => updateDelta("eklenen", sanitizeIntegerInput(e.target.value))}
+              placeholder="örn: 12"
+            />
+          </div>
           {hasFte && (
             <div className="dashedit-tile">
               <div className="dashedit-tile-label">
@@ -291,7 +302,18 @@ export default function DashboardEditModal({ open, onClose, dashData, onApply, h
                 </label>
                 <label className="dashedit-metric">
                   <span>Açık</span>
-                  <input inputMode="decimal" value={p.acik} onChange={(e) => updatePerson(i, { acik: num(sanitizeDecimalInput(e.target.value)) })} />
+                  <input
+                    inputMode="decimal"
+                    value={p.acik}
+                    onChange={(e) => {
+                      const v = num(sanitizeDecimalInput(e.target.value));
+                      // Açık degisince Kapasite % (doluluk = açık/kapasite) de
+                      // yeniden hesaplanir - bkz. Kapasite input'undaki AYNI
+                      // gerekce.
+                      const kap = num(p.kapasite);
+                      updatePerson(i, { acik: v, doluluk: kap > 0 ? v / kap : 0 });
+                    }}
+                  />
                 </label>
                 <label className="dashedit-metric">
                   <span>Kapasite</span>
@@ -301,14 +323,21 @@ export default function DashboardEditModal({ open, onClose, dashData, onApply, h
                     onChange={(e) => {
                       const v = num(sanitizeDecimalInput(e.target.value));
                       // Kapasite elle degistirilince "bakimli" (bakim hariç)
-                      // kapasite de AYNI oranda yeniden hesaplanir - yoksa
-                      // Kapasite Farkı eski (stale) kapasite degerini
+                      // kapasite VE Kapasite % (doluluk = açık/kapasite) AYNI
+                      // anda yeniden hesaplanir - yoksa Kapasite Farkı ve
+                      // Kapasite % ekrandaki eski (stale) kapasite degerini
                       // kullanmaya devam ederdi (kullanici bildirimi
                       // 2026-08-24: "editlenen bu kapasite değeri
                       // düzenlenince bakımlı doluluk bu değere göre
-                      // tekrardan hesaplanmıyor").
+                      // tekrardan hesaplanmıyor" ve "%122 yazan kapasitenin
+                      // güncellenmesi lazımdı güncellenmedi").
                       const oran = p.bakimOrani != null ? num(p.bakimOrani) : 0;
-                      updatePerson(i, { kapasite: v, bakimliKapasite: v * (1 - oran) });
+                      const acik = num(p.acik);
+                      updatePerson(i, {
+                        kapasite: v,
+                        bakimliKapasite: v * (1 - oran),
+                        doluluk: v > 0 ? acik / v : 0,
+                      });
                     }}
                   />
                 </label>
