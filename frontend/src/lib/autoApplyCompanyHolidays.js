@@ -2,19 +2,24 @@ import { ensureTeamMember, fetchCompanyWideLeaves, fetchMemberLeaves, createLeav
 import { sumFractions } from "./leaveDays";
 
 /**
- * Excel'den yuklenen kisi listesine, sirket takvimindeki (SIRKET_TATILI) TUM
- * tatil gunlerini OTOMATIK olarak izin kaydi olarak ekler - Excel'deki Toplam/
- * Tamamlanan sayilari zaten bu tatiller dusulmus sekilde hazirlandigi icin
- * (bkz. kullanici bildirimi), kullanicinin her kisi icin tek tek "İzin Ekle"
- * acip sirket takviminden secmesine gerek kalmaz; LeaveDaysField'daki popover
- * yine de acilir ve bu kayitlari "zaten eklenmis" olarak gosterir/duzenlemeye
- * izin verir.
+ * Kisi listesine, sirket takvimindeki (SIRKET_TATILI) TUM tatil gunlerini
+ * OTOMATIK olarak izin kaydi olarak ekler - kullanicinin her kisi icin tek
+ * tek "İzin Ekle" acip sirket takviminden secmesine gerek kalmaz;
+ * LeaveDaysField'daki popover yine de acilir ve bu kayitlari "zaten eklenmis"
+ * olarak gosterir/duzenlemeye izin verir.
+ *
+ * İKİ cagiran nokta var: Excel yuklendiginde TUM kisi listesi icin birden
+ * (bkz. App.jsx - Excel'deki Toplam/Tamamlanan sayilari zaten bu tatiller
+ * dusulmus sekilde hazirlandigi icin) VE Manuel Gir'de bir kisinin adi
+ * girilip alandan cikildiginda TEK kisi icin (bkz. MemberCard.jsx onBlur -
+ * kullanici bildirimi, 2026-08-21: "bu izinle kişi manuel eklenirken zaten
+ * otomatik gelmesi lazım" - eskiden Manuel Gir'de bu BILEREK tetiklenmiyordu,
+ * kullanici artik bunu istiyor).
  *
  * Zaten eklenmis (ayni start/end tarihli) kayitlar TEKRAR eklenmez - Excel
- * yeniden yuklenirse/sayfa yenilenirse kopya olusturulmaz. Best-effort: tek
- * bir kisi/tatil basarisiz olursa digerlerini durdurmaz, sessizce atlar (agir
- * bir Excel akisini ilk yuklemede tek bir 400/401 ile tamamen kilitlememek
- * icin - kullanici gerekirse elle "İzin Ekle" ile ekleyebilir).
+ * yeniden yuklenirse/ayni isim tekrar blur olursa kopya olusturulmaz.
+ * Best-effort: tek bir kisi/tatil basarisiz olursa digerlerini durdurmaz,
+ * sessizce atlar (kullanici gerekirse elle "İzin Ekle" ile ekleyebilir).
  *
  * @param {{name:string, role:string}[]} persons
  * @param {number|string} teamId
@@ -46,7 +51,7 @@ export async function autoApplyCompanyHolidays(persons, teamId) {
         await createLeavePeriod({
           name: h.name, type: "YILLIK_IZIN", scope: "TEAM_MEMBER", teamMemberId: member.id,
           startDate: h.startDate, endDate: h.endDate, dayFraction: h.dayFraction,
-          description: "Şirket takviminden otomatik eklendi (Excel yükleme)",
+          description: "Şirket takviminden otomatik eklendi",
         });
       }
 

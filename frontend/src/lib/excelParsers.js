@@ -1,5 +1,5 @@
 import * as XLSX from "xlsx";
-import { trDDMM, xd, autoRange } from "./format";
+import { trDDMM, xd, autoRange, initialsOf } from "./format";
 import { PRIORITY_ORDER } from "./geometry";
 import { makeSuggestion } from "./suggestions";
 
@@ -254,24 +254,33 @@ export function parseDashboardExcel(arrayBuffer, fallbackTeamName) {
   };
 
   const kapMap = {};
+  const bakimliKapMap = {};
   const roleMap = {};
   if (wb.Sheets["Kapasite"]) {
     const K = XLSX.utils.sheet_to_json(wb.Sheets["Kapasite"], { header: 1, defval: null });
     const kh = (K[0] || []).map((x) => (x == null ? "" : String(x)));
     const nameCol = kh.findIndex((x) => x.includes("Kişi"));
-    // "Kalan İş Günü" bakim/SR orani dusulmeden ONCEKI ham kalan gun sayisidir;
-    // Kapasite Açığı/Fazlası (Rapor sayfasindaki "Bakım Hariç Kalan Kapasite" -
-    // "Kalan Efor") ile tutarli olmasi icin bakim orani dusulmus "Bakım Hariç
-    // Kalan Kapasite" kolonu kullanilmali (bkz. CapacityCalculationService.java
-    // - backend ayni sekilde maintainedCapacity kullanir, remainingCapacity degil).
-    const kalanCol = kh.findIndex((x) => x.trim() === "Bakım Hariç Kalan Kapasite");
+    // "Kapasite" gostergesi HERHANGI BIR HESAPLAMA YAPILMADAN dogrudan "Kalan
+    // İş Günü" kolonundan okunur - bakim/SR orani ONCEDEN burada (frontend'de)
+    // dusuluyordu ("Bakım Hariç Kalan Kapasite" kolonu okunuyordu), bu da
+    // kullaniciya once ham degeri (orn. 59,5) sonra bakim-dusulmus degeri
+    // (orn. 50,20) gosteriyormus gibi kafa karistirici bir fark yaratiyordu
+    // (kullanici bildirimi 2026-08-24: "kapasite verisi herhangi bir
+    // hesaplama yapılmadan kalan iş gününden çekilecek"). "Bakım Hariç Kalan
+    // Kapasite" kolonu ARTIK SADECE Kapasite Farkı hesabinda (bkz.
+    // DashboardEditModal computeKpisFromPersons / useDashboardData acikFazla)
+    // ayri bir alan (bakimliKapasite) olarak kullanilir, goruntulenen
+    // "Kapasite" degerini ETKİLEMEZ.
+    const kalanCol = kh.findIndex((x) => x.trim() === "Kalan İş Günü");
+    const bakimliCol = kh.findIndex((x) => x.trim() === "Bakım Hariç Kalan Kapasite");
     const roleCol = kh.findIndex((x) => x.trim() === "Rol");
-    if (nameCol >= 0 && kalanCol >= 0) {
+    if (nameCol >= 0 && (kalanCol >= 0 || bakimliCol >= 0)) {
       for (let i = 1; i < K.length; i++) {
         const row = K[i];
         if (row && row[nameCol] != null && String(row[nameCol]).trim() !== "") {
           const name = String(row[nameCol]).trim();
-          kapMap[name] = Number(row[kalanCol]) || 0;
+          kapMap[name] = kalanCol >= 0 ? Number(row[kalanCol]) || 0 : Number(row[bakimliCol]) || 0;
+          if (bakimliCol >= 0) bakimliKapMap[name] = Number(row[bakimliCol]) || 0;
           if (roleCol >= 0 && row[roleCol] != null && String(row[roleCol]).trim() !== "") {
             roleMap[name] = String(row[roleCol]).trim();
           }
@@ -283,10 +292,11 @@ export function parseDashboardExcel(arrayBuffer, fallbackTeamName) {
   const persons = pcols.map((p) => ({
     name: p.name,
     role: roleMap[p.name] || "",
-    initials: p.name.slice(0, 2).toUpperCase(),
+    initials: initialsOf(p.name),
     toplam: g(rT, p.c),
     tamamlanan: Math.round(g(rDone, p.c)),
     kapasite: kapMap[p.name] != null ? kapMap[p.name] : 0,
+    bakimliKapasite: bakimliKapMap[p.name] != null ? bakimliKapMap[p.name] : null,
     doluluk: g(rDol, p.c),
     durum: rDur ? String(rDur[p.c]) : "",
   }));

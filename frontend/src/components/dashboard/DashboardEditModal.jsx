@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import Modal from "../shared/Modal";
 import Button from "../shared/Button";
 import { IconEdit, IconCheckCircle, IconRocket } from "../shared/icons";
-import { sanitizeDecimalInput, sanitizeIntegerInput, DAV_COLORS } from "../../lib/format";
+import { sanitizeDecimalInput, sanitizeIntegerInput, DAV_COLORS, initialsOf } from "../../lib/format";
 import { emptyDashData } from "../../lib/emptyDashData";
 
 const DURUM_OPTIONS = ["Uygun", "Dikkat", "Risk", "Yüksek Risk"];
@@ -17,10 +17,6 @@ function emptyPerson() {
 function num(v) {
   const n = Number(String(v).replace(",", "."));
   return Number.isFinite(n) ? n : 0;
-}
-
-function initialsOf(name) {
-  return (name || "?").trim().slice(0, 2).toUpperCase() || "?";
 }
 
 /**
@@ -157,6 +153,20 @@ export default function DashboardEditModal({ open, onClose, dashData, onApply, h
   const removePerson = (idx) => setDraft((prev) => ({ ...prev, persons: prev.persons.filter((_, i) => i !== idx) }));
   const addPerson = () => setDraft((prev) => ({ ...prev, persons: [...(prev.persons || []), emptyPerson()] }));
 
+  // "Ek göstergeler" (özel alanlar, orn. RPA'daki "Toplam FTE") - Excel/Jira
+  // kaynagindan gelenler de dahil, buradan basligi VE degeri elle
+  // degistirilebilsin/silinebilsin/yenisi eklenebilsin diye (kullanici
+  // bildirimi 2026-08-24: "kapasite dashboardta özel alanlarda yazan
+  // değerleri ve başlıklarını da editleyebilmek istiyorlar"). Manuel Gir'deki
+  // customKpis CRUD'unun (bkz. useManualDashboard.js) ayni sekilde bu
+  // taslak (draft) uzerinde calisan karsiligi.
+  const updateCustomKpi = (idx, patch) =>
+    setDraft((prev) => ({ ...prev, customKpis: (prev.customKpis || []).map((k, i) => (i === idx ? { ...k, ...patch } : k)) }));
+  const removeCustomKpi = (idx) =>
+    setDraft((prev) => ({ ...prev, customKpis: (prev.customKpis || []).filter((_, i) => i !== idx) }));
+  const addCustomKpi = () =>
+    setDraft((prev) => ({ ...prev, customKpis: [...(prev.customKpis || []), { label: "", value: "", unit: "" }] }));
+
   // Ekip Özet artik ELLE GIRILMEZ - her render'da kisi satirlarindan yeniden
   // turetilir (bkz. computeKpisFromPersons). "Genel Durum" tek istisnadir:
   // PO'nun sunumda vermek istedigi mesaj her zaman esiklerle birebir
@@ -164,7 +174,8 @@ export default function DashboardEditModal({ open, onClose, dashData, onApply, h
   const computedKpis = computeKpisFromPersons(draft.persons, draft.kpis?.durum);
 
   const handleApply = () => {
-    onApply({ ...draft, kpis: computedKpis });
+    const customKpis = (draft.customKpis || []).filter((k) => k.label.trim() && k.value !== "");
+    onApply({ ...draft, kpis: computedKpis, customKpis });
     onClose();
   };
 
@@ -284,7 +295,22 @@ export default function DashboardEditModal({ open, onClose, dashData, onApply, h
                 </label>
                 <label className="dashedit-metric">
                   <span>Kapasite</span>
-                  <input inputMode="decimal" value={p.kapasite} onChange={(e) => updatePerson(i, { kapasite: num(sanitizeDecimalInput(e.target.value)) })} />
+                  <input
+                    inputMode="decimal"
+                    value={p.kapasite}
+                    onChange={(e) => {
+                      const v = num(sanitizeDecimalInput(e.target.value));
+                      // Kapasite elle degistirilince "bakimli" (bakim hariç)
+                      // kapasite de AYNI oranda yeniden hesaplanir - yoksa
+                      // Kapasite Farkı eski (stale) kapasite degerini
+                      // kullanmaya devam ederdi (kullanici bildirimi
+                      // 2026-08-24: "editlenen bu kapasite değeri
+                      // düzenlenince bakımlı doluluk bu değere göre
+                      // tekrardan hesaplanmıyor").
+                      const oran = p.bakimOrani != null ? num(p.bakimOrani) : 0;
+                      updatePerson(i, { kapasite: v, bakimliKapasite: v * (1 - oran) });
+                    }}
+                  />
                 </label>
                 <label className="dashedit-metric">
                   <span>Toplam</span>
@@ -315,6 +341,40 @@ export default function DashboardEditModal({ open, onClose, dashData, onApply, h
         </div>
         <button type="button" className="dashedit-add" onClick={addPerson}>
           + Takım üyesi ekle
+        </button>
+
+        <div className="dashedit-section-label">
+          <i /> Ek göstergeler
+        </div>
+        <div className="mhint" style={{ margin: "-4px 0 8px" }}>
+          Dashboard'ta ekstra kart olarak gösterilen özel alanlar (örn. "Toplam FTE") — başlık ve değerini
+          buradan değiştirebilir, yenisini ekleyip silebilirsiniz.
+        </div>
+        <div className="dashedit-persons">
+          {(draft.customKpis || []).map((k, i) => (
+            <div className="dashedit-person" key={i} style={{ "--i": i }}>
+              <div className="dashedit-metrics">
+                <label className="dashedit-metric">
+                  <span>Başlık</span>
+                  <input placeholder="örn: Toplam FTE" value={k.label} onChange={(e) => updateCustomKpi(i, { label: e.target.value })} />
+                </label>
+                <label className="dashedit-metric">
+                  <span>Değer</span>
+                  <input placeholder="örn: 25,7" value={k.value} onChange={(e) => updateCustomKpi(i, { value: e.target.value })} />
+                </label>
+                <label className="dashedit-metric">
+                  <span>Birim / not (opsiyonel)</span>
+                  <input placeholder="örn: İş kalemlerinden" value={k.unit || ""} onChange={(e) => updateCustomKpi(i, { unit: e.target.value })} />
+                </label>
+              </div>
+              <button type="button" className="dashedit-remove" title="Göstergeyi sil" onClick={() => removeCustomKpi(i)}>
+                ×
+              </button>
+            </div>
+          ))}
+        </div>
+        <button type="button" className="dashedit-add" onClick={addCustomKpi}>
+          + Gösterge ekle
         </button>
 
         <div className="dashedit-foot">

@@ -3,6 +3,8 @@ import Modal from "./Modal";
 import Button from "./Button";
 import SlideCanvas from "../sprint/SlideCanvas";
 import DashboardSlideCanvas from "../dashboard/DashboardSlideCanvas";
+import VelocityBurndownSlideCanvas from "../sprint/VelocityBurndownSlideCanvas";
+import { commonEndDate } from "../../lib/jointDeckBuilder";
 import { useCanvasFit } from "../../hooks/useCanvasFit";
 import { useCountdown, formatMmSs } from "../../hooks/useCountdown";
 import { useFullscreen } from "../../hooks/useFullscreen";
@@ -53,10 +55,31 @@ export default function PresentationRunnerModal({ open, onClose, queue, assets }
 
   const slides = useMemo(() => {
     const out = [];
+    if (queue?.length) {
+      // TEK ortak kapak, herhangi bir takimdan ONCE - teamIndex=-1 verilir ki
+      // ilk takimin suresi dolunca advanceTeam'in "sonraki teamIndex" aramasi
+      // (teamIndex+1 === 0) sorunsuz calissin, ayri bir ozel durum gerekmez.
+      // Eskiden PPTX ciktisinda olan bu kapak, canli "Sunumu Başlat" modunda
+      // hic gorunmuyordu (bkz. kullanici bildirimi, 2026-08-21: "kapak
+      // sayfası ... gelmiyor ... kapak tek bir tane ortak olacak").
+      out.push({
+        key: "joint-cover",
+        teamIndex: -1,
+        item: { teamName: "Ortak Sprint Sunumu", subtitle: commonEndDate(queue) },
+        kind: "cover",
+        label: "Kapak",
+      });
+    }
     (queue || []).forEach((item, teamIndex) => {
       out.push({ key: `${teamIndex}-content`, teamIndex, item, kind: "content", label: "İçerik Slaytı" });
       if (item.dashData?.kpis) {
         out.push({ key: `${teamIndex}-dashboard`, teamIndex, item, kind: "dashboard", label: "Kapasite Dashboard" });
+      }
+      // Velocity&Burndown eskiden bu listede hic yoktu (bkz. kullanici
+      // bildirimi, 2026-08-21) - PPTX export'taki addVelocityBurndownSlide
+      // cagrisiyla AYNI kosul: sadece gercekten yuklu bir gorsel varsa.
+      if (item.veloData?.burndownUrl || item.veloData?.velocityUrl) {
+        out.push({ key: `${teamIndex}-velocity`, teamIndex, item, kind: "velocity", label: "Velocity & Burndown" });
       }
     });
     return out;
@@ -74,7 +97,12 @@ export default function PresentationRunnerModal({ open, onClose, queue, assets }
   const currentSlide = slides[slideIndex] || null;
   const current = currentSlide?.item || null;
   const teamIndex = currentSlide?.teamIndex ?? 0;
-  const currentSeconds = current ? teamSeconds(current) : 0;
+  // Ortak kapak icin sayac YOK - herhangi bir takima ait olmadigi icin
+  // otomatik ilerlemez, kullanici "›" ile kendi istedigi zaman gecer (bkz.
+  // kullanici bildirimi, 2026-08-21: "kapaktaki 10 saniye geri sayımı
+  // kaldır"). totalSeconds=0/falsy oldugunda useCountdown hic interval
+  // kurmuyor (bkz. o hook'un kendi kontrolu), yani otomatik gecis de olmaz.
+  const currentSeconds = !current || currentSlide.kind === "cover" ? 0 : teamSeconds(current);
   const active = open && !finished && !!current;
 
   /** Suresi dolan takimdan SIRADAKI TAKIMIN ilk slaytina gecer. */
@@ -91,7 +119,8 @@ export default function PresentationRunnerModal({ open, onClose, queue, assets }
   // suresi AYNI ise (orn. ikisi de 5 dk) totalSeconds degismedigi icin sayac
   // kendiliginden sifirlanmazdi - takim degisiminde her zaman bastan baslar.
   const remaining = useCountdown(currentSeconds, active, advanceTeam, teamIndex);
-  const critical = active && remaining <= 15;
+  const isCoverSlide = currentSlide?.kind === "cover";
+  const critical = active && !isCoverSlide && remaining <= 15;
 
   const goTo = (delta) => {
     if (finished) {
@@ -151,7 +180,7 @@ export default function PresentationRunnerModal({ open, onClose, queue, assets }
           ) : (
             <>
               <span className="presentation-runner-team">{current?.teamName}</span>
-              <span className="timer-badge">{formatMmSs(remaining)}</span>
+              {!isCoverSlide && <span className="timer-badge">{formatMmSs(remaining)}</span>}
             </>
           )}
         </div>
@@ -205,11 +234,27 @@ export default function PresentationRunnerModal({ open, onClose, queue, assets }
       </div>
       <div className="zoomstagewrap">
         <div className="zoomstage" ref={boxRef}>
+          {open && current && currentSlide.kind === "cover" && (
+            <SlideCanvas data={current} tab="cover" assets={assets} scale={scale} />
+          )}
           {open && current && currentSlide.kind === "dashboard" && (
             <DashboardSlideCanvas dd={current.dashData || {}} assets={assets} scale={scale} />
           )}
           {open && current && currentSlide.kind === "content" && (
             <SlideCanvas data={current.sprintData} tab="content" assets={assets} scale={scale} />
+          )}
+          {open && current && currentSlide.kind === "velocity" && (
+            <VelocityBurndownSlideCanvas
+              data={current.sprintData}
+              burndownUrl={current.veloData?.burndownUrl}
+              velocityUrl={current.veloData?.velocityUrl}
+              burndownZoomX={current.veloData?.burndownZoomX}
+              burndownZoomY={current.veloData?.burndownZoomY}
+              velocityZoomX={current.veloData?.velocityZoomX}
+              velocityZoomY={current.veloData?.velocityZoomY}
+              assets={assets}
+              scale={scale}
+            />
           )}
           {open && finished && (
             <div className="presentation-runner-done-overlay">

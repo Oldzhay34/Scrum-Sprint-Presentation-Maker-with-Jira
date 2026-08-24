@@ -68,9 +68,29 @@ export function useUploadedImage(uploadFn) {
     setZoomY(1);
   };
 
+  // Kayitli bir sunum acilirken (bkz. App.jsx applyContent) onceden
+  // KAYDEDILMIS bir gorseli geri yukler - setFromFile'in aksine ne FileReader
+  // ne uploadFn cagirir (gorsel zaten base64 olarak elde var, yeniden
+  // yuklenecek bir Dosya nesnesi yok) - bkz. kullanici bildirimi, 2026-08-21:
+  // "velocity&burndown sayfası gelmiyor... ortak sunumdada görmek istiyorum"
+  // (bunun icin Velocity&Burndown'in ARTIK content'e kaydedilmesi gerekti,
+  // bkz. App.jsx buildSaveContent/veloData).
+  const restore = (saved) => {
+    if (!saved?.url) {
+      reset();
+      return;
+    }
+    setUrl(saved.url);
+    setNaturalWidth(saved.naturalWidth ?? null);
+    setNaturalHeight(saved.naturalHeight ?? null);
+    setZoomX(saved.zoomX ?? 1);
+    setZoomY(saved.zoomY ?? 1);
+    setUploadError(null);
+  };
+
   return {
     url, naturalWidth, naturalHeight, uploading, uploadError,
     zoomX, setZoomX, zoomY, setZoomY,
-    setFromFile, reset,
+    setFromFile, reset, restore,
   };
 }

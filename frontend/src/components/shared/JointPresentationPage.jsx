@@ -7,10 +7,11 @@ import PresentationRunnerModal from "./PresentationRunnerModal";
 import PptxTemplateModal from "./PptxTemplateModal";
 import SlideCanvas from "../sprint/SlideCanvas";
 import DashboardSlideCanvas from "../dashboard/DashboardSlideCanvas";
+import VelocityBurndownSlideCanvas from "../sprint/VelocityBurndownSlideCanvas";
 import { IconUsers, IconCheckCircle, IconLayers, IconDownload } from "./icons";
 import { fetchTeams, fetchLatestPresentationsByTeams, recordPresentationDownload } from "../../lib/apiClient";
 import { sprintDataFromContent } from "../../lib/presentationContent";
-import { buildJointDeck } from "../../lib/jointDeckBuilder";
+import { buildJointDeck, commonEndDate } from "../../lib/jointDeckBuilder";
 import { SECTION_KEYS, linesOf } from "../../lib/geometry";
 import { ASSETS } from "../../assets/pptxAssets";
 import { resolveIsAdmin } from "../../lib/teamTypes";
@@ -118,14 +119,32 @@ export default function JointPresentationPage({ personnel, theme, onToggleTheme 
   // Coklu takim ızgarasinda bir takimin sunumunu tek basina, buyultulmus
   // incelemek icin - { teamId, tab } | null. tab, hangi mini-slide'a
   // tiklandiysa onunla baslar, modal icinde sekmeler arasi gecilebilir.
+  // teamId="__cover__" ozel bir deger: TEK ortak kapagin kendi buyultulmus
+  // gorunumu icin (herhangi bir takima ait degil, bkz. kullanici bildirimi
+  // 2026-08-21: "kapak tek bir tane ortak olacak").
   const [zoom, setZoom] = useState(null);
-  const zoomResult = zoom ? results?.find((r) => r.teamId === zoom.teamId) : null;
+  const isCoverZoom = zoom?.teamId === "__cover__";
+  const zoomResult = zoom && !isCoverZoom ? results?.find((r) => r.teamId === zoom.teamId) : null;
+  const hasVeloData = (r) => !!(r?.veloData?.burndownUrl || r?.veloData?.velocityUrl);
   // Kapasite sekmesi veri olmasa da HER ZAMAN gosterilir - slayt bos
   // iskeletle ciziliyor (bkz. addDashboardSlide/DashboardSlideCanvas) ve
-  // PPTX ciktisiyla ayni sayfalar onizlemede de gorunsun.
-  const zoomTabs = zoomResult
-    ? [{ key: "content", label: "İçerik Slaytı" }, { key: "dashboard", label: "Kapasite Dashboard" }]
-    : null;
+  // PPTX ciktisiyla ayni sayfalar onizlemede de gorunsun. Velocity&Burndown
+  // ise SADECE veri varsa sekme olarak eklenir (bkz. kullanici bildirimi,
+  // 2026-08-21 - eskiden bu sekme/slayt hic yoktu).
+  const zoomTabs = isCoverZoom
+    ? [{ key: "cover", label: "Kapak" }]
+    : zoomResult
+      ? [
+          { key: "content", label: "İçerik Slaytı" },
+          { key: "dashboard", label: "Kapasite Dashboard" },
+          ...(hasVeloData(zoomResult) ? [{ key: "velocity", label: "Velocity & Burndown" }] : []),
+        ]
+      : null;
+  // Tek bir ortak kapak icin sentetik "sprintData" - SlideCanvas'in "cover"
+  // sekmesi sadece teamName/subtitle okur (bkz. SlideCanvas.jsx), ayri bir
+  // bilesen yazmaya gerek kalmadan aynen PPTX'teki addJointCoverSlide ile
+  // AYNI baslik + ortak bitis tarihini gosterir.
+  const jointCoverData = { teamName: "Ortak Sprint Sunumu", subtitle: commonEndDate(results || []) };
 
   useEffect(() => {
     fetchTeams()
@@ -171,6 +190,7 @@ export default function JointPresentationPage({ personnel, theme, onToggleTheme 
             content: p.content || {},
             sprintData: sprintDataFromContent(p.content || {}),
             dashData: p.content?.dashData || null,
+            veloData: p.content?.veloData || null,
           };
         })
         .filter(Boolean);
@@ -214,7 +234,7 @@ export default function JointPresentationPage({ personnel, theme, onToggleTheme 
     setExporting(true);
     setError(null);
     try {
-      const pptx = buildJointDeck(results, assets, theme === "dark" ? "dark" : "light", cornerMesh);
+      const pptx = await buildJointDeck(results, assets, theme === "dark" ? "dark" : "light", cornerMesh);
       await pptx.writeFile({ fileName: "Ortak_Sprint_Sunumu.pptx" });
       await recordPresentationDownload("BATCH", results.map((r) => r.teamId)).catch(() => {
         // indirme kaydi best-effort - basarisiz olsa da kullaniciyi engellemez
@@ -334,6 +354,14 @@ export default function JointPresentationPage({ personnel, theme, onToggleTheme 
 
         {results && results.length === 0 && <div className="presentation-list-empty">Seçilen takımların kayıtlı sunumu bulunamadı.</div>}
 
+        {results && results.length > 0 && (
+          <div className="joint-cover-row" style={{ marginBottom: 16 }}>
+            <MiniSlideBox width={300} onZoom={() => setZoom({ teamId: "__cover__", tab: "cover" })}>
+              {(scale) => <SlideCanvas data={jointCoverData} tab="cover" assets={assets} scale={scale} />}
+            </MiniSlideBox>
+          </div>
+        )}
+
         <div className="joint-team-grid">
           {results?.map((r) => {
             const idx = teams.findIndex((t) => t.id === r.teamId);
@@ -380,6 +408,23 @@ export default function JointPresentationPage({ personnel, theme, onToggleTheme 
                   <MiniSlideBox onZoom={() => setZoom({ teamId: r.teamId, tab: "dashboard" })}>
                     {(scale) => <DashboardSlideCanvas dd={r.dashData || {}} assets={assets} scale={scale} />}
                   </MiniSlideBox>
+                  {hasVeloData(r) && (
+                    <MiniSlideBox onZoom={() => setZoom({ teamId: r.teamId, tab: "velocity" })}>
+                      {(scale) => (
+                        <VelocityBurndownSlideCanvas
+                          data={r.sprintData}
+                          burndownUrl={r.veloData?.burndownUrl}
+                          velocityUrl={r.veloData?.velocityUrl}
+                          burndownZoomX={r.veloData?.burndownZoomX}
+                          burndownZoomY={r.veloData?.burndownZoomY}
+                          velocityZoomX={r.veloData?.velocityZoomX}
+                          velocityZoomY={r.veloData?.velocityZoomY}
+                          assets={assets}
+                          scale={scale}
+                        />
+                      )}
+                    </MiniSlideBox>
+                  )}
                 </div>
               </div>
             );
@@ -394,8 +439,22 @@ export default function JointPresentationPage({ personnel, theme, onToggleTheme 
         activeTab={zoom?.tab}
         onTabChange={(tab) => setZoom((z) => (z ? { ...z, tab } : z))}
         renderCanvas={(scale) =>
-          zoom?.tab === "dashboard" ? (
+          isCoverZoom ? (
+            <SlideCanvas data={jointCoverData} tab="cover" assets={assets} scale={scale} />
+          ) : zoom?.tab === "dashboard" ? (
             <DashboardSlideCanvas dd={zoomResult?.dashData || {}} assets={assets} scale={scale} />
+          ) : zoom?.tab === "velocity" ? (
+            <VelocityBurndownSlideCanvas
+              data={zoomResult?.sprintData}
+              burndownUrl={zoomResult?.veloData?.burndownUrl}
+              velocityUrl={zoomResult?.veloData?.velocityUrl}
+              burndownZoomX={zoomResult?.veloData?.burndownZoomX}
+              burndownZoomY={zoomResult?.veloData?.burndownZoomY}
+              velocityZoomX={zoomResult?.veloData?.velocityZoomX}
+              velocityZoomY={zoomResult?.veloData?.velocityZoomY}
+              assets={assets}
+              scale={scale}
+            />
           ) : (
             <SlideCanvas data={zoomResult?.sprintData} tab="content" assets={assets} scale={scale} />
           )

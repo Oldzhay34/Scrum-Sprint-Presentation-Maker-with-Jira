@@ -3,6 +3,21 @@
 
 export const TR_MONTHS = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"];
 
+/**
+ * Avatar rumuzu: ad'IN ilk harfi + soyad'IN ilk harfi (orn. "Pelinsu Çevikel"
+ * -> "PÇ"). Eskiden her yerde ismin ilk İKİ HARFİ kullanılıyordu (orn. "Pelinsu
+ * Çevikel" -> "PE") - kullanici bildirimi, 2026-08-21: "avatar ilk iki harf
+ * değilde isim soyismin ilk harfleri olacak". Ortadaki isimler (varsa) yok
+ * sayilir - sadece İLK ve SON kelime kullanilir. Tek kelimelik bir isimde
+ * (soyad girilmemis) eski davranisa (ilk iki harf) duser.
+ */
+export function initialsOf(name) {
+  const parts = (name || "").trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
 export function xd(v) {
   if (v == null || v === "") return null;
   let d;

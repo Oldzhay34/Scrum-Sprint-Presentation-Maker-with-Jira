@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import Modal from "../shared/Modal";
+import { IconCalendar, IconCheckCircle, IconPlusCircle } from "../shared/icons";
 import {
   ensureTeamMember,
   fetchCompanyWideLeaves,
@@ -17,6 +19,14 @@ function formatRange(p) {
   return p.startDate === p.endDate ? fmt(p.startDate) : `${fmt(p.startDate)}–${fmt(p.endDate)}`;
 }
 
+// JiraDashboardPanel/ManualDashboardForm'daki AYNI kucuk yardimci - bir
+// "premium-tile"in bos alanina tiklamak da icindeki input/select'i odaklasin
+// (bkz. o dosyalardaki ayni fonksiyon).
+function focusTileField(e) {
+  if (e.target.closest("input, select, textarea")) return;
+  e.currentTarget.querySelector("input, select, textarea")?.focus();
+}
+
 /**
  * Bir kişinin izin günü kaydini yonetir - hem MANUEL (serbest tarih araligi)
  * hem de ŞİRKET TAKVİMİNDEN (bkz. LeaveCalendarSeeder, sadece SIRKET_TATILI -
@@ -25,6 +35,11 @@ function formatRange(p) {
  * (manuel/Excel akislarindaki gecici kisiler) ilk ekleme aninda
  * ensureTeamMember ile ad'a gore bulunur/olusturulur - bkz. apiClient.js.
  * PersonMappingTable (Excel) VE MemberCard (manuel) TARAFINDAN ORTAK kullanilir.
+ *
+ * Gorsel tasarim DashboardEditModal ile AYNI "premium/Apple" dilini kullanir
+ * (".dashedit-box"/".premium-tile"/".premium-add-btn", bkz. theme.css) - eski
+ * surum duz beyaz kutu + minik metin butonlardan olusuyordu (kullanici
+ * bildirimi, 2026-08-21: "çok dümdüz js gibi duruyor").
  */
 export default function LeaveDaysField({ teamId, fullName, role, onTotalChange, reportDate = null, periodEnd = null }) {
   const [open, setOpen] = useState(false);
@@ -37,32 +52,14 @@ export default function LeaveDaysField({ teamId, fullName, role, onTotalChange, 
   const [manualStart, setManualStart] = useState("");
   const [manualEnd, setManualEnd] = useState("");
   const [manualFraction, setManualFraction] = useState("1");
-  const [openUp, setOpenUp] = useState(false);
   const boxRef = useRef(null);
-  const popoverRef = useRef(null);
-  // .pmrow/.bar (bu alanin bulundugu satir) "backdrop-filter" (frosted-glass
-  // gorunum) tasidigi icin KENDI stacking context'ini olusturuyor (isolation
-  // property'sinden BAGIMSIZ, sadece backdrop-filter varligi yeterli) - bu
-  // yuzden popover satirin disina tassa bile, DOM'da SONRAKI satirlar kendi
-  // context'lerini TEK PARCA halinde bunun UZERINE boyuyor, popover "aciliyor
-  // ama hemen kayboluyor" gibi gorunuyordu (bkz. kullanici bildirimi - Excel
-  // yukleme tablosunda alt satirlarin arkasinda kalıyordu). Kalici cozum:
-  // popover'i document.body'ye PORTAL ile tasimak (satirin/backdrop-filter'in
-  // stacking context'inden tamamen kacar) ve konumunu butonun ekran
-  // koordinatlarina gore fixed olarak hesaplamak - TopBar.jsx'teki
-  // settings-menu-panel'in ayni sebeple position:fixed kullanmasiyla ayni desen.
-  const anchorRectRef = useRef(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const onDocClick = (e) => {
-      const insideBox = boxRef.current && boxRef.current.contains(e.target);
-      const insidePopover = popoverRef.current && popoverRef.current.contains(e.target);
-      if (!insideBox && !insidePopover) setOpen(false);
-    };
-    document.addEventListener("mousedown", onDocClick);
-    return () => document.removeEventListener("mousedown", onDocClick);
-  }, [open]);
+  // Popup, butonun bulundugu satirin ("backdrop-filter" kaynakli kendi
+  // stacking context'i olusturan .pmrow/.bar) DISINA cikabilmesi icin
+  // document.body'ye PORTAL edilir - aksi halde acilir ama sonraki satirlarin
+  // ARKASINDA kalirdi (bkz. kullanici bildirimi - Excel yukleme tablosunda
+  // alt satirlarin arkasinda kayboluyordu). Kutu/backdrop/Escape artik ortak
+  // Modal bilesenine ait (DashboardEditModal ile AYNI desen).
+  const handleClose = () => setOpen(false);
 
   // "Önce ad soyad girin." hatasi, kullanici İzin Ekle'yi ad HENUZ bosken
   // actiginda (ensureMemberId) gosteriliyor. Isim SONRADAN yazildiginda bu
@@ -73,20 +70,6 @@ export default function LeaveDaysField({ teamId, fullName, role, onTotalChange, 
   useEffect(() => {
     if (fullName?.trim() && error === "Önce ad soyad girin.") setError(null);
   }, [fullName, error]);
-
-  // Her yeni acilista asagi-varsayimiyla basla; asil tasma kontrolu asagidaki
-  // efekt icerigi (loading/leaves/companyLeaves) render edildikce yapilir.
-  useEffect(() => {
-    if (open) setOpenUp(false);
-  }, [open]);
-
-  useEffect(() => {
-    if (!open || !popoverRef.current || !anchorRectRef.current) return;
-    const rect = popoverRef.current.getBoundingClientRect();
-    const overflowsBottom = rect.bottom > window.innerHeight - 8;
-    const fitsAbove = anchorRectRef.current.top - rect.height - 6 > 8;
-    setOpenUp(overflowsBottom && fitsAbove);
-  }, [open, loading, leaves, companyLeaves]);
 
   // SADECE rapor tarihinden SONRAYA dusen izin gunleri kapasiteden dusulur -
   // gecmis izinler zaten "Geçen İş Günü" icinde sayiliyor (bkz. leaveDays.js
@@ -130,9 +113,6 @@ export default function LeaveDaysField({ teamId, fullName, role, onTotalChange, 
   };
 
   const handleOpen = async () => {
-    if (!open && boxRef.current) {
-      anchorRectRef.current = boxRef.current.getBoundingClientRect();
-    }
     setOpen((o) => !o);
     if (!open) await ensureLoaded();
   };
@@ -219,73 +199,119 @@ export default function LeaveDaysField({ teamId, fullName, role, onTotalChange, 
       <button type="button" className="leave-days-btn" onClick={handleOpen} title="İzin günlerini yönet">
         📅 İzin{total > 0 ? `: ${total}g` : " Ekle"}
       </button>
-      {open && anchorRectRef.current && createPortal(
-        <div
-          className="leave-days-popover"
-          ref={popoverRef}
-          style={{
-            position: "fixed",
-            right: Math.max(8, window.innerWidth - anchorRectRef.current.right),
-            top: openUp ? "auto" : anchorRectRef.current.bottom + 6,
-            bottom: openUp ? window.innerHeight - anchorRectRef.current.top + 6 : "auto",
-          }}
-        >
-          <div className="leave-days-popover-title">İzin Günleri — {fullName || "—"}</div>
-          {loading && <div className="mhint">Yükleniyor…</div>}
-          {error && <div className="login-error" style={{ margin: "4px 0" }}>{error}</div>}
-
-          {leaves && leaves.length > 0 && (
-            <div className="leave-days-list">
-              {leaves.map((l) => (
-                <div className="leave-days-row" key={l.id}>
-                  <span className="leave-days-row-name" title={l.name}>{l.name}</span>
-                  <span className="leave-days-row-range">{formatRange(l)}</span>
-                  <span className="leave-days-row-fraction">{periodDays(l)}g</span>
-                  <button type="button" className="leave-days-row-del" onClick={() => remove(l.id)} title="Sil">×</button>
-                </div>
-              ))}
+      {open && createPortal(
+        <Modal open={open} onClose={handleClose} boxClassName="box dashedit-box">
+          <div className="dashedit-head">
+            <span className="dashedit-head-icon">
+              <IconCalendar style={{ width: 20, height: 20 }} />
+            </span>
+            <div className="dashedit-head-titles">
+              <span className="dashedit-title">İzin Günleri</span>
+              <span className="dashedit-badge">{fullName || "—"}</span>
             </div>
-          )}
-
-          {companyLeaves && companyLeaves.length > 0 && (
-            <>
-              <div className="leave-days-popover-subtitle">Şirket Takviminden Ekle</div>
-              <div className="leave-days-calendar-list">
-                {companyLeaves.map((c) => {
-                  const added = addedCompanyIds.has(`${c.startDate}_${c.endDate}`);
-                  return (
-                    <button
-                      type="button"
-                      key={c.id}
-                      className={`leave-days-calendar-item${added ? " added" : ""}`}
-                      disabled={added}
-                      onClick={() => addFromCompany(c)}
-                    >
-                      <span>{c.name}</span>
-                      <span className="leave-days-calendar-item-meta">{formatRange(c)} · {periodDays(c)}g</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </>
-          )}
-
-          <div className="leave-days-popover-subtitle">Elle Ekle</div>
-          <div className="leave-days-manual-form">
-            <input placeholder="Açıklama (ops.)" value={manualName} onChange={(e) => setManualName(e.target.value)} />
-            <div className="leave-days-manual-dates">
-              <input type="date" value={manualStart} onChange={(e) => setManualStart(e.target.value)} />
-              <input type="date" value={manualEnd} onChange={(e) => setManualEnd(e.target.value)} />
-              <select value={manualFraction} onChange={(e) => setManualFraction(e.target.value)}>
-                <option value="1">Tam gün</option>
-                <option value="0.5">Yarım gün</option>
-              </select>
-            </div>
-            <button type="button" className="addbar" onClick={addManual} disabled={!manualStart || !manualEnd}>
-              + Ekle
+            <button type="button" className="dashedit-close" onClick={handleClose} aria-label="Kapat">
+              ×
             </button>
           </div>
-        </div>,
+
+          <div className="dashedit-body">
+            {loading && <div className="mhint">Yükleniyor…</div>}
+            {error && <div className="login-error" style={{ margin: "0 0 14px" }}>{error}</div>}
+
+            {leaves && leaves.length > 0 && (
+              <>
+                <div className="dashedit-section-label">
+                  <i /> Kayıtlı İzinler
+                </div>
+                <div className="leave-rows" style={{ marginBottom: 22 }}>
+                  {leaves.map((l) => (
+                    <div className="leave-row" key={l.id}>
+                      <span className="leave-row-name" title={l.name}>{l.name}</span>
+                      <span className="leave-row-range">{formatRange(l)}</span>
+                      <span className="leave-row-chip">{periodDays(l)}g</span>
+                      <button type="button" className="dashedit-remove" onClick={() => remove(l.id)} title="Sil">
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {companyLeaves && companyLeaves.length > 0 && (
+              <>
+                <div className="dashedit-section-label">
+                  <i /> Şirket Takviminden Ekle
+                </div>
+                <div className="leave-company-grid" style={{ marginBottom: 22 }}>
+                  {companyLeaves.map((c) => {
+                    const added = addedCompanyIds.has(`${c.startDate}_${c.endDate}`);
+                    return (
+                      <button
+                        type="button"
+                        key={c.id}
+                        className={`leave-company-item${added ? " added" : ""}`}
+                        disabled={added}
+                        onClick={() => addFromCompany(c)}
+                      >
+                        <span className="leave-company-item-text">
+                          <span className="leave-company-item-name">{c.name}</span>
+                          <span className="leave-company-item-meta">{formatRange(c)} · {periodDays(c)}g</span>
+                        </span>
+                        {added
+                          ? <IconCheckCircle className="leave-company-item-icon" />
+                          : <IconPlusCircle className="leave-company-item-icon" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+
+            <div className="dashedit-section-label">
+              <i /> Elle Ekle
+            </div>
+            <div className="premium-tile-grid-compact">
+              <div
+                className="premium-tile premium-tile-compact"
+                style={{ flexBasis: "100%", maxWidth: "100%" }}
+                onClick={focusTileField}
+              >
+                <div className="premium-tile-label">Açıklama (ops.)</div>
+                <input
+                  value={manualName}
+                  onChange={(e) => setManualName(e.target.value)}
+                  placeholder="örn. Yıllık izin"
+                />
+              </div>
+              <div className="premium-tile premium-tile-compact" onClick={focusTileField}>
+                <div className="premium-tile-label">Başlangıç</div>
+                <input type="date" value={manualStart} onChange={(e) => setManualStart(e.target.value)} />
+              </div>
+              <div className="premium-tile premium-tile-compact" onClick={focusTileField}>
+                <div className="premium-tile-label">Bitiş</div>
+                <input type="date" value={manualEnd} onChange={(e) => setManualEnd(e.target.value)} />
+              </div>
+              <div className="premium-tile premium-tile-compact" onClick={focusTileField}>
+                <div className="premium-tile-label">Süre</div>
+                <select value={manualFraction} onChange={(e) => setManualFraction(e.target.value)}>
+                  <option value="1">Tam gün</option>
+                  <option value="0.5">Yarım gün</option>
+                </select>
+              </div>
+            </div>
+            <button
+              type="button"
+              className="premium-add-btn"
+              style={{ marginTop: 12 }}
+              onClick={addManual}
+              disabled={!manualStart || !manualEnd}
+            >
+              <IconPlusCircle className="add-btn-icon" />
+              İzin Ekle
+            </button>
+          </div>
+        </Modal>,
         document.body
       )}
     </div>

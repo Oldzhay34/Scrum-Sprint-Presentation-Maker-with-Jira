@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { computeStatelessDashboard } from "../lib/apiClient";
-import { riskLevelToLabel } from "../lib/format";
+import { riskLevelToLabel, initialsOf } from "../lib/format";
 import { validateDateOrder } from "../lib/dateValidation";
 import { hasFteTracking } from "../lib/teamTypes";
 
@@ -241,7 +241,7 @@ export function toDashData(dto, team, sprintNo, period, previousSnapshotDate, cu
       name: m.fullName,
       role: m.role || "",
       avatarUrl: m.avatarUrl || "",
-      initials: (m.fullName || "").slice(0, 2).toUpperCase(),
+      initials: initialsOf(m.fullName),
       toplam: m.totalPlannedEffort,
       tamamlanan: m.completedEffort,
       acik: m.remainingEffort,

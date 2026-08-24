@@ -85,7 +85,13 @@ export function useDashboardData(dTeam, setDTeam, dSprint, setDSprint, teamType)
       // kapasiteden dusmuyordu). Backend'deki CapacityCalculationService
       // (manuel giris akisi) ile AYNI mantik: kapasite negatife duşmez.
       const kapasite = Math.max(0, num(p.kapasite) - num(p.leaveDays || 0));
-      return { name: p.name, role: p.role, initials: p.initials, toplam: p.toplam, tamamlanan: tam, acik: p.toplam - tam, kapasite, doluluk: p.doluluk, durum: p.durum };
+      // "Bakım Hariç Kalan Kapasite" (varsa) ayni izin dususuyle birlikte
+      // tasinir - Kapasite Farkı hesabinin (DashboardEditModal
+      // computeKpisFromPersons / asagidaki acikFazla) hala dogru kalmasi
+      // icin; goruntulenen "Kapasite" degerini (yukaridaki, "Kalan İş
+      // Günü" kaynakli) ETKİLEMEZ.
+      const bakimliKapasite = p.bakimliKapasite != null ? Math.max(0, num(p.bakimliKapasite) - num(p.leaveDays || 0)) : null;
+      return { name: p.name, role: p.role, initials: p.initials, toplam: p.toplam, tamamlanan: tam, acik: p.toplam - tam, kapasite, bakimliKapasite, doluluk: p.doluluk, durum: p.durum };
     });
     const k0 = kpis || { toplam: 0, doluluk: 0, durum: "" };
     const toplam = k0.toplam;

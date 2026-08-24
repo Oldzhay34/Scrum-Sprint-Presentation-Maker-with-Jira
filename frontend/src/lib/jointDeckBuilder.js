@@ -1,6 +1,7 @@
 import PptxGenJS from "pptxgenjs";
 import { addContentSlide } from "./sprintDeckBuilder";
 import { addDashboardSlide } from "./dashboardDeckBuilder";
+import { addVelocityBurndownSlide } from "./velocityDeckBuilder";
 import { DEFAULT_CORNER_MESH } from "../assets/cornerMesh";
 
 // Resim1 kose-mesh dekorasyonunun gercek en-boy orani (658x960 kaynak PNG).
@@ -36,7 +37,7 @@ function parseTrDateOrder(str) {
  * edilemezse (beklenmeyen bir bicim) en sık geceni gosterir (eski davranis,
  * guvenlik agi).
  */
-function commonEndDate(teamsPayload) {
+export function commonEndDate(teamsPayload) {
   const ends = teamsPayload
     .map((t) => (t.range || "").split(/[–-]/).pop()?.trim())
     .filter(Boolean);
@@ -84,11 +85,18 @@ function addJointCoverSlide(pptx, teamsPayload, assets, cornerMesh = DEFAULT_COR
 
 /**
  * Secilen tum takimlarin sunumlarini TEK bir pptx'te birlestirir: bir kapak
- * (tum takim adi/sprint/tarih listesi) + her takim icin kendi icerik ve
- * kapasite slaytlari. teamsPayload: [{ teamId, teamName, sprint, range,
- * sprintData, dashData }].
+ * (tum takim adi/sprint/tarih listesi) + her takim icin kendi icerik,
+ * kapasite ve Velocity&Burndown slaytlari. teamsPayload: [{ teamId,
+ * teamName, sprint, range, sprintData, dashData, veloData }].
+ *
+ * Velocity&Burndown eskiden BURADA hic eklenmiyordu (bkz. kullanici
+ * bildirimi, 2026-08-21: "velocity&burndown sayfası gelmiyor") - tekil
+ * sunumdaki (fullDeckBuilder) addVelocityBurndownSlide cagrisinin ortak
+ * export'a hic tasinmamis olmasiydi. addDashboardSlide ile AYNI kural:
+ * veloData olmayan takimlarda da slayt "yüklenmedi" placeholder'iyla
+ * eklenir, sessizce atlanmaz.
  */
-export function buildJointDeck(teamsPayload, assets, theme = "light", cornerMesh) {
+export async function buildJointDeck(teamsPayload, assets, theme = "light", cornerMesh) {
   // Varsayilani BURADA, bir kez cozup her addXSlide cagrisina AYNI degeri
   // ACIKCA gecirir - "her takimda gorunmuyor" turu belirsiz durumlara
   // (bkz. kullanici bildirimi) yer birakmamak icin, 3 ayri fonksiyonun
@@ -99,12 +107,13 @@ export function buildJointDeck(teamsPayload, assets, theme = "light", cornerMesh
   pptx.defineLayout({ name: "W16x9", width: 13.333, height: 7.5 });
   pptx.layout = "W16x9";
   addJointCoverSlide(pptx, teamsPayload, assets, mesh);
-  teamsPayload.forEach((t) => {
+  for (const t of teamsPayload) {
     addContentSlide(pptx, t.sprintData, assets, theme, mesh);
     // Kapasite verisi olmayan takimlarda da slayt eklenir (bos iskeletle,
     // bkz. addDashboardSlide) - eskiden o takimin kapasite sayfasi ortak
     // sunumdan sessizce dusuyordu.
     addDashboardSlide(pptx, t.dashData, assets, theme, mesh);
-  });
+    await addVelocityBurndownSlide(pptx, t.sprintData, t.veloData, assets, theme);
+  }
   return pptx;
 }

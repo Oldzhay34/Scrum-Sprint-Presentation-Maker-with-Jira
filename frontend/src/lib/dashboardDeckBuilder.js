@@ -1,4 +1,4 @@
-import { nfmt2, dStatus, barColor, DAV_COLORS, CARD_TONES, buildSummaryCards, buildCustomKpiCards, personTotals } from "./format";
+import { nfmt2, dStatus, barColor, DAV_COLORS, CARD_TONES, buildSummaryCards, buildCustomKpiCards, personTotals, initialsOf } from "./format";
 import { logoPositions } from "./geometry";
 import { resolveTableHeaders } from "./dashboardTableHeaders";
 import { DEFAULT_CORNER_MESH } from "../assets/cornerMesh";
@@ -129,7 +129,7 @@ export function addDashboardSlide(pptx, gelenDd, assets, theme = "light", corner
   persons.forEach((p, i) => {
     const y = TY + HH + 0.06 + i * rowH, cy = y + rowH / 2, ps = dStatus(p.durum, p.doluluk), av = DAV_COLORS[i % DAV_COLORS.length], ad = Math.min(0.42, rowH - 0.14);
     s.addShape(pptx.ShapeType.ellipse, { x: cols.kisi[0], y: cy - ad / 2, w: ad, h: ad, fill: { color: av }, line: { type: "none" } });
-    s.addText((p.initials || p.name.slice(0, 2)).toUpperCase(), { x: cols.kisi[0], y: cy - ad / 2, w: ad, h: ad, fontFace: "Calibri", fontSize: fs2(8.5), bold: true, color: "FFFFFF", align: "center", valign: "middle", margin: 0 });
+    s.addText((p.initials || initialsOf(p.name)), { x: cols.kisi[0], y: cy - ad / 2, w: ad, h: ad, fontFace: "Calibri", fontSize: fs2(8.5), bold: true, color: "FFFFFF", align: "center", valign: "middle", margin: 0 });
     s.addText(
       [{ text: p.name, options: { bold: true, color: INK, fontSize: fs2(11) } }, ...(p.role ? [{ text: "\n" + p.role, options: { color: MUT, fontSize: fs2(8) } }] : [])],
       { x: cols.kisi[0] + ad + 0.14, y, w: cols.kisi[1] - ad - 0.16, h: rowH, valign: "middle", margin: 0, fontFace: "Calibri" }

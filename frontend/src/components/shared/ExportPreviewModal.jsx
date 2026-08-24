@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Modal from "./Modal";
 import Button from "./Button";
 import { IconSun, IconMoon, IconDownload, IconUpload } from "./icons";
@@ -26,6 +26,26 @@ export default function ExportPreviewModal({ open, onClose, tabs, activeTab, onT
   const { boxRef, scale } = useCanvasFit({ fitParent: true, active: open });
   const idx = tabs ? Math.max(0, tabs.findIndex((t) => t.key === activeTab)) : 0;
   const goTo = (delta) => tabs && onTabChange(tabs[(idx + delta + tabs.length) % tabs.length].key);
+
+  // Klavye oklariyla slayt gecisi - ZoomModal/PresentationRunnerModal'daki
+  // AYNI desen (bkz. kullanici bildirimi 2026-08-21). Escape'i Modal zaten
+  // kapatma icin dinliyor, buraya alinmaz.
+  const goToRef = useRef(goTo);
+  goToRef.current = goTo;
+  useEffect(() => {
+    if (!open || !tabs) return undefined;
+    const onKeyDown = (e) => {
+      if (e.key === "ArrowRight") {
+        e.preventDefault();
+        goToRef.current(1);
+      } else if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        goToRef.current(-1);
+      }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [open, tabs]);
 
   // "Kendi şablonunuzu ekleyin" - bkz. kullanici bildirimi ("her pptx indirme
   // buttonlarından bahsediyorum"). Yuklenen gorsel SADECE bu indirme icin

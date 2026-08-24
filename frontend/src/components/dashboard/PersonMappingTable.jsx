@@ -1,4 +1,4 @@
-import { DAV_COLORS, nfmtInt, num, sanitizeDecimalInput } from "../../lib/format";
+import { DAV_COLORS, initialsOf, nfmtInt, num, sanitizeDecimalInput } from "../../lib/format";
 import LeaveDaysField from "./LeaveDaysField";
 
 /**
@@ -30,7 +30,7 @@ export default function PersonMappingTable({ persons, onUpdate, teamId, reportDa
         return (
           <div className="pmrow" key={i}>
             <div className="av" style={{ background: "#" + DAV_COLORS[i % DAV_COLORS.length] }}>
-              {(p.initials || p.name.slice(0, 2)).toUpperCase()}
+              {(p.initials || initialsOf(p.name))}
             </div>
             <input className="pmname" placeholder="Ad Soyad" value={p.name} onChange={(e) => onUpdate(i, { name: e.target.value })} />
             <input className="pmrole" placeholder="Rol (örn: Geliştirici)" value={p.role} onChange={(e) => onUpdate(i, { role: e.target.value })} />

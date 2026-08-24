@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import Modal from "./Modal";
 import Button from "./Button";
 import { useCanvasFit } from "../../hooks/useCanvasFit";
@@ -19,6 +20,27 @@ export default function ZoomModal({ open, onClose, tabs, activeTab, onTabChange,
   const goTo = (delta) => tabs && onTabChange(tabs[(idx + delta + tabs.length) % tabs.length].key);
   const remaining = useCountdown(timerSeconds, open);
   const critical = timerSeconds && remaining <= 15;
+
+  // Klavye oklariyla slayt gecisi - PresentationRunnerModal'daki AYNI desen
+  // (bkz. kullanici bildirimi 2026-08-21: "preview mod açıldığın klavyedeki
+  // oklar ile de geçiş yapabilmek istiyorum"). Escape'i Modal zaten kapatma
+  // icin dinliyor, buraya alinmaz.
+  const goToRef = useRef(goTo);
+  goToRef.current = goTo;
+  useEffect(() => {
+    if (!open || !tabs) return undefined;
+    const onKeyDown = (e) => {
+      if (e.key === "ArrowRight") {
+        e.preventDefault();
+        goToRef.current(1);
+      } else if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        goToRef.current(-1);
+      }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [open, tabs]);
 
   return (
     <Modal open={open} onClose={onClose} boxClassName="zoombox stage-dark">

@@ -448,6 +448,26 @@ function MainApp({ theme, toggleTheme, personnel, presentationId, newForTeamId, 
       setTableHeaders(c.dashData?.tableHeaders || null);
     }
     if (replace || c.timerMinutes != null) setTimerMinutes(c.timerMinutes ?? 5);
+    // Velocity&Burndown gorselleri artik content'e gomulu (bkz. buildSaveContent
+    // veloData yorumu) - kayitli bir sunum acilirken/baska takima gecilirken
+    // geri yuklenir. restore() gorseli YENIDEN yuklemez (Dosya nesnesi yok,
+    // zaten base64 olarak elde var), sadece hook state'ini doldurur.
+    if (replace || c.veloData?.burndownUrl || c.veloData?.velocityUrl) {
+      velocityBurndown.burndown.restore({
+        url: c.veloData?.burndownUrl,
+        naturalWidth: c.veloData?.burndownWidth,
+        naturalHeight: c.veloData?.burndownHeight,
+        zoomX: c.veloData?.burndownZoomX,
+        zoomY: c.veloData?.burndownZoomY,
+      });
+      velocityBurndown.velocity.restore({
+        url: c.veloData?.velocityUrl,
+        naturalWidth: c.veloData?.velocityWidth,
+        naturalHeight: c.veloData?.velocityHeight,
+        zoomX: c.veloData?.velocityZoomX,
+        zoomY: c.veloData?.velocityZoomY,
+      });
+    }
   };
 
   // ---- Kayitli sunum yukleme (/editor/:id) + kaydetme hedefi ----
@@ -564,8 +584,13 @@ function MainApp({ theme, toggleTheme, personnel, presentationId, newForTeamId, 
   // sekilde hazirlaniyor (bkz. kullanici bildirimi) - bu yuzden Excel
   // yuklendiginde, her kisi icin sirket takvimindeki tatil gunleri otomatik
   // izin kaydi olarak eklenir (kullanicinin her satirda "İzin Ekle" acip
-  // tek tek secmesine gerek kalmaz). "Manuel Gir" kaynaginda tetiklenmez -
-  // orada kullanici zaten kendi girdigi kisiler icin isterse ekler.
+  // tek tek secmesine gerek kalmaz). "Manuel Gir" kaynaginda AYNI otomatik
+  // ekleme artik MemberCard.jsx'te (ad soyad alanindan blur oldugunda, TEK
+  // kisi icin) yapiliyor - burada TUM listeyi kapsayan bir effect'e gerek
+  // yok, cunku Manuel Gir'de kisiler teker teker eklenir (bkz. kullanici
+  // bildirimi, 2026-08-21: "bu izinle kişi manuel eklenirken zaten otomatik
+  // gelmesi lazım" - eskiden BILEREK tetiklenmiyordu, kullanici artik bunu
+  // istiyor).
   // autoHolidaysKeyRef: ayni kisi listesi icin (orn. render sirasinda persons
   // referansi degisse bile ad listesi ayniysa) TEKRAR calismasini engeller.
   const autoHolidaysKeyRef = useRef(null);
@@ -638,6 +663,25 @@ function MainApp({ theme, toggleTheme, personnel, presentationId, newForTeamId, 
     dashSource,
     dashData: activeDashData,
     timerMinutes,
+    // Eskiden "oturuma ozel" olup HICBIR ZAMAN kaydedilmiyordu (bkz.
+    // useVelocityBurndown.js) - bu yuzden Ortak Sunum baska bir PO'nun
+    // kaydettigi sunumu cekince Velocity&Burndown gorseli hicbir yerde
+    // saklı degildi, gosterilecek bir sey yoktu (kullanici bildirimi,
+    // 2026-08-21: "velocity&burndown sayfası gelmiyor... ortak sunumdada
+    // görmek istiyorum"). Gorseller kucuk (birkac yuz KB base64) oldugu
+    // icin dashData/sections ile AYNI yontemle content'e gomuluyor.
+    veloData: {
+      burndownUrl: velocityBurndown.burndown.url,
+      burndownWidth: velocityBurndown.burndown.naturalWidth,
+      burndownHeight: velocityBurndown.burndown.naturalHeight,
+      burndownZoomX: velocityBurndown.burndown.zoomX,
+      burndownZoomY: velocityBurndown.burndown.zoomY,
+      velocityUrl: velocityBurndown.velocity.url,
+      velocityWidth: velocityBurndown.velocity.naturalWidth,
+      velocityHeight: velocityBurndown.velocity.naturalHeight,
+      velocityZoomX: velocityBurndown.velocity.zoomX,
+      velocityZoomY: velocityBurndown.velocity.zoomY,
+    },
   });
 
   const loadTeams = () => {
@@ -820,11 +864,32 @@ function MainApp({ theme, toggleTheme, personnel, presentationId, newForTeamId, 
     cover: "Kapak Sayfası", sprint: "İçerik Slaytı", dash: "Kapasite Dashboard", velocity: "Velocity & Burndown",
   };
   const [wizardAlert, setWizardAlert] = useState(null);
+
+  // Sayfa gecislerinde (Ileri/Geri veya adima dogrudan tiklama) uzerinde
+  // calisilan surumu sessizce gunceller - kullanici bildirimi: "her sayfayı
+  // geçtiğimizde kullanıcının üstünde çalıştığı versiyon auto save
+  // kaydedilsin". handleUpdateInPlace'in aksine dogrulama/alert GOSTERMEZ ve
+  // sayfa gecisini BEKLEMEZ (fire-and-forget) - eksik/gecersiz veri varsa
+  // sessizce atlanir, kullanici "Guncelle" butonuyla elle tekrar deneyebilir.
+  // Henuz hic kaydedilmemis (presentationMeta yok) bir sunumda calismaz -
+  // her adim gecisinde YENI bir surum OLUSTURMAZ, sadece VAR OLANI gunceller.
+  const autoSaveOnNavigate = () => {
+    if (!canEdit || !presentationMeta?.id || !saveTeamId) return;
+    updatePresentationInPlace(presentationMeta.id, sprintForm.range, buildSaveContent())
+      .then((saved) => {
+        setPresentationMeta({ id: saved.id, teamId: saved.teamId, sprintNo: saved.sprintNo, currentVersion: saved.currentVersion });
+      })
+      .catch(() => {
+        // Sessiz basarisizlik - navigasyonu engellemez.
+      });
+  };
+
   const changeMode = (newMode) => {
     if (mode === "cover" && newMode !== "cover" && canEdit && !sprintForm.sprint.trim()) {
       setWizardAlert("Sprint No boş bırakılamaz.");
       return;
     }
+    if (newMode !== mode) autoSaveOnNavigate();
     setMode(newMode);
     setPreviewTab(MODE_TO_PREVIEW_TAB[newMode]);
   };

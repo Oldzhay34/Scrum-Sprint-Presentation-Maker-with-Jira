@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, useState } from "react";
-import { CARD_TONES, DAV_COLORS, barColor, buildCustomKpiCards, buildSummaryCards, dStatus, nfmt2, npct, personTotals } from "../../lib/format";
+import { CARD_TONES, DAV_COLORS, barColor, buildCustomKpiCards, buildSummaryCards, dStatus, initialsOf, nfmt2, npct, personTotals } from "../../lib/format";
 import { resolveTableHeaders } from "../../lib/dashboardTableHeaders";
 import { DEFAULT_CORNER_MESH } from "../../assets/cornerMesh";
 import { emptyDashData } from "../../lib/emptyDashData";
@@ -221,7 +221,7 @@ export default function DashboardSlideCanvas({ dd, assets, scale }) {
                 <div className="kisi" style={{ gap: 10 * rowScale }}>
                   <PersonAvatar
                     avatarUrl={p.avatarUrl}
-                    initials={(p.initials || p.name.slice(0, 2)).toUpperCase()}
+                    initials={(p.initials || initialsOf(p.name))}
                     color={av}
                     size={34 * rowScale}
                   />

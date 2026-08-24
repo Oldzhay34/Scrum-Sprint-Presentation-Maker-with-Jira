@@ -1,9 +1,6 @@
-import { DAV_COLORS, sanitizeDecimalInput, sanitizeIntegerInput, sanitizeRatioInput } from "../../lib/format";
+import { DAV_COLORS, initialsOf, sanitizeDecimalInput, sanitizeIntegerInput, sanitizeRatioInput } from "../../lib/format";
+import { autoApplyCompanyHolidays } from "../../lib/autoApplyCompanyHolidays";
 import LeaveDaysField from "./LeaveDaysField";
-
-function initialsOf(name) {
-  return (name || "?").trim().slice(0, 2).toUpperCase() || "?";
-}
 
 /**
  * Tek bir ekip uyesi karti: kisi bilgileri + o kisiye ait is kalemleri.
@@ -17,6 +14,20 @@ function initialsOf(name) {
 export default function MemberCard({ member, index, statuses, items, onUpdateMember, onRemoveMember, onAddItem, onUpdateItem, onRemoveItem, teamId, reportDate = null, periodEnd = null }) {
   const avatarColor = "#" + DAV_COLORS[(index || 0) % DAV_COLORS.length];
 
+  // Ad soyad alanindan cikildiginda (blur), Excel akisindaki AYNI mekanizmayla
+  // (bkz. autoApplyCompanyHolidays.js) sirket takvimindeki tatil gunlerini bu
+  // TEK kisi icin otomatik izin kaydi olarak ekler - kullanici bildirimi,
+  // 2026-08-21: "bu izinle kişi manuel eklenirken zaten otomatik gelmesi
+  // lazım". BILEREK her keystroke'ta degil, sadece blur'da tetiklenir - aksi
+  // halde isim yazilirken ("P", "Pe", "Pel"...) her yari-tamamlanmis deger
+  // icin ayri bir team_member olusturulmaya calisilirdi.
+  const handleNameBlur = async () => {
+    if (!teamId || !member.fullName?.trim()) return;
+    const totals = await autoApplyCompanyHolidays([{ name: member.fullName, role: member.role }], teamId);
+    const total = totals.get(member.fullName);
+    if (total != null && total !== (member.leaveDays || 0)) onUpdateMember({ leaveDays: total });
+  };
+
   return (
     <div className="mcard" style={{ "--i": index || 0 }}>
       <div className="mcard-head">
@@ -27,6 +38,7 @@ export default function MemberCard({ member, index, statuses, items, onUpdateMem
             placeholder="Ad Soyad"
             value={member.fullName}
             onChange={(e) => onUpdateMember({ fullName: e.target.value })}
+            onBlur={handleNameBlur}
           />
           <input
             className="mcard-role"
