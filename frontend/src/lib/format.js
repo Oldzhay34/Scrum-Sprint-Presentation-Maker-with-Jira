@@ -161,6 +161,49 @@ export function personTotals(persons) {
   );
 }
 
+/**
+ * Takim kaydinda (teams.maintenance_allocation_percent) bir oran bulunamazsa
+ * kullanilan varsayilan bakim/SR orani. Sistemdeki TUM takimlarda bu deger
+ * 0.2 ve PO raporlari da bu oranla uretiliyor - elle eklenen yeni bir kisi
+ * icin de oranin 0 kabul edilmesi (eski davranis) Kapasite % ve Kapasite
+ * Farkı'ni yanlis gosteriyordu.
+ */
+export const VARSAYILAN_BAKIM_ORANI = 0.2;
+
+/**
+ * Bir kisi satirinin bakim/SR orani ("buffer"). Kapasite Farkı ve Kapasite %
+ * HER ZAMAN "Kapasite x (1 - oran)" tabanina gore hesaplanir - PO'nun Excel
+ * raporundaki formulun aynisi (4 sprintlik sunum karsilastirmasiyla
+ * dogrulandi, 2026-08-25). Oran su sirayla bulunur:
+ *   1) satira islenmis kisiye ozel oran (manuel/Jira akisi bunu doldurur),
+ *   2) "Bakım Hariç Kalan Kapasite" alani GERCEKTEN bir dusum iceriyorsa ondan
+ *      turetilir (oran sprintler arasi degisebiliyor: 2. sprint 0.15, 3. 0.20),
+ *   3) satirin KENDI rakamlarindan: doluluk = açık / (kapasite x (1-oran)),
+ *   4) hicbiri yoksa 0 - uydurma bir oran eklenmez.
+ * (3) sayesinde bu alanlar bos kaydedilmis ESKI sunumlarda da oran kaybolmaz:
+ * orn. açık 132, kapasite 104, doluluk 1.59 -> 0.20.
+ */
+export function bakimOraniOf(p, varsayilanOran = VARSAYILAN_BAKIM_ORANI) {
+  if (p?.bakimOrani != null && p.bakimOrani !== "") return num(p.bakimOrani);
+  const kap = num(p?.kapasite);
+  const bakimli = p?.bakimliKapasite != null && p.bakimliKapasite !== "" ? num(p.bakimliKapasite) : null;
+  if (bakimli != null && kap > 0 && bakimli < kap) return 1 - bakimli / kap;
+  const dol = num(p?.doluluk), acik = num(p?.acik);
+  if (dol > 0 && kap > 0) {
+    const turetilen = 1 - acik / (dol * kap);
+    if (turetilen > 0.001 && turetilen < 0.9) return turetilen;
+  }
+  return varsayilanOran != null ? num(varsayilanOran) : 0;
+}
+
+/** Bir kisi satirinin bakim hariç (buffer dusulmus) kapasitesi. */
+export function bakimHaricKapasiteOf(p, varsayilanOran = VARSAYILAN_BAKIM_ORANI) {
+  const kap = num(p?.kapasite);
+  const bakimli = p?.bakimliKapasite != null && p.bakimliKapasite !== "" ? num(p.bakimliKapasite) : null;
+  if (bakimli != null && bakimli < kap) return bakimli;
+  return kap * (1 - bakimOraniOf(p, varsayilanOran));
+}
+
 /** Backend'in RiskLevel enum'unu (UYGUN/DIKKAT/RISK/YUKSEK_RISK) Turkce etikete cevirir. */
 export function riskLevelToLabel(riskLevel) {
   switch (riskLevel) {

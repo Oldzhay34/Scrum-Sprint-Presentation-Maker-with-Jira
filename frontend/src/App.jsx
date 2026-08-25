@@ -404,7 +404,16 @@ function MainApp({ theme, toggleTheme, personnel, presentationId, newForTeamId, 
 
   // ---- Kapasite Dashboard (3. adim) durumu ----
   const [dashSource, setDashSource] = useState("excel");
-  const dashboard = useDashboardData(sprintForm.team, sprintForm.setTeam, sprintForm.sprint, sprintForm.setSprint, sprintForm.teamType);
+  // Takimin kayitli bakim/SR orani (teams.maintenance_allocation_percent,
+  // varsayilan 0.2). Manuel/Jira akisi bunu zaten kisi bazinda okuyordu
+  // (useManualDashboard), Excel akisi ise HIC okumuyordu: kisilerin bakimOrani
+  // null kaliyor, "Bakım Hariç Kalan Kapasite" ham kapasiteye esitleniyor ve
+  // Kapasite Farkı bakim dusulmeden hesaplaniyordu (bkz. useDashboardData).
+  const dashTeamBakimOrani = useMemo(() => {
+    const t = teams?.find((x) => x.teamType === sprintForm.teamType);
+    return t?.maintenanceAllocationPercent != null ? Number(t.maintenanceAllocationPercent) : null;
+  }, [teams, sprintForm.teamType]);
+  const dashboard = useDashboardData(sprintForm.team, sprintForm.setTeam, sprintForm.sprint, sprintForm.setSprint, sprintForm.teamType, dashTeamBakimOrani);
   const manual = useManualDashboard(sprintForm.team, sprintForm.setTeam, sprintForm.sprint, sprintForm.setSprint, sprintForm.teamType);
   // loadedDashData: /editor/:id ile acilan kayitli bir sunumun son kaydedilen
   // dashboard KPI'lari - kullanici bu oturumda Excel yuklemedigi/manuel
@@ -1190,6 +1199,7 @@ function MainApp({ theme, toggleTheme, personnel, presentationId, newForTeamId, 
         dashData={activeDashData}
         onApply={setDashDataOverride}
         hasFte={hasFteTracking(sprintForm.teamType)}
+        teamBakimOrani={dashTeamBakimOrani}
       />
 
       <ZoomModal

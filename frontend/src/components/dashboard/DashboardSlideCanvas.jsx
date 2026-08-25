@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, useState } from "react";
-import { CARD_TONES, DAV_COLORS, barColor, buildCustomKpiCards, buildSummaryCards, dStatus, initialsOf, nfmt2, npct, personTotals } from "../../lib/format";
+import { CARD_TONES, DAV_COLORS, bakimOraniOf, barColor, buildCustomKpiCards, buildSummaryCards, dStatus, initialsOf, nfmt2, npct, personTotals } from "../../lib/format";
 import { resolveTableHeaders } from "../../lib/dashboardTableHeaders";
 import { DEFAULT_CORNER_MESH } from "../../assets/cornerMesh";
 import { emptyDashData } from "../../lib/emptyDashData";
@@ -216,6 +216,7 @@ export default function DashboardSlideCanvas({ dd, assets, scale }) {
             const ps = dStatus(p.durum, p.doluluk);
             const av = "#" + DAV_COLORS[i % DAV_COLORS.length];
             const fill = Math.max(4, Math.min(100, Number(p.doluluk) * 100)).toFixed(1);
+            const oran = bakimOraniOf(p);
             return (
               <div className="dtr" key={i} style={{ padding: `${7 * rowScale}px 0`, gap: 6 * rowScale }}>
                 <div className="kisi" style={{ gap: 10 * rowScale }}>
@@ -236,9 +237,15 @@ export default function DashboardSlideCanvas({ dd, assets, scale }) {
                 <div className="c" style={{ fontSize: 14 * rowScale }}>{nfmt2(p.toplam)}</div>
                 <div className="dol">
                   <div className="dbar"><i style={{ width: fill + "%", background: "#" + barColor(p.doluluk), "--fill-accent": "#" + barColor(p.doluluk) }} /></div>
-                  <div className="pc" style={{ fontSize: 12 * rowScale }} title={p.bakimOrani != null ? `Kişiye özel bakım oranı: %${Math.round(p.bakimOrani * 100)}` : "Takım geneli bakım oranı kullanılıyor"}>
+                  {/* Bakim/SR orani ARTIK satirin kendi rakamlarindan da
+                      turetilebiliyor (bkz. format.bakimOraniOf) - eskiden
+                      SADECE p.bakimOrani alani doluysa gosteriliyordu, Excel
+                      akisi bu alani hic doldurmadigi icin etiket o
+                      sunumlarda hic gorunmuyordu (kullanici bildirimi
+                      2026-08-25: "bakımlı oran nasıl kalkmış anlamadım"). */}
+                  <div className="pc" style={{ fontSize: 12 * rowScale }} title={oran > 0 ? `Kapasite %, bakım/SR oranı (%${Math.round(oran * 100)}) düşüldükten sonraki kapasiteye göre hesaplanır` : "Bakım/SR oranı tanımlı değil"}>
                     {npct(p.doluluk)}
-                    {p.bakimOrani != null && <span style={{ fontSize: 9 * rowScale, color: "var(--mut)", marginLeft: 4 }}>(bakım %{Math.round(p.bakimOrani * 100)})</span>}
+                    {oran > 0 && <span style={{ fontSize: 9 * rowScale, color: "var(--mut)", marginLeft: 4 }}>(bakım %{Math.round(oran * 100)})</span>}
                   </div>
                 </div>
                 <div className="pill" style={{ color: "#" + ps.fg, background: "#" + ps.bg, borderColor: "#" + ps.fg, "--pill-accent": "#" + ps.fg, fontSize: 11 * rowScale }}>

@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { parseDashboardExcel } from "../lib/excelParsers";
-import { num, autoRange, nfmt1 } from "../lib/format";
+import { num, autoRange, nfmt1, VARSAYILAN_BAKIM_ORANI } from "../lib/format";
 import { hasFteTracking } from "../lib/teamTypes";
 
 const DEFAULT_META = { team: "", dateRange: "01 Haziran – 31 Aralık 2026", reportDate: "", reportObj: null };
@@ -10,7 +10,7 @@ const DEFAULT_META = { team: "", dateRange: "01 Haziran – 31 Aralık 2026", re
  * duzenledigi kisi/rol/tamamlanan + son 2 hafta delta alanlari) yonetir ve
  * dashSlideHTML'in JSX karsiligi icin gereken `dashData` nesnesini uretir.
  */
-export function useDashboardData(dTeam, setDTeam, dSprint, setDSprint, teamType) {
+export function useDashboardData(dTeam, setDTeam, dSprint, setDSprint, teamType, teamBakimOrani = null) {
   const [loaded, setLoaded] = useState(false);
   const [persons, setPersons] = useState([]);
   const [kpis, setKpis] = useState(null);
@@ -85,13 +85,40 @@ export function useDashboardData(dTeam, setDTeam, dSprint, setDSprint, teamType)
       // kapasiteden dusmuyordu). Backend'deki CapacityCalculationService
       // (manuel giris akisi) ile AYNI mantik: kapasite negatife duşmez.
       const kapasite = Math.max(0, num(p.kapasite) - num(p.leaveDays || 0));
-      // "Bakım Hariç Kalan Kapasite" (varsa) ayni izin dususuyle birlikte
-      // tasinir - Kapasite Farkı hesabinin (DashboardEditModal
-      // computeKpisFromPersons / asagidaki acikFazla) hala dogru kalmasi
-      // icin; goruntulenen "Kapasite" degerini (yukaridaki, "Kalan İş
-      // Günü" kaynakli) ETKİLEMEZ.
-      const bakimliKapasite = p.bakimliKapasite != null ? Math.max(0, num(p.bakimliKapasite) - num(p.leaveDays || 0)) : null;
-      return { name: p.name, role: p.role, initials: p.initials, toplam: p.toplam, tamamlanan: tam, acik: p.toplam - tam, kapasite, bakimliKapasite, doluluk: p.doluluk, durum: p.durum };
+      // Bakim/SR orani ("buffer"): Kapasite Farkı ve Kapasite % HER ZAMAN
+      // "Kapasite x (1 - oran)" tabani uzerinden hesaplanir (PO'nun Excel
+      // raporundaki formulun aynisi - 4 sprintlik sunum karsilastirmasiyla
+      // dogrulandi, 2026-08-25). Oran su sirayla bulunur:
+      //   1) kisiye ozel oran (manuel/Jira akisi bunu doldurur),
+      //   2) Excel "Bakım Hariç Kalan Kapasite" kolonu GERCEKTEN bir dusum
+      //      iceriyorsa ondan turetilen oran (sprintler arasi degisebiliyor:
+      //      2. sprintte 0.15, 3.'de 0.20 olcüldü),
+      //   3) takimin kayitli orani (teams.maintenance_allocation_percent).
+      // Eskiden hicbiri okunmuyordu: oran null kaliyor, bakim hic dusulmuyor
+      // ve Kapasite Farkı "kapasite x oran" kadar fazla (iyimser) cikiyordu
+      // (orn. -129 yerine dogrusu -210,6).
+      const kapasiteHam = num(p.kapasite);
+      const bakimliHam = p.bakimliKapasite != null && p.bakimliKapasite !== "" ? num(p.bakimliKapasite) : null;
+      const excelOran = bakimliHam != null && kapasiteHam > 0 && bakimliHam < kapasiteHam
+        ? 1 - bakimliHam / kapasiteHam
+        : null;
+      const oran = p.bakimOrani != null
+        ? num(p.bakimOrani)
+        : excelOran != null
+          ? excelOran
+          : teamBakimOrani != null
+            ? num(teamBakimOrani)
+            : VARSAYILAN_BAKIM_ORANI;
+      // "Bakım Hariç Kalan Kapasite" Excel'de gercekten varsa ayni izin
+      // dususuyle tasinir; yoksa orandan turetilir (kapasite'de izin zaten
+      // dusuldugu icin ikinci kez dusulmez). Goruntulenen "Kapasite" degerini
+      // (yukaridaki, "Kalan İş Günü" kaynakli) hicbir durumda ETKİLEMEZ.
+      const bakimliKapasite = bakimliHam != null && excelOran != null
+        ? Math.max(0, bakimliHam - num(p.leaveDays || 0))
+        : oran != null
+          ? Math.max(0, kapasite * (1 - oran))
+          : null;
+      return { name: p.name, role: p.role, initials: p.initials, toplam: p.toplam, tamamlanan: tam, acik: p.toplam - tam, kapasite, bakimliKapasite, bakimOrani: oran, doluluk: p.doluluk, durum: p.durum };
     });
     const k0 = kpis || { toplam: 0, doluluk: 0, durum: "" };
     const toplam = k0.toplam;
@@ -104,7 +131,16 @@ export function useDashboardData(dTeam, setDTeam, dSprint, setDSprint, teamType)
     // gorunsun. Eski sablonlarda alan yoksa, AYNI formul kisi satirlarindaki
     // "Bakım Hariç Kalan Kapasite" (p.kapasite - bkz. excelParsers, Kapasite
     // sayfasindaki K kolonu) uzerinden hesaplanir.
-    const acikFazla = k0.kapasiteFarki != null ? k0.kapasiteFarki : kapasite - acik;
+    // Yedek formul ARTIK bakim hariç kapasiteyi kullanir - eskiden ham
+    // "kapasite" ile hesaplaniyordu ve bu, PO'nun Excel'de gordugu rakamla
+    // uyusmuyordu (3. sprint: -129 yerine -210,6 olmali; fark tam olarak
+    // kapasite x bakim orani). DashboardEditModal.computeKpisFromPersons ile
+    // AYNI formul: Σ(bakim hariç kapasite) - açık efor.
+    const bakimHaricKapasite = mappedPersons.reduce(
+      (acc, p) => acc + (p.bakimliKapasite != null ? num(p.bakimliKapasite) : num(p.kapasite)),
+      0
+    );
+    const acikFazla = k0.kapasiteFarki != null ? k0.kapasiteFarki : bakimHaricKapasite - acik;
     const kpisOut = { toplam, tamamlanan, acik, kapasite, doluluk: k0.doluluk, acikFazla, durum: k0.durum };
 
     let delta = null;
@@ -136,7 +172,7 @@ export function useDashboardData(dTeam, setDTeam, dSprint, setDSprint, teamType)
       deltaRange: delta ? delta.range : "",
       customKpis,
     };
-  }, [dTeam, dSprint, dKapanan, dEklenen, dFte, dNet, persons, kpis, meta, loaded, totalFte, teamType]);
+  }, [dTeam, dSprint, dKapanan, dEklenen, dFte, dNet, persons, kpis, meta, loaded, totalFte, teamType, teamBakimOrani]);
 
   // Ekip adi (dTeam) her degistiginde bu mesaj da guncellensin - Excel'den okunan
   // ismi donup kalmasin, kapak sayfasindaki gibi guncel degeri yansitsin.

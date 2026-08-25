@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import Modal from "../shared/Modal";
 import Button from "../shared/Button";
 import { IconEdit, IconCheckCircle, IconRocket, IconPlusCircle } from "../shared/icons";
-import { sanitizeDecimalInput, sanitizeIntegerInput, DAV_COLORS, initialsOf } from "../../lib/format";
+import { sanitizeDecimalInput, sanitizeIntegerInput, DAV_COLORS, initialsOf, bakimOraniOf, bakimHaricKapasiteOf, VARSAYILAN_BAKIM_ORANI } from "../../lib/format";
 import { emptyDashData } from "../../lib/emptyDashData";
 
 const DURUM_OPTIONS = ["Uygun", "Dikkat", "Risk", "Yüksek Risk"];
@@ -32,7 +32,7 @@ function num(v) {
  * korunur, burada yeni bir formul uydurulmaz. Kapasite toplami 0 ise duz
  * ortalamaya duser.
  */
-function computeKpisFromPersons(persons, currentDurum) {
+function computeKpisFromPersons(persons, currentDurum, varsayilanOran) {
   const list = persons || [];
   const sum = (key) => list.reduce((acc, p) => acc + num(p[key]), 0);
   const toplam = sum("toplam");
@@ -50,14 +50,11 @@ function computeKpisFromPersons(persons, currentDurum) {
 
   // Kapasite Farkı = Bakım Hariç Kalan Kapasite − Kalan (Açık) Efor.
   // PO Excel'indeki hucre formulunun aynisi (Rapor!B32 = B26 − B22, dosya
-  // incelemesi 2026-08-20). "Bakım hariç kapasite" satirdan gelir
-  // (bakimliKapasite); eski/Excel kaynakli kayitlarda bu alan yoksa kisinin
-  // bakim oranindan (bakimOrani) turetilir, o da yoksa ham kapasite kullanilir.
-  const bakimHaricKapasite = list.reduce((acc, p) => {
-    if (p.bakimliKapasite != null && p.bakimliKapasite !== "") return acc + num(p.bakimliKapasite);
-    const oran = p.bakimOrani != null ? num(p.bakimOrani) : 0;
-    return acc + num(p.kapasite) * (1 - oran);
-  }, 0);
+  // incelemesi 2026-08-20). Satir basina taban icin bkz. bakimHaricKapasiteOf:
+  // eskiden "bakimliKapasite dolu ise oldugu gibi al" deniyordu, ama Excel
+  // akisinda bu alan ham kapasiteye ESIT kaydediliyordu (bakim hic dusulmemis)
+  // ve Kapasite Farkı olmasi gerekenden iyimser cikiyordu.
+  const bakimHaricKapasite = list.reduce((acc, p) => acc + bakimHaricKapasiteOf(p, varsayilanOran), 0);
 
   return {
     toplam, tamamlanan, acik, kapasite, doluluk,
@@ -91,7 +88,12 @@ function computeKpisFromPersons(persons, currentDurum) {
  * bildirimi, 2026-08-17: "editleye basıldığında boş parametre alma ekranı
  * gelsin").
  */
-export default function DashboardEditModal({ open, onClose, dashData, onApply, hasFte = true }) {
+export default function DashboardEditModal({ open, onClose, dashData, onApply, hasFte = true, teamBakimOrani = VARSAYILAN_BAKIM_ORANI }) {
+  // Takimin kayitli bakim/SR orani - satirda kendi orani yoksa (orn. ELLE
+  // eklenen yeni bir kisi) taban olarak bu kullanilir. Eskiden 0 kabul
+  // ediliyordu: Kapasite % ham kapasiteye bolunuyor (%162 yerine %129) ve
+  // Kapasite Farkı bakim dusulmeden hesaplaniyordu (-211,6 yerine -138).
+  const oran = teamBakimOrani != null ? Number(teamBakimOrani) : VARSAYILAN_BAKIM_ORANI;
   const [draft, setDraft] = useState(null);
 
   useEffect(() => {
@@ -171,11 +173,16 @@ export default function DashboardEditModal({ open, onClose, dashData, onApply, h
   // turetilir (bkz. computeKpisFromPersons). "Genel Durum" tek istisnadir:
   // PO'nun sunumda vermek istedigi mesaj her zaman esiklerle birebir
   // ortusmeyebiliyor, o yuzden secilebilir kalir.
-  const computedKpis = computeKpisFromPersons(draft.persons, draft.kpis?.durum);
+  const computedKpis = computeKpisFromPersons(draft.persons, draft.kpis?.durum, oran);
 
   const handleApply = () => {
     const customKpis = (draft.customKpis || []).filter((k) => k.label.trim() && k.value !== "");
-    onApply({ ...draft, kpis: computedKpis, customKpis });
+    // Her satira bakim orani ACIKCA yazilir: hem slaytta "(bakım %20)" etiketi
+    // gorunsun hem de kayitli sunum bu bilgiyi tasisin (bkz. format.bakimOraniOf
+    // - alan bossa oran satirin rakamlarindan turetilmeye calisiliyordu, elle
+    // eklenen yeni bir kiside ise turetilecek veri olmadigi icin 0 sayiliyordu).
+    const persons = (draft.persons || []).map((p) => ({ ...p, bakimOrani: bakimOraniOf(p, oran) }));
+    onApply({ ...draft, persons, kpis: computedKpis, customKpis });
     onClose();
   };
 
@@ -307,11 +314,11 @@ export default function DashboardEditModal({ open, onClose, dashData, onApply, h
                     value={p.acik}
                     onChange={(e) => {
                       const v = num(sanitizeDecimalInput(e.target.value));
-                      // Açık degisince Kapasite % (doluluk = açık/kapasite) de
-                      // yeniden hesaplanir - bkz. Kapasite input'undaki AYNI
-                      // gerekce.
-                      const kap = num(p.kapasite);
-                      updatePerson(i, { acik: v, doluluk: kap > 0 ? v / kap : 0 });
+                      // Açık degisince Kapasite % de yeniden hesaplanir -
+                      // bkz. Kapasite input'undaki AYNI gerekce. Taban ham
+                      // kapasite DEGIL, bakim hariç kapasitedir.
+                      const bakimli = bakimHaricKapasiteOf(p, oran);
+                      updatePerson(i, { acik: v, doluluk: bakimli > 0 ? v / bakimli : 0 });
                     }}
                   />
                 </label>
@@ -331,12 +338,18 @@ export default function DashboardEditModal({ open, onClose, dashData, onApply, h
                       // düzenlenince bakımlı doluluk bu değere göre
                       // tekrardan hesaplanmıyor" ve "%122 yazan kapasitenin
                       // güncellenmesi lazımdı güncellenmedi").
-                      const oran = p.bakimOrani != null ? num(p.bakimOrani) : 0;
+                      // Kapasite % HER ZAMAN bakim hariç kapasiteye gore
+                      // hesaplanir (Excel'deki "Bakımlı Doluluk" ile ayni
+                      // taban) - ham kapasiteye bolunurse PO'nun elle bir
+                      // duzeltme yapmasi yuzdeyi oran kadar dusuruyordu
+                      // (orn. %159 -> %127, dogrulama 2026-08-25).
+                      const kisiOrani = bakimOraniOf(p, oran);
                       const acik = num(p.acik);
+                      const bakimli = v * (1 - kisiOrani);
                       updatePerson(i, {
                         kapasite: v,
-                        bakimliKapasite: v * (1 - oran),
-                        doluluk: v > 0 ? acik / v : 0,
+                        bakimliKapasite: bakimli,
+                        doluluk: bakimli > 0 ? acik / bakimli : 0,
                       });
                     }}
                   />
