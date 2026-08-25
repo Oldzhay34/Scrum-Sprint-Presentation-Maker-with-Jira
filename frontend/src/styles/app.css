@@ -91,7 +91,16 @@
      (.s-header) AYNI agirliga (700) indirildi. */
   .card .chd .ct{font-size:19px;font-weight:700;letter-spacing:.2px}
   .card ul{margin:2px 0 0;padding:0 14px 0 44px;list-style:none}
-  .card li{position:relative;margin-bottom:5px;color:#374151;line-height:1.28}
+  /* overflow-wrap:anywhere - BOSLUKSUZ uzun metinler (orn. tek parca yazilmis
+     bir kod/URL ya da bitisik yazilmis uzun bir madde) icin: varsayilan
+     "normal" degerinde tarayici bolunemeyen bir kelimeyi satir sonunda
+     kirmaz, metin kartin sagindan tasip KIRPILIR - kullanici da maddeyi hic
+     yazilmamis sanir (bildirim 2026-08-25: "154 karakter yazdigimda ne
+     disaridan ne de preview modda gorunuyor"). Ayrica geometry.itemLineCount
+     satir sayisini karakter/satir oranindan tahmin ediyor, yani kart
+     yuksekligi ZATEN sarmaya gore ayriliyordu; bu kural DOM'u o modele
+     uydurur. */
+  .card li{position:relative;margin-bottom:5px;color:#374151;line-height:1.28;overflow-wrap:anywhere}
   .card li .dot{position:absolute;left:-15px;top:0.5em;width:8px;height:8px;margin-top:-4px;border-radius:50%;background:var(--bullet-color, #1F2937)}
   /* Sektör/departman etiketi (**kalın** işaretlenmiş parça) - PO notu
      2026-08-19: "Sektörler çok büyük görünüyor". Madde metninin tam
@@ -104,7 +113,7 @@
      .72em idi, sektör rozeti de o zaman 1em'di - ikisi de küçülüp burada
      tekrar eşitlendi). */
   .priority-label{display:inline-block;margin-right:5px;padding:1px 5px;border-radius:4px;font-size:.82em;font-weight:700;color:#fff;letter-spacing:.2px;vertical-align:1px;white-space:nowrap}
-  .item-comment{margin:2px 0 0;padding:3px 8px;font-size:.86em;font-style:italic;color:#166534;background:linear-gradient(90deg,rgba(22,163,74,.14),rgba(22,163,74,.04));border-left:2px solid #16A34A;border-radius:0 6px 6px 0;line-height:1.25}
+  .item-comment{margin:2px 0 0;padding:3px 8px;font-size:.86em;font-style:italic;color:#166534;background:linear-gradient(90deg,rgba(22,163,74,.14),rgba(22,163,74,.04));border-left:2px solid #16A34A;border-radius:0 6px 6px 0;line-height:1.25;overflow-wrap:anywhere}
   /* cover */
   .cov{position:absolute;inset:0;background-size:cover;background-position:center}
   .cov-page-bg{position:absolute;inset:0;background-size:cover;background-position:center;opacity:.88}

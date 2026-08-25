@@ -7,6 +7,7 @@ import ZoomModal from "./ZoomModal";
 import UnifiedPreviewPane from "./UnifiedPreviewPane";
 import SlideCanvas from "../sprint/SlideCanvas";
 import DashboardSlideCanvas from "../dashboard/DashboardSlideCanvas";
+import VelocityBurndownSlideCanvas from "../sprint/VelocityBurndownSlideCanvas";
 import { IconPresentation, IconHistory, IconEdit, IconCalendar, IconDownload } from "./icons";
 import { fetchPresentations, fetchPresentation, fetchPresentationVersions, rollbackPresentation, recordPresentationDownload } from "../../lib/apiClient";
 import { sprintDataFromContent } from "../../lib/presentationContent";
@@ -94,6 +95,12 @@ export default function PresentationListPanel({ teamId, teamName, canManage, sho
 
   const previewSprintData = previewContent ? sprintDataFromContent(previewContent) : null;
   const previewDashData = previewContent?.dashData || null;
+  // Velocity & Burndown gorselleri sunum icerigi JSON'unun ICINDE (base64
+  // data-url olarak) saklanir - MinIO'ya atilan kopya hicbir yerde geri
+  // okunmuyor (bkz. AssetUploadController javadoc'u). sprintDataFromContent
+  // veloData'yi tasimadigi icin buradan AYRICA cikarilmali; aksi halde
+  // onizlemeye bos url gider ve slayt "gorseli yuklenmedi" der.
+  const previewVeloData = previewContent?.veloData || null;
 
   // "PPTX İndir" tiklaninca hemen indirmez - once sablon secim popup'u acilir
   // (bkz. kullanici bildirimi: "her pptx indirme buttonlarından bahsediyorum").
@@ -114,7 +121,11 @@ export default function PresentationListPanel({ teamId, teamName, canManage, sho
         throw new Error("Bu sunumda kapasite dashboard verisi yok, PPTX indirilemedi.");
       }
       const sprintData = sprintDataFromContent(content);
-      const pptx = await buildFullDeck(sprintData, dashData, ASSETS, "light", cornerMesh);
+      // veloData parametresi atlanmisti: ASSETS veloData'nin, "light" assets'in
+      // yerine geciyor, cornerMesh de theme'e kayiyordu. Sonuc: bu sayfadan
+      // indirilen PPTX'te Velocity & Burndown gorselleri hic yer almiyor, kapak
+      // arka plani/logolar da bir string uzerinden okunuyordu.
+      const pptx = await buildFullDeck(sprintData, dashData, content.veloData || {}, ASSETS, "light", cornerMesh);
       const sp = (p.sprintNo || "X").toString().replace(/[^\w]/g, "");
       await pptx.writeFile({ fileName: `Sprint_Kapasite_${sp}.pptx` });
       recordPresentationDownload("INDIVIDUAL", [teamId]).catch(() => {});
@@ -277,6 +288,12 @@ export default function PresentationListPanel({ teamId, teamName, canManage, sho
             <UnifiedPreviewPane
               sprintData={previewSprintData}
               dashData={previewDashData}
+              burndownUrl={previewVeloData?.burndownUrl}
+              velocityUrl={previewVeloData?.velocityUrl}
+              burndownZoomX={previewVeloData?.burndownZoomX}
+              burndownZoomY={previewVeloData?.burndownZoomY}
+              velocityZoomX={previewVeloData?.velocityZoomX}
+              velocityZoomY={previewVeloData?.velocityZoomY}
               assets={ASSETS}
               activeTab={previewTab}
               onTabChange={setPreviewTab}
@@ -286,6 +303,10 @@ export default function PresentationListPanel({ teamId, teamName, canManage, sho
         </div>
       )}
 
+      {/* Sekme listesi UnifiedPreviewPane'inkiyle AYNI olmali: "velocity" eksik
+          oldugunda, yandaki panelde o sekmedeyken ⤢ Preview'a basan kullanici
+          basligi "Kapak" yazan ama asagidaki else dalindan icerik slaytini (bos
+          kartlar + dev filigran ikonlari) cizen bir ekran goruyordu. */}
       <ZoomModal
         open={zoomOpen}
         onClose={() => setZoomOpen(false)}
@@ -293,12 +314,25 @@ export default function PresentationListPanel({ teamId, teamName, canManage, sho
           { key: "cover", label: "Kapak" },
           { key: "content", label: "İçerik Slaytı" },
           { key: "dashboard", label: "Kapasite Dashboard" },
+          { key: "velocity", label: "Velocity & Burndown" },
         ]}
         activeTab={previewTab}
         onTabChange={setPreviewTab}
         renderCanvas={(scale) =>
           previewTab === "dashboard" ? (
             <DashboardSlideCanvas dd={previewDashData || {}} assets={ASSETS} scale={scale} />
+          ) : previewTab === "velocity" ? (
+            <VelocityBurndownSlideCanvas
+              data={previewSprintData}
+              burndownUrl={previewVeloData?.burndownUrl}
+              velocityUrl={previewVeloData?.velocityUrl}
+              burndownZoomX={previewVeloData?.burndownZoomX}
+              burndownZoomY={previewVeloData?.burndownZoomY}
+              velocityZoomX={previewVeloData?.velocityZoomX}
+              velocityZoomY={previewVeloData?.velocityZoomY}
+              assets={ASSETS}
+              scale={scale}
+            />
           ) : (
             <SlideCanvas data={previewSprintData} tab={previewTab} assets={ASSETS} scale={scale} />
           )
